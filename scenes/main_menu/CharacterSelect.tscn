@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://char_select"]
+
+[ext_resource type="Script" path="res://scenes/main_menu/CharacterSelect.gd" id="1"]
+
+[node name="CharacterSelect" type="CanvasLayer"]
+script = ExtResource("1")

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"ranger"
+display_name = "Ranger"
+ai_type = 1
+max_health = 40.0
+move_speed = 70.0
+contact_damage = 8.0
+contact_damage_cooldown = 1.0
+armor = 0.0
+xp_drop = 15
+coin_drop_chance = 0.3
+coin_drop_amount = 1
+death_sfx = ExtResource("2")

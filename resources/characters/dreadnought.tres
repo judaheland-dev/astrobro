@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/CharacterData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"dreadnought"
+display_name = "Dreadnought"
+description = "Massive HP and armor. Slow and earns less XP. Twin cannons blazing."
+max_health = 250.0
+move_speed = 100.0
+armor = 8.0
+xp_multiplier = 0.7
+coin_multiplier = 1.5
+starting_weapon = &"twin_cannon"
+unlock_cost = 120

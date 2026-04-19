@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"exploder"
+display_name = "Exploder"
+ai_type = 4
+max_health = 22.0
+move_speed = 110.0
+contact_damage = 12.0
+contact_damage_cooldown = 1.0
+armor = 0.0
+xp_drop = 10
+coin_drop_chance = 0.2
+coin_drop_amount = 1
+death_sfx = ExtResource("2")

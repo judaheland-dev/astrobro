@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"hp_boost"
+display_name = "Hull Reinforcement"
+description = "+20 Max HP"
+scope = 0
+stat_deltas = {0: 20.0}
+shop_price = 40
+max_stacks = -1

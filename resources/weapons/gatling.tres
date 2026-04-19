@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/game/weapons/BaseProjectile.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"gatling"
+display_name = "Gatling Gun"
+description = "Blazing fire rate. Low damage per shot, short range."
+ammo_type = 0
+damage = 6.0
+fire_rate = 10.0
+projectile_speed = 500.0
+range = 380.0
+spread = 0.12
+projectile_count = 1
+piercing = 0
+projectile_scene = ExtResource("2")
+unlock_cost = 50

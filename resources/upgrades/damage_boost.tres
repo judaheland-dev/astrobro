@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"damage_boost"
+display_name = "Overcharged Rounds"
+description = "+5 Weapon Damage"
+scope = 1
+stat_deltas = {3: 5.0}
+shop_price = 50
+max_stacks = -1

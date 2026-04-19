@@ -1,0 +1,163 @@
+# Space Roguelite — Agent Instructions
+
+This is a **Godot 4 / GDScript** project. Every scene node is built entirely in `_ready()` in code — there are no `.tscn` files to edit, and no Godot editor is required.
+
+See **[GAMEPAD.md](GAMEPAD.md)** for gamepad input architecture, SDL2 button remapping gotchas, and known controller mappings.
+
+## Project Structure
+
+```
+autoloads/          GameManager, MetaProgression, AudioManager, InputManager
+scenes/
+  game/             Game.gd (root), Player.gd, HUD.gd
+  game/enemies/     BaseEnemy.gd
+  game/weapons/     BaseWeapon.gd, BaseProjectile.gd
+  menus/            MainMenu, CharacterSelect, BetweenWaveUI, GameOverUI, MetaMenu
+systems/            WaveManager.gd, GameMode.gd, WaveSurvivalMode.gd, HordeDefenseMode.gd
+resources/          .tres data files (CharacterData, EnemyData, WaveData, WeaponData, UpgradeData)
+assets/sprites/     Kenney Space Shooter Remastered PNGs
+assets/fonts/       kenvector_future.ttf
+assets/audio/       .ogg sound effect files
+```
+
+## Critical GDScript Rules
+
+- **Typed arrays are invariant.** `Array[Player]` cannot be passed where `Array[Node]` is expected. Build explicitly:
+  ```gdscript
+  var targets: Array[Node] = []
+  for p in _players:
+      targets.append(p)
+  ```
+- **`Array.all()` does not exist in GDScript.** Use a `for` loop instead.
+- **`GameMode` is both a class name and was an enum name** — the enum in `GameManager.gd` is named `RunMode` to avoid the clash.
+- **Pause-safe UI nodes** must set `process_mode = Node.PROCESS_MODE_ALWAYS` in `_ready()` so they respond to input while `get_tree().paused = true`. Set it on the **CanvasLayer AND on individual Buttons** — the button's own process_mode matters for click events.
+- **`@onready` vars** (`$NodeName`) only work when the node is already in the scene tree. When building nodes in code, add children *before* calling `add_child(parent)`, or wire signals after `parent.add_child(enemy_node)`.
+- **Em-dashes (`—`) in GDScript** cause parse errors. Always use a hyphen-minus (`-`).
+- **Calling methods on a statically-typed `CanvasLayer` variable will fail** if the method is defined in a script attached at runtime. Use `.call("method_name", args)` instead:
+  ```gdscript
+  # BAD  - static type doesn't know about show_result()
+  _game_over_ui.show_result(victory)
+  # GOOD
+  _game_over_ui.call("show_result", victory)
+  ```
+- **`ColorRect` backgrounds block mouse events by default** (`MOUSE_FILTER_STOP`). Any purely-visual background behind buttons must use:
+  ```gdscript
+  bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+  ```
+
+## CanvasLayer Render Order
+
+Set `layer` explicitly; default is 1 for everything and order is undefined:
+
+| CanvasLayer | layer value |
+|---|---|
+| HUD | 1 (default) |
+| BetweenWaveUI | 5 |
+| GameOverUI | 20 |
+
+## Input Handling While Paused
+
+Global key handling (Esc, pause) belongs in **`GameManager._input()`** — it's an autoload with `process_mode = ALWAYS` and is guaranteed to be active. Don't rely on `_input()` in CanvasLayer scripts because their execution depends on layer visibility and process_mode propagation.
+
+## Collision Layers
+
+| Layer | Who uses it |
+|-------|-------------|
+| 1     | Players (layer + mask) |
+| 2     | Enemies (layer + mask) |
+| 0     | Projectiles and enemy contact areas (no layer, mask only) |
+
+- Projectiles: `collision_layer=0`, `collision_mask=2` (hit enemies only)
+- Enemy contact Area2D: `collision_layer=0`, `collision_mask=1` (detect players only)
+
+## Sprite Conventions
+
+Kenney PNG orientations (rotation offset needed):
+
+| Asset | Faces | Fix |
+|-------|-------|-----|
+| Player ships (`playerShip*.png`) | Up (−Y) | `sprite.rotation_degrees = 90.0` on the Sprite2D |
+| Enemy ships (`enemyRed*.png`, etc.) | Down (+Y) | `sprite.rotation = velocity.angle() - PI * 0.5` each frame |
+| Lasers (`laserBlue01.png`, etc.) | Up (−Y) | `sprite.rotation_degrees = 90.0` on the Sprite2D |
+
+Always load assets with a fallback:
+```gdscript
+if ResourceLoader.exists(path):
+    sprite.texture = load(path)
+else:
+    # create placeholder ImageTexture
+```
+
+## Arena & Navigation
+
+- Arena: `ARENA_HALF_W = 960`, `ARENA_HALF_H = 600`, walls are `StaticBody2D` 32px thick.
+- `NavigationPolygon` is baked in code covering the inner playable area.
+- **Enemy spawn positions must be inside the nav mesh** — use `hw=900`, `hh=560` as safe bounds. Spawning outside (e.g. ±720 on a ±960 arena) leaves `NavigationAgent2D` with no path and enemies stand still.
+
+## Audio
+
+`AudioManager` is an autoload with a 16-slot pooled SFX system and a single music player.
+
+- **`AudioManager.play_sfx(stream, volume_db, pitch_scale)`** — plays a one-shot sound on the SFX bus.
+- **`AudioManager.play_ui_click()`** — convenience helper for menu button sounds (uses `sfx_twoTone.ogg` at 1.2 pitch).
+- **`AudioManager.play_music(stream)`** / **`stop_music()`** — looping background music (no music files exist yet).
+
+Always guard asset loads with `ResourceLoader.exists(path)`. Available SFX files:
+
+| File | Used for |
+|------|----------|
+| `assets/audio/sfx_laser1.ogg` | Weapon fire |
+| `assets/audio/sfx_laser2.ogg` | Enemy hit (non-death) |
+| `assets/audio/sfx_twoTone.ogg` | Enemy death, UI clicks, victory |
+| `assets/audio/sfx_lose.ogg` | Player hurt (pitch 0.7), game over |
+
+When assigning `death_sfx` in an enemy `.tres`, add an `ext_resource` entry and increment `load_steps`:
+```
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
+...
+death_sfx = ExtResource("2")
+```
+
+## Font
+
+Use `GameManager.kenney_font()` to get the Kenney font and apply it:
+```gdscript
+var font := GameManager.kenney_font()
+if font:
+    label.add_theme_font_override("font", font)
+    label.add_theme_font_size_override("font_size", 22)
+```
+
+## Key Signals
+
+| Signal | Emitter | Receiver |
+|--------|---------|----------|
+| `enemy_spawned(enemy)` | WaveManager | Game.gd — wires xp/coin signals |
+| `xp_dropped(amount, pos)` | BaseEnemy | Game.gd |
+| `coin_dropped(amount, pos)` | BaseEnemy | Game.gd |
+| `wave_cleared(n)` | WaveManager | GameMode base class |
+| `all_waves_cleared()` | WaveManager | GameMode |
+| `health_changed(cur, max)` | Player | HUD |
+| `took_damage()` | Player | Game.gd — triggers camera shake |
+
+## Animation Patterns
+
+All animation is done with `Tween` — no `AnimationPlayer` nodes required.
+
+- **Spawn pop-in:** `scale` 0 → 1.2 → 1 with `TRANS_BACK / EASE_OUT`.
+- **Hit flash:** set `sprite.modulate` to overbright white/color instantly, tween back to `Color.WHITE`.
+- **Scale punch:** tween `scale` to ~1.15× then back; chain after the flash tween.
+- **Death:** parallel tween `modulate:a` → 0, `scale` → small, `rotation` += `TAU`; `chain().tween_callback(queue_free)`.
+- **Floating text:** add a `Label` to the scene root at `world_pos`, tween `position.y` up and `modulate:a` to 0, then `queue_free`.
+- **Camera shake:** maintain a `_shake_trauma: float`; each frame decay it and set `_camera.offset` to `randf_range * MAX_OFFSET * trauma²`. Add trauma with `_add_trauma(amount)`.
+- **Debris:** spawn `Sprite2D` children directly into `get_tree().current_scene`, tween outward and fade, then `queue_free`.
+- **`set_parallel(true)`** on a tween lets all `tween_property` calls run simultaneously; use `.chain()` to sequence steps after.
+
+## Do Not
+
+- Do not edit `.tscn` files (there are none).
+- Do not call `NavigationServer2D.bake_from_source_geometry_data()` from outside `_ready()` — baking must happen after `NavigationRegion2D` is in the tree.
+- Do not use `get_tree().paused = true` without setting `process_mode = ALWAYS` on any UI that needs to respond to input.
+- Do not define two `func _process(...)` in the same file. **Before adding `_process`, `_physics_process`, or `_ready` to any file, grep for an existing definition and merge new logic into it.**
+- Do not add new lifecycle functions without first checking the file — Game.gd already has `_process` (camera tracking + shake) and `_physics_process` is used per-node.
+- **After any multi-line `replace_string_in_file` that appends new functions**, verify the boundary between the old and new code. A stray character from the last token of the replaced block (e.g. the `d` in `d.queue_free`) can be injected onto the start of the next line, producing a parser error like `Unexpected identifier "d" in class body`. Use `hexdump` or `sed -n 'Np'` to inspect the exact bytes if the error seems to point at a valid-looking line.

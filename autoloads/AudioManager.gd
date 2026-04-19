@@ -1,0 +1,51 @@
+extends Node
+
+## AudioManager - music and SFX bus routing with pooled AudioStreamPlayers.
+
+const MUSIC_BUS: StringName = &"Music"
+const SFX_BUS: StringName = &"SFX"
+
+var _music_player: AudioStreamPlayer = null
+var _sfx_pool: Array[AudioStreamPlayer] = []
+const SFX_POOL_SIZE: int = 16
+
+func _ready() -> void:
+	_music_player = AudioStreamPlayer.new()
+	_music_player.bus = MUSIC_BUS
+	add_child(_music_player)
+
+	for i in SFX_POOL_SIZE:
+		var p := AudioStreamPlayer.new()
+		p.bus = SFX_BUS
+		add_child(p)
+		_sfx_pool.append(p)
+
+func play_music(stream: AudioStream, loop: bool = true) -> void:
+	if _music_player.stream == stream and _music_player.playing:
+		return
+	_music_player.stream = stream
+	_music_player.play()
+
+func stop_music() -> void:
+	_music_player.stop()
+
+func play_sfx(stream: AudioStream, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
+	if stream == null:
+		return
+	for p in _sfx_pool:
+		if not p.playing:
+			p.stream = stream
+			p.volume_db = volume_db
+			p.pitch_scale = pitch_scale
+			p.play()
+			return
+	# All slots busy - use slot 0 (oldest, overwrite is acceptable for SFX)
+	_sfx_pool[0].stream = stream
+	_sfx_pool[0].volume_db = volume_db
+	_sfx_pool[0].pitch_scale = pitch_scale
+	_sfx_pool[0].play()
+
+func play_ui_click() -> void:
+	var path := "res://assets/audio/sfx_twoTone.ogg"
+	if ResourceLoader.exists(path):
+		play_sfx(load(path), -4.0, 1.2)

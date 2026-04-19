@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"speeder"
+display_name = "Speeder"
+ai_type = 3
+max_health = 15.0
+move_speed = 170.0
+contact_damage = 12.0
+contact_damage_cooldown = 0.8
+armor = 0.0
+xp_drop = 8
+coin_drop_chance = 0.2
+coin_drop_amount = 1
+death_sfx = ExtResource("2")

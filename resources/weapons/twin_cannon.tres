@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/game/weapons/BaseProjectile.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"twin_cannon"
+display_name = "Twin Cannon"
+description = "Fires two heavy shells simultaneously."
+ammo_type = 2
+damage = 28.0
+fire_rate = 1.8
+projectile_speed = 360.0
+range = 580.0
+spread = 0.06
+projectile_count = 2
+piercing = 0
+projectile_scene = ExtResource("2")
+unlock_cost = 80

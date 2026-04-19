@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WaveData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/WaveData.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/enemies/brute.tres" id="2"]
+[ext_resource type="Resource" path="res://resources/enemies/speeder.tres" id="3"]
+[ext_resource type="Resource" path="res://resources/enemies/ranger.tres" id="4"]
+
+[resource]
+script = ExtResource("1")
+wave_number = 8
+is_boss_wave = false
+enemy_pool = [ExtResource("2"), ExtResource("3"), ExtResource("4")]
+enemy_counts = [6, 20, 6]
+spawn_interval = 0.30
+initial_delay = 0.6
+time_limit = 0.0
+bonus_coins = 52
+bonus_xp = 0

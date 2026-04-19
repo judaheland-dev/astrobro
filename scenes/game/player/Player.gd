@@ -1,0 +1,181 @@
+extends CharacterBody2D
+class_name Player
+
+## Player - movement, health, XP, weapon management, and co-op device routing.
+
+signal health_changed(current: float, maximum: float)
+signal died()
+signal took_damage()
+signal xp_gained(new_xp: int, threshold: int)
+signal leveled_up(new_level: int)
+
+@export var player_index: int = 0       # 0 = P1, 1 = P2
+@export var character_data: CharacterData = null
+
+# Runtime stats (may be modified by upgrades)
+var max_health: float = 100.0
+var current_health: float = 100.0
+var move_speed: float = 200.0
+var armor: float = 0.0
+var xp_multiplier: float = 1.0
+var coin_multiplier: float = 1.0
+var lifesteal: float = 0.0
+
+# XP / leveling
+var xp: int = 0
+var level: int = 1
+var xp_threshold: int = 100
+
+# Weapons
+var weapons: Array[Node] = []           # BaseWeapon children
+var active_weapon_index: int = 0
+
+# Thrust bob
+var _thrust_bob_time: float = 0.0
+var _is_moving: bool = false
+
+@onready var sprite: Sprite2D = $Sprite2D
+@onready var collision: CollisionShape2D = $CollisionShape2D
+
+func _ready() -> void:
+	collision_layer = 1   # player on layer 1
+	collision_mask  = 3   # collide with layer 1 (walls) and layer 2 (enemies)
+	if character_data:
+		_apply_character_data()
+	_apply_meta_bonuses()
+	current_health = max_health
+	health_changed.emit(current_health, max_health)
+
+func _apply_character_data() -> void:
+	max_health     = character_data.max_health
+	move_speed     = character_data.move_speed
+	armor          = character_data.armor
+	xp_multiplier  = character_data.xp_multiplier
+	coin_multiplier = character_data.coin_multiplier
+	if character_data.sprite:
+		sprite.texture = character_data.sprite
+
+func _apply_meta_bonuses() -> void:
+	max_health  += MetaProgression.get_persistent_stat(&"max_health")
+	move_speed  += MetaProgression.get_persistent_stat(&"move_speed")
+	armor       += MetaProgression.get_persistent_stat(&"armor")
+
+func _physics_process(delta: float) -> void:
+	var move_dir := InputManager.get_move_dir(player_index)
+	velocity = move_dir * move_speed
+	move_and_slide()
+
+	var aim_dir := InputManager.get_aim_dir(player_index, global_position)
+	if aim_dir != Vector2.ZERO:
+		rotation = aim_dir.angle()
+
+	if InputManager.is_firing(player_index):
+		_fire_all_weapons(aim_dir)
+
+	# Thrust bob: subtle sideways oscillation when moving
+	_is_moving = velocity.length_squared() > 1.0
+	if _is_moving:
+		_thrust_bob_time += delta * 8.0
+		sprite.position.y = sin(_thrust_bob_time) * 2.5
+	else:
+		_thrust_bob_time = 0.0
+		sprite.position.y = move_toward(sprite.position.y, 0.0, delta * 20.0)
+
+func _fire_all_weapons(aim_dir: Vector2) -> void:
+	for weapon in weapons:
+		if weapon.has_method("try_fire"):
+			weapon.try_fire(aim_dir)
+
+# --- Health ---
+
+func take_damage(amount: float) -> void:
+	var effective := maxf(0.0, amount - armor)
+	current_health -= effective
+	took_damage.emit()
+	_flash_damage()
+	var hurt_sfx := "res://assets/audio/sfx_lose.ogg"
+	if ResourceLoader.exists(hurt_sfx):
+		AudioManager.play_sfx(load(hurt_sfx), -4.0, 0.7)
+	health_changed.emit(current_health, max_health)
+	if lifesteal > 0.0:
+		heal(effective * lifesteal)
+	if current_health <= 0.0:
+		_die()
+
+func _flash_damage() -> void:
+	# Red flash + scale punch + invincibility blink
+	sprite.modulate = Color(3.0, 0.1, 0.1, 1.0)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(sprite, "modulate", Color.WHITE, 0.35)
+	tween.tween_property(self, "scale", Vector2.ONE * 1.18, 0.07).set_trans(Tween.TRANS_SINE)
+	tween.chain().tween_property(self, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_SINE)
+	# Blink during invincibility window
+	var blink := create_tween()
+	blink.set_loops(3)
+	blink.tween_property(sprite, "modulate:a", 0.2, 0.08)
+	blink.tween_property(sprite, "modulate:a", 1.0, 0.08)
+
+func heal(amount: float) -> void:
+	current_health = minf(current_health + amount, max_health)
+	health_changed.emit(current_health, max_health)
+
+func _die() -> void:
+	died.emit()
+	set_physics_process(false)
+	# Death: spin out and fade
+	var tween := create_tween()
+	tween.set_parallel(true)
+	sprite.modulate = Color(2.0, 0.8, 0.1, 1.0)
+	tween.tween_property(sprite, "modulate", Color(1.0, 0.2, 0.0, 0.0), 0.6)
+	tween.tween_property(sprite, "rotation", sprite.rotation + TAU, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(self, "scale", Vector2(0.1, 0.1), 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(hide)
+
+# --- XP ---
+
+func gain_xp(amount: int) -> void:
+	var gained := int(amount * xp_multiplier)
+	xp += gained
+	xp_gained.emit(xp, xp_threshold)
+	while xp >= xp_threshold:
+		xp -= xp_threshold
+		level += 1
+		xp_threshold = int(xp_threshold * 1.4)
+		leveled_up.emit(level)
+
+# --- Upgrades ---
+
+func apply_upgrade(data: UpgradeData) -> void:
+	for key in data.stat_deltas:
+		var delta: float = data.stat_deltas[key]
+		match key:
+			UpgradeData.StatKey.MAX_HEALTH:
+				max_health += delta
+				current_health = minf(current_health + delta, max_health)
+			UpgradeData.StatKey.MOVE_SPEED:
+				move_speed += delta
+			UpgradeData.StatKey.ARMOR:
+				armor += delta
+			UpgradeData.StatKey.XP_MULTIPLIER:
+				xp_multiplier += delta
+			UpgradeData.StatKey.COIN_MULTIPLIER:
+				coin_multiplier += delta
+			UpgradeData.StatKey.LIFESTEAL:
+				lifesteal += delta
+			UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
+			UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
+			UpgradeData.StatKey.SPREAD:
+				for weapon in weapons:
+					if weapon.has_method("apply_stat_delta"):
+						weapon.apply_stat_delta(key, delta)
+	health_changed.emit(current_health, max_health)
+
+# --- Weapons ---
+
+func add_weapon(weapon_node: Node) -> void:
+	weapons.append(weapon_node)
+	add_child(weapon_node)
+
+func get_weapon_count() -> int:
+	return weapons.size()

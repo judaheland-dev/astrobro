@@ -1,0 +1,21 @@
+# Godot 4 editor cache (regenerated automatically)
+.godot/
+
+# Compiled translation files
+*.translation
+
+# Mono/C# build artifacts (not used here, but safe to include)
+.mono/
+data_*/
+mono_crash.*.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo

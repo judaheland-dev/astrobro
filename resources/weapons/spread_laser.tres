@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/game/weapons/BaseProjectile.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"spread_laser"
+display_name = "Spread Laser"
+description = "Fires three green lasers in a wide fan."
+ammo_type = 1
+damage = 15.0
+fire_rate = 2.0
+projectile_speed = 400.0
+range = 440.0
+spread = 0.40
+projectile_count = 3
+piercing = 0
+projectile_scene = ExtResource("2")
+unlock_cost = 60

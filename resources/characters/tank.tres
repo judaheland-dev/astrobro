@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/CharacterData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"tank"
+display_name = "Tank"
+description = "Slow but heavily armored. High HP."
+max_health = 180.0
+move_speed = 130.0
+armor = 5.0
+xp_multiplier = 0.8
+coin_multiplier = 1.2
+starting_weapon = &"shotgun"
+unlock_cost = 150
