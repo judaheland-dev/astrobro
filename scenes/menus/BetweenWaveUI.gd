@@ -10,6 +10,8 @@ var _players: Array[Player] = []
 var _current_player_index: int = 0
 var _wave_number: int = 0
 var _wave_manager: WaveManager = null
+var _remaining_picks: int = 0
+var _total_picks: int = 0
 
 var _title_label: Label
 var _choices_container: HBoxContainer
@@ -56,12 +58,34 @@ func show_for_players(players: Array[Player], wave_number: int, wave_manager: Wa
 	_wave_number = wave_number
 	_wave_manager = wave_manager
 	_current_player_index = 0
+	# If no player earned any level-ups this wave, skip the UI entirely.
+	var any_picks := false
+	for p in _players:
+		if p.pending_upgrades > 0:
+			any_picks = true
+			break
+	if not any_picks:
+		_close()
+		return
 	visible = true
 	_show_level_up_for_player()
 
 func _show_level_up_for_player() -> void:
-	_title_label.text = "Wave %d cleared!\nPlayer %d - Choose an upgrade:" % [_wave_number, _current_player_index + 1]
-	_populate_choices(_players[_current_player_index])
+	# Advance past any players who earned zero level-ups this wave.
+	while _current_player_index < _players.size() and _players[_current_player_index].pending_upgrades == 0:
+		_current_player_index += 1
+	if _current_player_index >= _players.size():
+		_close()
+		return
+	var player := _players[_current_player_index]
+	_remaining_picks = player.pending_upgrades
+	_total_picks = _remaining_picks
+	player.pending_upgrades = 0
+	var pick_text := ""
+	if _total_picks > 1:
+		pick_text = " (Pick 1 of %d)" % _total_picks
+	_title_label.text = "Wave %d cleared!\nPlayer %d - Choose an upgrade:%s" % [_wave_number, _current_player_index + 1, pick_text]
+	_populate_choices(player)
 
 func _populate_choices(player: Player) -> void:
 	for child in _choices_container.get_children():
@@ -177,15 +201,23 @@ func _load_all_upgrades() -> Array[UpgradeData]:
 func _on_upgrade_chosen(player: Player, data: UpgradeData) -> void:
 	AudioManager.play_ui_click()
 	player.apply_upgrade(data)
-	_current_player_index += 1
-	if _current_player_index < _players.size():
-		_show_level_up_for_player()
+	_remaining_picks -= 1
+	if _remaining_picks > 0:
+		var pick_num := _total_picks - _remaining_picks + 1
+		_title_label.text = "Wave %d cleared!\nPlayer %d - Choose an upgrade: (Pick %d of %d)" % [
+			_wave_number, _current_player_index + 1, pick_num, _total_picks
+		]
+		_populate_choices(player)
 	else:
-		_close()
+		_current_player_index += 1
+		_show_level_up_for_player()
 
 func _on_continue_pressed() -> void:
 	AudioManager.play_ui_click()
-	_close()
+	# Skip all remaining picks for the current player.
+	_remaining_picks = 0
+	_current_player_index += 1
+	_show_level_up_for_player()
 
 func _close() -> void:
 	visible = false

@@ -35,6 +35,7 @@ var _block_cooldown: float = 0.0
 var xp: int = 0
 var level: int = 1
 var xp_threshold: int = 100
+var pending_upgrades: int = 0  # picks banked this wave; consumed by BetweenWaveUI
 
 # Weapons
 var weapons: Array[Node] = []           # BaseWeapon children
@@ -179,6 +180,7 @@ func gain_xp(amount: int) -> void:
 		xp -= xp_threshold
 		level += 1
 		xp_threshold = int(xp_threshold * 1.4)
+		pending_upgrades += 1
 		leveled_up.emit(level)
 		var sfx := "res://assets/audio/sfx_levelup.ogg"
 		if ResourceLoader.exists(sfx):
