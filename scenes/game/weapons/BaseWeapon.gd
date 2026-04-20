@@ -17,6 +17,11 @@ var piercing: int = 0
 var _fire_cooldown: float = 0.0
 var _projectile_parent: Node = null   # set by Game so projectiles don't rotate with player
 
+# Class bonus set at equip time (permanent this run)
+var damage_multiplier: float = 1.0
+# Passive ability modifier (temporary, set by passive scripts)
+var passive_multiplier: float = 1.0
+
 func _ready() -> void:
 	if weapon_data:
 		damage           = weapon_data.damage
@@ -80,7 +85,7 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 		proj.shooter = get_parent()
 		parent.add_child(proj)
 		proj.global_position = global_position
-		proj.setup(dir, damage, projectile_speed, range, piercing)
+		proj.setup(dir, damage * damage_multiplier * passive_multiplier, projectile_speed, range, piercing)
 
 func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
 	match key:

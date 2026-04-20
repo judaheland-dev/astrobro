@@ -8,6 +8,8 @@ signal died()
 signal took_damage()
 signal xp_gained(new_xp: int, threshold: int)
 signal leveled_up(new_level: int)
+signal weapon_fired()
+signal scrap_changed(amount: int)
 
 @export var player_index: int = 0       # 0 = P1, 1 = P2
 @export var character_data: CharacterData = null
@@ -20,6 +22,14 @@ var armor: float = 0.0
 var xp_multiplier: float = 1.0
 var coin_multiplier: float = 1.0
 var lifesteal: float = 0.0
+
+# In-run currency (resets each run; spent in weapon shop)
+var scrap: int = 0
+var scrap_bonus_chance: float = 0.0   # set by Rogue passive
+
+# Damage blocking (Tank passive sets this)
+var damage_block_chance: float = 0.0
+var _block_cooldown: float = 0.0
 
 # XP / leveling
 var xp: int = 0
@@ -42,23 +52,37 @@ func _ready() -> void:
 	collision_mask  = 3   # collide with layer 1 (walls) and layer 2 (enemies)
 	if character_data:
 		_apply_character_data()
-	_apply_meta_bonuses()
 	current_health = max_health
 	health_changed.emit(current_health, max_health)
+	_spawn_passive()
 
 func _apply_character_data() -> void:
-	max_health     = character_data.max_health
-	move_speed     = character_data.move_speed
-	armor          = character_data.armor
-	xp_multiplier  = character_data.xp_multiplier
+	max_health      = character_data.max_health
+	move_speed      = character_data.move_speed
+	armor           = character_data.armor
+	xp_multiplier   = character_data.xp_multiplier
 	coin_multiplier = character_data.coin_multiplier
 	if character_data.sprite:
 		sprite.texture = character_data.sprite
 
-func _apply_meta_bonuses() -> void:
-	max_health  += MetaProgression.get_persistent_stat(&"max_health")
-	move_speed  += MetaProgression.get_persistent_stat(&"move_speed")
-	armor       += MetaProgression.get_persistent_stat(&"armor")
+func _spawn_passive() -> void:
+	if not character_data:
+		return
+	var cid := str(character_data.id)
+	var cap := cid[0].to_upper() + cid.substr(1)
+	var path := "res://scenes/game/player/abilities/%sPassive.gd" % cap
+	if ResourceLoader.exists(path):
+		var script: Script = load(path)
+		var passive: Node = script.new()
+		add_child(passive)
+		passive.call("setup", self)
+
+func add_scrap(amount: int) -> void:
+	var actual := amount
+	if scrap_bonus_chance > 0.0 and randf() < scrap_bonus_chance:
+		actual *= 2
+	scrap += actual
+	scrap_changed.emit(scrap)
 
 func _physics_process(delta: float) -> void:
 	var move_dir := InputManager.get_move_dir(player_index)
@@ -81,7 +105,11 @@ func _physics_process(delta: float) -> void:
 		_thrust_bob_time = 0.0
 		sprite.position.y = move_toward(sprite.position.y, 0.0, delta * 20.0)
 
+	if _block_cooldown > 0.0:
+		_block_cooldown -= delta
+
 func _fire_all_weapons(aim_dir: Vector2) -> void:
+	weapon_fired.emit()
 	for weapon in weapons:
 		if weapon.has_method("try_fire"):
 			weapon.try_fire(aim_dir)
@@ -89,6 +117,10 @@ func _fire_all_weapons(aim_dir: Vector2) -> void:
 # --- Health ---
 
 func take_damage(amount: float) -> void:
+	if damage_block_chance > 0.0 and _block_cooldown <= 0.0 and randf() < damage_block_chance:
+		_block_cooldown = 8.0
+		_flash_damage()
+		return
 	var effective := maxf(0.0, amount - armor)
 	current_health -= effective
 	took_damage.emit()
@@ -182,6 +214,13 @@ func apply_upgrade(data: UpgradeData) -> void:
 # --- Weapons ---
 
 func add_weapon(weapon_node: Node) -> void:
+	var slots := character_data.weapon_slots if character_data else 2
+	if weapons.size() >= slots:
+		return
+	var wdata = weapon_node.get("weapon_data")
+	if character_data and wdata != null:
+		var bonus: float = character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0)
+		weapon_node.set("damage_multiplier", 1.0 + bonus)
 	weapons.append(weapon_node)
 	add_child(weapon_node)
 

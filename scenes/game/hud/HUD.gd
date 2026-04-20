@@ -3,7 +3,6 @@ extends CanvasLayer
 ## HUD - builds its own UI nodes in code. No .tscn required.
 
 var _wave_label: Label
-var _coin_label: Label
 var _players_vbox: VBoxContainer
 
 func _ready() -> void:
@@ -30,24 +29,13 @@ func _ready() -> void:
 		_wave_label.add_theme_font_size_override("font_size", 22)
 	root.add_child(_wave_label)
 
-	_coin_label = Label.new()
-	_coin_label.text = "Coins: 0"
-	_coin_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_coin_label.offset_left = -220.0
-	_coin_label.offset_top = 52.0
-	_coin_label.offset_right = -12.0
-	_coin_label.offset_bottom = 88.0
-	if hud_font:
-		_coin_label.add_theme_font_override("font", hud_font)
-		_coin_label.add_theme_font_size_override("font_size", 22)
-	root.add_child(_coin_label)
-
 func register_player(player: Player) -> void:
 	var panel := _create_player_panel(player.player_index)
 	_players_vbox.add_child(panel)
 	player.health_changed.connect(func(cur, mx): _update_health(panel, cur, mx))
 	player.xp_gained.connect(func(xp, threshold): _update_xp(panel, xp, threshold))
 	player.leveled_up.connect(func(lvl): _update_level(panel, lvl))
+	player.scrap_changed.connect(func(amount): _update_scrap(panel, amount))
 	player.died.connect(func(): _mark_dead(panel))
 
 func _create_player_panel(index: int) -> Control:
@@ -82,6 +70,15 @@ func _create_player_panel(index: int) -> Control:
 		level_label.add_theme_font_size_override("font_size", 20)
 	vbox.add_child(level_label)
 
+	var scrap_label := Label.new()
+	scrap_label.name = "ScrapLabel"
+	scrap_label.text = "Scrap: 0"
+	scrap_label.modulate = Color(0.3, 0.9, 1.0)
+	if panel_font:
+		scrap_label.add_theme_font_override("font", panel_font)
+		scrap_label.add_theme_font_size_override("font_size", 18)
+	vbox.add_child(scrap_label)
+
 	return vbox
 
 func _mark_dead(panel: Control) -> void:
@@ -107,10 +104,11 @@ func _update_level(panel: Control, level: int) -> void:
 	if lbl:
 		lbl.text = "Lv %d" % level
 
+func _update_scrap(panel: Control, amount: int) -> void:
+	var lbl := panel.get_node_or_null("ScrapLabel") as Label
+	if lbl:
+		lbl.text = "Scrap: %d" % amount
+
 func update_wave(current: int, total: int) -> void:
 	if _wave_label:
 		_wave_label.text = "Wave %d / %d" % [current, total]
-
-func _process(_delta: float) -> void:
-	if _coin_label:
-		_coin_label.text = "Coins: %d" % MetaProgression.get_coins()

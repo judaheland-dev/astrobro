@@ -11,6 +11,7 @@ var _enemies_container: Node2D
 var _projectiles_container: Node2D
 var _hud: CanvasLayer
 var _between_wave_ui: CanvasLayer
+var _shop_ui: CanvasLayer
 var _game_over_ui: CanvasLayer
 var _camera: Camera2D
 
@@ -34,6 +35,7 @@ func _ready() -> void:
 	_build_camera()
 	_build_hud()
 	_build_between_wave_ui()
+	_build_shop_ui()
 	_build_game_over_ui()
 
 	add_child(_wave_manager)
@@ -44,6 +46,8 @@ func _ready() -> void:
 	_setup_game_mode()
 	_connect_hud()
 
+	_between_wave_ui.connect("ui_closed", _on_between_wave_closed)
+	_shop_ui.connect("ui_closed", _on_shop_closed)
 	_wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	_wave_manager.start_waves()
 	GameManager.set_state(GameManager.GameState.PLAYING)
@@ -150,6 +154,13 @@ func _build_game_over_ui() -> void:
 	_game_over_ui.set_script(load("res://scenes/menus/GameOverUI.gd"))
 	_game_over_ui.visible = false
 	add_child(_game_over_ui)
+
+func _build_shop_ui() -> void:
+	_shop_ui = CanvasLayer.new()
+	_shop_ui.name = "ShopUI"
+	_shop_ui.set_script(load("res://scenes/menus/ShopUI.gd"))
+	_shop_ui.visible = false
+	add_child(_shop_ui)
 
 # ---------------------------------------------------------------------------
 # Players
@@ -331,6 +342,18 @@ func _show_between_wave_ui(wave_number: int) -> void:
 	if _between_wave_ui.has_method("show_for_players"):
 		_between_wave_ui.show_for_players(_players, wave_number, _wave_manager)
 
+func _on_between_wave_closed() -> void:
+	if _shop_ui.has_method("show_for_players"):
+		var arr: Array = []
+		for p in _players:
+			arr.append(p)
+		_shop_ui.call("show_for_players", arr, _projectiles_container)
+
+func _on_shop_closed() -> void:
+	get_tree().paused = false
+	GameManager.set_state(GameManager.GameState.PLAYING)
+	_wave_manager.next_wave()
+
 func _on_player_died() -> void:
 	pass  # GameMode handles multi-player death tracking
 
@@ -350,7 +373,18 @@ func _on_xp_dropped(amount: int, world_pos: Vector2) -> void:
 
 func _on_coin_dropped(amount: int, world_pos: Vector2) -> void:
 	GameManager.run_coins_earned += amount
-	_spawn_floating_text("+%d" % amount, world_pos, Color(1.0, 0.85, 0.1))
+	# Award Scrap to nearest living player
+	var nearest: Player = null
+	var best_dist := INF
+	for p in _players:
+		if p.is_physics_processing():
+			var d := p.global_position.distance_squared_to(world_pos)
+			if d < best_dist:
+				best_dist = d
+				nearest = p
+	if nearest:
+		nearest.add_scrap(amount)
+	_spawn_floating_text("Scrap +%d" % amount, world_pos, Color(0.3, 0.9, 1.0))
 	var sfx := "res://assets/audio/sfx_coin_pickup.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), -6.0, randf_range(1.1, 1.3))

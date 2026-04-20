@@ -55,15 +55,6 @@ func unlock_weapon(id: StringName) -> void:
 		_data.unlocked_weapons.append(id)
 		save()
 
-# --- Persistent stat upgrades ---
-
-func get_persistent_stat(stat: StringName) -> float:
-	return _data.persistent_stats.get(stat, 0.0)
-
-func add_persistent_stat(stat: StringName, delta: float) -> void:
-	_data.persistent_stats[stat] = _data.persistent_stats.get(stat, 0.0) + delta
-	save()
-
 func reset_all() -> void:
 	_data = MetaSaveData.new()
 	save()

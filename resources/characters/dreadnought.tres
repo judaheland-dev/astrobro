@@ -14,3 +14,6 @@ xp_multiplier = 0.7
 coin_multiplier = 1.5
 starting_weapon = &"twin_cannon"
 unlock_cost = 120
+weapon_slots = 3
+preferred_upgrades = [&"hp_boost", &"lifesteal"]
+weapon_class_bonuses = {0: -0.2, 1: -0.25, 3: 0.3, 4: 0.2}

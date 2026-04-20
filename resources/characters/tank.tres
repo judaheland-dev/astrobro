@@ -14,3 +14,6 @@ xp_multiplier = 0.8
 coin_multiplier = 1.2
 starting_weapon = &"shotgun"
 unlock_cost = 150
+weapon_slots = 4
+preferred_upgrades = [&"hp_boost", &"lifesteal"]
+weapon_class_bonuses = {0: -0.1, 1: -0.2, 2: 0.15, 3: 0.25, 4: 0.25}

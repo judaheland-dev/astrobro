@@ -18,8 +18,14 @@ class_name CharacterData
 # Starting weapon id (StringName matching WeaponData.id)
 @export var starting_weapon: StringName = &"pistol"
 
-# Unlock cost in meta coins (0 = free/default)
+# Unlock cost in meta Credits (0 = free/default)
 @export var unlock_cost: int = 0
 
-# Passive ability scene (can be null for no ability)
-@export var ability_scene: PackedScene = null
+# Weapon slot limit for this ship
+@export var weapon_slots: int = 2
+
+# UpgradeData ids that get 3x weight in between-wave offers
+@export var preferred_upgrades: Array[StringName] = []
+
+# WeaponData.WeaponClass int -> damage multiplier delta (e.g. 0.2 = +20%, -0.15 = -15%)
+@export var weapon_class_bonuses: Dictionary = {}

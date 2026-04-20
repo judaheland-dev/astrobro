@@ -6,4 +6,3 @@ class_name MetaSaveData
 @export var coins: int = 0
 @export var unlocked_characters: Array[StringName] = [&"scout", &"sniper"]
 @export var unlocked_weapons: Array[StringName] = [&"pistol"]
-@export var persistent_stats: Dictionary = {}

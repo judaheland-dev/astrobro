@@ -11,12 +11,22 @@ enum AmmoType {
 	ORBITAL,
 }
 
+enum WeaponClass {
+	RAPID,       # fast-firing, lower damage per shot
+	PRECISION,   # slow, high damage, long range
+	SPREAD,      # wide-angle burst or multi-shot
+	HEAVY,       # high damage, slow, tankier projectiles
+	EXPLOSIVE,  # AoE / piercing, slow fire rate
+}
+
 @export var id: StringName = &""
 @export var display_name: String = ""
 @export var description: String = ""
 @export var icon: Texture2D = null
 
 @export var ammo_type: AmmoType = AmmoType.BULLET
+@export var weapon_class: WeaponClass = WeaponClass.RAPID
+@export var shop_cost: int = 50
 @export var damage: float = 10.0
 @export var fire_rate: float = 2.0        # shots per second
 @export var projectile_speed: float = 400.0

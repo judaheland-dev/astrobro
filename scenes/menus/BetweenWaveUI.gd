@@ -69,7 +69,10 @@ func _populate_choices(player: Player) -> void:
 
 	var all_upgrades := _load_all_upgrades()
 	var weights := _get_rarity_weights(_wave_number)
-	var offered := _weighted_sample(all_upgrades, weights, CHOICES_COUNT)
+	var preferred: Array[StringName] = []
+	if player.character_data:
+		preferred = player.character_data.preferred_upgrades
+	var offered := _weighted_sample(all_upgrades, weights, CHOICES_COUNT, preferred)
 
 	var card_font := GameManager.kenney_font()
 	for data in offered:
@@ -115,7 +118,8 @@ func _get_rarity_weights(wave: int) -> Array[float]:
 	return weights
 
 # Draws `count` unique upgrades from pool, weighted by each item's rarity weight.
-func _weighted_sample(pool: Array[UpgradeData], weights: Array[float], count: int) -> Array[UpgradeData]:
+# Items whose id appears in `preferred` get 3x weight.
+func _weighted_sample(pool: Array[UpgradeData], weights: Array[float], count: int, preferred: Array[StringName] = []) -> Array[UpgradeData]:
 	var result: Array[UpgradeData] = []
 	var remaining := pool.duplicate()
 	var attempts := 0
@@ -123,13 +127,15 @@ func _weighted_sample(pool: Array[UpgradeData], weights: Array[float], count: in
 		attempts += 1
 		var total := 0.0
 		for item in remaining:
-			total += weights[item.rarity]
+			var w := weights[item.rarity] * (3.0 if item.id in preferred else 1.0)
+			total += w
 		if total <= 0.0:
 			break
 		var roll := randf() * total
 		var acc := 0.0
 		for i in range(remaining.size()):
-			acc += weights[remaining[i].rarity]
+			var w := weights[remaining[i].rarity] * (3.0 if remaining[i].id in preferred else 1.0)
+			acc += w
 			if roll <= acc:
 				result.append(remaining[i])
 				remaining.remove_at(i)
@@ -183,8 +189,4 @@ func _on_continue_pressed() -> void:
 
 func _close() -> void:
 	visible = false
-	get_tree().paused = false
-	GameManager.set_state(GameManager.GameState.PLAYING)
-	if _wave_manager:
-		_wave_manager.next_wave()
 	ui_closed.emit()
