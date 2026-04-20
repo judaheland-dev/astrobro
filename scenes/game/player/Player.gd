@@ -97,8 +97,6 @@ func take_damage(amount: float) -> void:
 	if ResourceLoader.exists(hurt_sfx):
 		AudioManager.play_sfx(load(hurt_sfx), -4.0, 0.7)
 	health_changed.emit(current_health, max_health)
-	if lifesteal > 0.0:
-		heal(effective * lifesteal)
 	if current_health <= 0.0:
 		_die()
 

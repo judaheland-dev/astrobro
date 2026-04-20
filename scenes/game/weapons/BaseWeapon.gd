@@ -77,6 +77,7 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 		col.shape = shape
 		proj.add_child(col)
 
+		proj.shooter = get_parent()
 		parent.add_child(proj)
 		proj.global_position = global_position
 		proj.setup(dir, damage, projectile_speed, range, piercing)

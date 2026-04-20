@@ -8,6 +8,7 @@ var speed: float = 400.0
 var damage: float = 10.0
 var max_range: float = 600.0
 var piercing: int = 0
+var shooter: Node = null
 
 var _distance_traveled: float = 0.0
 var _hit_entities: Array[Node] = []   # track already-hit to avoid double damage
@@ -49,6 +50,9 @@ func _on_body_entered(body: Node) -> void:
 	if body.has_method("take_damage"):
 		body.take_damage(damage)
 		_spawn_impact_flash()
+		if shooter != null and "lifesteal" in shooter and shooter.lifesteal > 0.0:
+			if shooter.has_method("heal"):
+				shooter.heal(damage * shooter.lifesteal)
 
 	if piercing <= 0:
 		queue_free()
