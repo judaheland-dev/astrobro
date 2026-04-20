@@ -199,6 +199,7 @@ func _spawn_players() -> void:
 		p.add_child(col)
 
 		p.player_index = i
+		p.damage_sprite_set = i % 3 + 1
 		var char_id := GameManager.selected_characters[i] if i < GameManager.selected_characters.size() else &"scout"
 		var data_path := "res://resources/characters/%s.tres" % char_id
 		if ResourceLoader.exists(data_path):

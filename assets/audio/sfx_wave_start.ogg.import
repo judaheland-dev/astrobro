@@ -2,12 +2,13 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://vwrl8hfpmtcl"
-valid=false
+uid="uid://cstjpinb8eubm"
+path="res://.godot/imported/sfx_wave_start.ogg-99ed8be0e36b106a4e5742fbbbb4ef6e.oggvorbisstr"
 
 [deps]
 
 source_file="res://assets/audio/sfx_wave_start.ogg"
+dest_files=["res://.godot/imported/sfx_wave_start.ogg-99ed8be0e36b106a4e5742fbbbb4ef6e.oggvorbisstr"]
 
 [params]
 

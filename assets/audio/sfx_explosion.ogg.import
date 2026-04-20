@@ -2,12 +2,13 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://bgdcldnqv3oyc"
-valid=false
+uid="uid://b3q4o4fiu7jpd"
+path="res://.godot/imported/sfx_explosion.ogg-025ff86ceb58db11e1455db69e47cd61.oggvorbisstr"
 
 [deps]
 
 source_file="res://assets/audio/sfx_explosion.ogg"
+dest_files=["res://.godot/imported/sfx_explosion.ogg-025ff86ceb58db11e1455db69e47cd61.oggvorbisstr"]
 
 [params]
 

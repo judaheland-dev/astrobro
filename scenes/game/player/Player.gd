@@ -45,6 +45,18 @@ var active_weapon_index: int = 0
 var _thrust_bob_time: float = 0.0
 var _is_moving: bool = false
 
+# Thruster animation
+# Frame ranges reserved: 0-6 = base, 7-12 = boosted (speed upgrades), 13-19 = max (reserved)
+var _thruster: Sprite2D = null
+var _thruster_textures: Array = []
+var _thruster_tick: float = 0.0
+var _thruster_frame_idx: int = 0
+const _THRUSTER_FPS: float = 12.0
+
+# Damage overlay (set damage_sprite_set = 1/2/3 before adding to scene tree)
+var damage_sprite_set: int = 1
+var _damage_overlay: Sprite2D = null
+
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
@@ -56,6 +68,9 @@ func _ready() -> void:
 	current_health = max_health
 	health_changed.emit(current_health, max_health)
 	_spawn_passive()
+	sprite.rotation_degrees = 90.0
+	_setup_thruster()
+	_setup_damage_overlay()
 
 func _apply_character_data() -> void:
 	max_health      = character_data.max_health
@@ -106,6 +121,8 @@ func _physics_process(delta: float) -> void:
 		_thrust_bob_time = 0.0
 		sprite.position.y = move_toward(sprite.position.y, 0.0, delta * 20.0)
 
+	_update_thruster(delta)
+
 	if _block_cooldown > 0.0:
 		_block_cooldown -= delta
 
@@ -130,6 +147,7 @@ func take_damage(amount: float) -> void:
 	if ResourceLoader.exists(hurt_sfx):
 		AudioManager.play_sfx(load(hurt_sfx), -4.0, 0.7)
 	health_changed.emit(current_health, max_health)
+	_update_damage_overlay(current_health / max_health)
 	if current_health <= 0.0:
 		_die()
 
@@ -150,6 +168,7 @@ func _flash_damage() -> void:
 func heal(amount: float) -> void:
 	current_health = minf(current_health + amount, max_health)
 	health_changed.emit(current_health, max_health)
+	_update_damage_overlay(current_health / max_health)
 	if amount > 2.0:
 		var sfx := "res://assets/audio/sfx_heal.ogg"
 		if ResourceLoader.exists(sfx):
@@ -228,3 +247,81 @@ func add_weapon(weapon_node: Node) -> void:
 
 func get_weapon_count() -> int:
 	return weapons.size()
+
+func _setup_thruster() -> void:
+	for i in 20:
+		var p := "res://assets/sprites/fire%02d.png" % i
+		_thruster_textures.append(load(p) if ResourceLoader.exists(p) else null)
+	_thruster = Sprite2D.new()
+	# position at engine (~50px behind ship center); offset moves flame pivot to its base
+	# so the flame extends fully behind the hull
+	_thruster.position = Vector2(-50.0, 0.0)
+	_thruster.offset = Vector2(0.0, 20.0)  # pivot at base of flame, tip trails behind
+	_thruster.rotation_degrees = -90.0
+	_thruster.scale = Vector2(0.9, 0.9)
+	_thruster.z_index = -1
+	_thruster.visible = false
+	add_child(_thruster)
+	if _thruster_textures.size() > 0 and _thruster_textures[0] != null:
+		_thruster.texture = _thruster_textures[0]
+
+func _setup_damage_overlay() -> void:
+	var ship_num := clampi(damage_sprite_set, 1, 3)
+	_damage_overlay = Sprite2D.new()
+	_damage_overlay.rotation_degrees = 90.0
+	_damage_overlay.z_index = 1
+	_damage_overlay.visible = false
+	add_child(_damage_overlay)
+	# Pre-load damage textures into metadata for quick access
+	var textures: Array = []
+	for lvl in [1, 2, 3]:
+		var p := "res://assets/sprites/playerShip%d_damage%d.png" % [ship_num, lvl]
+		textures.append(load(p) if ResourceLoader.exists(p) else null)
+	_damage_overlay.set_meta("textures", textures)
+
+func _update_damage_overlay(hp_frac: float) -> void:
+	if _damage_overlay == null:
+		return
+	var textures: Array = _damage_overlay.get_meta("textures", [])
+	if textures.is_empty():
+		return
+	if hp_frac > 0.66:
+		_damage_overlay.visible = false
+	elif hp_frac > 0.33:
+		_damage_overlay.texture = textures[0]
+		_damage_overlay.visible = textures[0] != null
+	elif hp_frac > 0.10:
+		_damage_overlay.texture = textures[1]
+		_damage_overlay.visible = textures[1] != null
+	else:
+		_damage_overlay.texture = textures[2]
+		_damage_overlay.visible = textures[2] != null
+
+func _update_thruster(delta: float) -> void:
+	if _thruster == null:
+		return
+	_thruster.visible = _is_moving
+	if not _is_moving:
+		return
+	_thruster_tick += delta
+	if _thruster_tick < 1.0 / _THRUSTER_FPS:
+		return
+	_thruster_tick -= 1.0 / _THRUSTER_FPS
+	# Auto-select frame tier based on current move_speed
+	var t_start: int
+	var t_end: int
+	if move_speed >= 320.0:
+		t_start = 13; t_end = 19
+	elif move_speed >= 250.0:
+		t_start = 7; t_end = 12
+	else:
+		t_start = 0; t_end = 6
+	if _thruster_frame_idx < t_start or _thruster_frame_idx > t_end:
+		_thruster_frame_idx = t_start
+	else:
+		_thruster_frame_idx += 1
+		if _thruster_frame_idx > t_end:
+			_thruster_frame_idx = t_start
+	var tex = _thruster_textures[_thruster_frame_idx] if _thruster_textures.size() > _thruster_frame_idx else null
+	if tex != null:
+		_thruster.texture = tex

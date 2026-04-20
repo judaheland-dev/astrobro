@@ -2,12 +2,13 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://i71qxpsjl64k"
-valid=false
+uid="uid://sqlnxsi53m3x"
+path="res://.godot/imported/sfx_pause.ogg-4b326c6dd88f2641ff9b33e436638a28.oggvorbisstr"
 
 [deps]
 
 source_file="res://assets/audio/sfx_pause.ogg"
+dest_files=["res://.godot/imported/sfx_pause.ogg-4b326c6dd88f2641ff9b33e436638a28.oggvorbisstr"]
 
 [params]
 

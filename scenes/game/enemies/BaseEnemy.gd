@@ -31,6 +31,12 @@ var _base_target: Node = null
 
 const RANGED_COOLDOWN: float = 2.5
 const RANGED_MIN_DIST: float = 220.0
+
+var _e_thruster: Sprite2D = null
+var _e_thruster_textures: Array = []
+var _e_thruster_tick: float = 0.0
+var _e_thruster_frame: int = 0
+const _E_THRUSTER_FPS: float = 10.0
 const RANGED_MAX_DIST: float = 370.0
 const EXPLODER_RADIUS: float = 150.0
 
@@ -49,6 +55,7 @@ func _ready() -> void:
 	var spawn_tween := create_tween()
 	spawn_tween.tween_property(self, "scale", Vector2.ONE * 1.2, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	spawn_tween.tween_property(self, "scale", Vector2.ONE, 0.08)
+	_setup_enemy_thruster()
 
 func _apply_data() -> void:
 	max_health      = enemy_data.max_health
@@ -79,6 +86,7 @@ func scale_with_wave(wave_multiplier: float) -> void:
 func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
 		return
+	_update_enemy_thruster(delta)
 	if _contact_timer > 0.0:
 		_contact_timer -= delta
 
@@ -323,3 +331,33 @@ func _on_body_entered(body: Node) -> void:
 func _on_body_exited(body: Node) -> void:
 	if body is Player and _state == State.ATTACK:
 		_state = State.CHASE
+
+func _setup_enemy_thruster() -> void:
+	for i in 7:
+		var p := "res://assets/sprites/fire%02d.png" % i
+		_e_thruster_textures.append(load(p) if ResourceLoader.exists(p) else null)
+	_e_thruster = Sprite2D.new()
+	_e_thruster.position = Vector2(0.0, -38.0)
+	_e_thruster.rotation_degrees = 0.0
+	_e_thruster.scale = Vector2(0.35, 0.35)
+	_e_thruster.z_index = -1
+	_e_thruster.visible = false
+	sprite.add_child(_e_thruster)
+	if _e_thruster_textures.size() > 0 and _e_thruster_textures[0] != null:
+		_e_thruster.texture = _e_thruster_textures[0]
+
+func _update_enemy_thruster(delta: float) -> void:
+	if _e_thruster == null:
+		return
+	var moving := velocity.length_squared() > 1.0
+	_e_thruster.visible = moving
+	if not moving:
+		return
+	_e_thruster_tick += delta
+	if _e_thruster_tick < 1.0 / _E_THRUSTER_FPS:
+		return
+	_e_thruster_tick -= 1.0 / _E_THRUSTER_FPS
+	_e_thruster_frame = (_e_thruster_frame + 1) % 7
+	var tex = _e_thruster_textures[_e_thruster_frame] if _e_thruster_textures.size() > _e_thruster_frame else null
+	if tex != null:
+		_e_thruster.texture = tex

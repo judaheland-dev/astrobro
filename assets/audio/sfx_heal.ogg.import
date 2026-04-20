@@ -2,12 +2,13 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://cu1u3vdrcd4eq"
-valid=false
+uid="uid://dmp7ab53oenbq"
+path="res://.godot/imported/sfx_heal.ogg-cf3b9ea939a2538d26c9b104d1fa39b4.oggvorbisstr"
 
 [deps]
 
 source_file="res://assets/audio/sfx_heal.ogg"
+dest_files=["res://.godot/imported/sfx_heal.ogg-cf3b9ea939a2538d26c9b104d1fa39b4.oggvorbisstr"]
 
 [params]
 

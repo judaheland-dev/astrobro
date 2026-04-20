@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemyRed1.png" id="3"]
 
 [resource]
 script = ExtResource("1")
@@ -16,4 +17,5 @@ armor = 0.0
 xp_drop = 5
 coin_drop_chance = 0.6
 coin_drop_amount = 3
+sprite = ExtResource("3")
 death_sfx = ExtResource("2")

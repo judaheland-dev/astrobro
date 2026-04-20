@@ -63,17 +63,21 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 		proj.collision_layer = 0   # projectiles have no layer of their own
 		proj.collision_mask  = 2   # only detect enemies on layer 2
 
-		# Visible sprite - pick laser by ammo type, fall back to colored rect
+		# Visible sprite - use weapon-specific sprite, fall back to ammo-type default
 		var sprite := Sprite2D.new()
-		var laser_path := _laser_sprite_for_ammo_type()
-		if ResourceLoader.exists(laser_path):
-			sprite.texture = load(laser_path)
-			# PNG is drawn pointing up; rotate 90° so it aligns with rightward travel (angle=0)
+		if weapon_data != null and weapon_data.projectile_sprite != null:
+			sprite.texture = weapon_data.projectile_sprite
 			sprite.rotation_degrees = 90.0
 		else:
-			var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
-			img.fill(Color(1.0, 0.9, 0.3))
-			sprite.texture = ImageTexture.create_from_image(img)
+			var laser_path := _laser_sprite_for_ammo_type()
+			if ResourceLoader.exists(laser_path):
+				sprite.texture = load(laser_path)
+				# PNG is drawn pointing up; rotate 90° so it aligns with rightward travel (angle=0)
+				sprite.rotation_degrees = 90.0
+			else:
+				var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+				img.fill(Color(1.0, 0.9, 0.3))
+				sprite.texture = ImageTexture.create_from_image(img)
 		proj.add_child(sprite)
 
 		# Collision - rockets get a slightly larger hitbox

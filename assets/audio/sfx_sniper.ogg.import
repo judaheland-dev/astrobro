@@ -2,12 +2,13 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://b8u4xtto6015m"
-valid=false
+uid="uid://brtjg5nq6c4jx"
+path="res://.godot/imported/sfx_sniper.ogg-564888ded406cc03948231bebb2664e5.oggvorbisstr"
 
 [deps]
 
 source_file="res://assets/audio/sfx_sniper.ogg"
+dest_files=["res://.godot/imported/sfx_sniper.ogg-564888ded406cc03948231bebb2664e5.oggvorbisstr"]
 
 [params]
 

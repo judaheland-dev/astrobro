@@ -43,3 +43,6 @@ enum WeaponClass {
 
 # Unlock cost in meta coins (0 = free/default)
 @export var unlock_cost: int = 0
+
+# Optional custom projectile sprite; if null BaseWeapon falls back to ammo-type default
+@export var projectile_sprite: Texture2D = null

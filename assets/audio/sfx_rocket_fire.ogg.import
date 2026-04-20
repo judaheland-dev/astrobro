@@ -2,12 +2,13 @@
 
 importer="oggvorbisstr"
 type="AudioStreamOggVorbis"
-uid="uid://c3mj2r5ck8v23"
-valid=false
+uid="uid://doimraventxvq"
+path="res://.godot/imported/sfx_rocket_fire.ogg-78bb15950a7c2e433454add3a41e2820.oggvorbisstr"
 
 [deps]
 
 source_file="res://assets/audio/sfx_rocket_fire.ogg"
+dest_files=["res://.godot/imported/sfx_rocket_fire.ogg-78bb15950a7c2e433454add3a41e2820.oggvorbisstr"]
 
 [params]
 
