@@ -34,6 +34,9 @@ var selected_characters: Array[StringName] = []
 var run_wave: int = 0
 var run_coins_earned: int = 0
 
+# Terrain event flags
+var solar_flare_active: bool = false
+
 signal state_changed(new_state: GameState)
 
 func _ready() -> void:
@@ -49,6 +52,7 @@ func start_run(mode: RunMode, characters: Array[StringName], players: int) -> vo
 	player_count = players
 	run_wave = 0
 	run_coins_earned = 0
+	solar_flare_active = false
 	set_state(GameState.PLAYING)
 	get_tree().change_scene_to_file("res://scenes/game/Game.tscn")
 

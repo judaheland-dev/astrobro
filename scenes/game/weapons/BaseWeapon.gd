@@ -41,6 +41,8 @@ func try_fire(aim_dir: Vector2) -> void:
 		return
 	if aim_dir == Vector2.ZERO:
 		return
+	if weapon_data.ammo_type == WeaponData.AmmoType.LASER and GameManager.solar_flare_active:
+		return
 
 	_fire_cooldown = 1.0 / fire_rate
 	if weapon_data.fire_sfx:

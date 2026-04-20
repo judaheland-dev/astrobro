@@ -261,6 +261,8 @@ func _ranged_update(target: Node, delta: float) -> void:
 		_ranged_timer = RANGED_COOLDOWN
 
 func _fire_at_target(target: Node) -> void:
+	if GameManager.solar_flare_active:
+		return
 	var dir: Vector2 = (target.global_position - global_position).normalized()
 	var proj := BaseProjectile.new()
 	proj.collision_layer = 0

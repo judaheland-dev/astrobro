@@ -44,6 +44,7 @@ func _ready() -> void:
 	_spawn_players()
 	_setup_wave_data()
 	_setup_game_mode()
+	_setup_terrain_events()
 	_connect_hud()
 
 	_between_wave_ui.connect("ui_closed", _on_between_wave_closed)
@@ -277,6 +278,18 @@ func _setup_game_mode() -> void:
 			mode.show_between_wave_ui.connect(_show_between_wave_ui)
 
 	_game_mode.run_ended.connect(_on_run_ended)
+
+# ---------------------------------------------------------------------------
+# Terrain events
+# ---------------------------------------------------------------------------
+
+func _setup_terrain_events() -> void:
+	var terrain := TerrainEventManager.new()
+	terrain.players = _players
+	terrain.enemies_container = _enemies_container
+	terrain.wave_manager = _wave_manager
+	add_child(terrain)
+	_game_mode.run_ended.connect(func(_v: bool): GameManager.solar_flare_active = false)
 
 # ---------------------------------------------------------------------------
 # HUD
