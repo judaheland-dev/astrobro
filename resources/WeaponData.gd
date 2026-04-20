@@ -28,5 +28,8 @@ enum AmmoType {
 # Scene to instance as the projectile (must extend BaseProjectile)
 @export var projectile_scene: PackedScene = null
 
+# Optional custom fire sound; if null BaseWeapon falls back to sfx_laser1.ogg
+@export var fire_sfx: AudioStream = null
+
 # Unlock cost in meta coins (0 = free/default)
 @export var unlock_cost: int = 0

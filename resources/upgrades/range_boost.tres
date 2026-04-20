@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"damage_boost"
-display_name = "Overcharged Rounds"
-description = "+5 Weapon Damage"
+id = &"range_boost"
+display_name = "Extended Barrel"
+description = "+60 Weapon Range"
 scope = 1
-stat_deltas = {3: 5.0}
-shop_price = 50
+stat_deltas = {9: 60.0}
+shop_price = 45
 max_stacks = -1
 rarity = 1

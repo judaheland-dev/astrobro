@@ -187,6 +187,9 @@ func _die() -> void:
 
 	# Exploder: AoE damage on death before the visual
 	if enemy_data and enemy_data.ai_type == EnemyData.AIType.EXPLODER:
+		var expl_sfx := "res://assets/audio/sfx_explosion.ogg"
+		if ResourceLoader.exists(expl_sfx):
+			AudioManager.play_sfx(load(expl_sfx), 0.0, randf_range(0.9, 1.1))
 		_explode_aoe()
 
 	died.emit(self)

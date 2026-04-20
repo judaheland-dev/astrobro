@@ -119,10 +119,17 @@ func _flash_damage() -> void:
 func heal(amount: float) -> void:
 	current_health = minf(current_health + amount, max_health)
 	health_changed.emit(current_health, max_health)
+	if amount > 2.0:
+		var sfx := "res://assets/audio/sfx_heal.ogg"
+		if ResourceLoader.exists(sfx):
+			AudioManager.play_sfx(load(sfx), -6.0, randf_range(0.95, 1.05))
 
 func _die() -> void:
 	died.emit()
 	set_physics_process(false)
+	var death_sfx := "res://assets/audio/sfx_player_death.ogg"
+	if ResourceLoader.exists(death_sfx):
+		AudioManager.play_sfx(load(death_sfx), 0.0, 0.9)
 	# Death: spin out and fade
 	var tween := create_tween()
 	tween.set_parallel(true)
@@ -143,6 +150,9 @@ func gain_xp(amount: int) -> void:
 		level += 1
 		xp_threshold = int(xp_threshold * 1.4)
 		leveled_up.emit(level)
+		var sfx := "res://assets/audio/sfx_levelup.ogg"
+		if ResourceLoader.exists(sfx):
+			AudioManager.play_sfx(load(sfx), 0.0, 1.0)
 
 # --- Upgrades ---
 

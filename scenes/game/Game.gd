@@ -276,6 +276,9 @@ func _connect_hud() -> void:
 		func(w: int, t: int) -> void:
 			if _hud.has_method("update_wave"):
 				_hud.update_wave(w, t)
+			var sfx := "res://assets/audio/sfx_wave_start.ogg"
+			if ResourceLoader.exists(sfx):
+				AudioManager.play_sfx(load(sfx), -4.0, 1.0)
 	)
 
 # ---------------------------------------------------------------------------
@@ -338,10 +341,16 @@ func _on_xp_dropped(amount: int, world_pos: Vector2) -> void:
 		if p.is_physics_processing():
 			p.gain_xp(amount)
 	_spawn_floating_text("+%d XP" % amount, world_pos, Color(0.5, 1.0, 0.5))
+	var sfx := "res://assets/audio/sfx_xp_pickup.ogg"
+	if ResourceLoader.exists(sfx):
+		AudioManager.play_sfx(load(sfx), -8.0, randf_range(1.0, 1.2))
 
 func _on_coin_dropped(amount: int, world_pos: Vector2) -> void:
 	GameManager.run_coins_earned += amount
 	_spawn_floating_text("+%d" % amount, world_pos, Color(1.0, 0.85, 0.1))
+	var sfx := "res://assets/audio/sfx_coin_pickup.ogg"
+	if ResourceLoader.exists(sfx):
+		AudioManager.play_sfx(load(sfx), -6.0, randf_range(1.1, 1.3))
 
 func _spawn_floating_text(text: String, world_pos: Vector2, color: Color) -> void:
 	var lbl := Label.new()

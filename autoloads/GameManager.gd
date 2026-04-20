@@ -58,6 +58,9 @@ func go_to_main_menu() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
+		var sfx := "res://assets/audio/sfx_pause.ogg"
+		if ResourceLoader.exists(sfx):
+			AudioManager.play_sfx(load(sfx), -4.0, 1.0)
 		match current_state:
 			GameState.PLAYING:
 				set_state(GameState.PAUSED)

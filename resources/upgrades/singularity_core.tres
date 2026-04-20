@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"damage_boost"
-display_name = "Overcharged Rounds"
-description = "+5 Weapon Damage"
+id = &"singularity_core"
+display_name = "Singularity Core"
+description = "+20 Dmg, +3 Fire Rate, +50 HP"
 scope = 1
-stat_deltas = {3: 5.0}
-shop_price = 50
-max_stacks = -1
-rarity = 1
+stat_deltas = {0: 50.0, 3: 20.0, 4: 3.0}
+shop_price = 300
+max_stacks = 1
+rarity = 4

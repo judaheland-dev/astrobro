@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"damage_boost"
-display_name = "Overcharged Rounds"
-description = "+5 Weapon Damage"
+id = &"projectile_speed_boost"
+display_name = "Accelerator Coil"
+description = "+150 Projectile Speed"
 scope = 1
-stat_deltas = {3: 5.0}
-shop_price = 50
-max_stacks = -1
-rarity = 1
+stat_deltas = {5: 150.0}
+shop_price = 35
+max_stacks = 3
+rarity = 0

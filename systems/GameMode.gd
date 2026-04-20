@@ -20,7 +20,9 @@ func setup(wm: WaveManager, player_list: Array[Player]) -> void:
 
 # Called when a wave finishes. Override to add mode-specific behaviour.
 func _on_wave_cleared(_wave_number: int) -> void:
-	pass
+	var sfx := "res://assets/audio/sfx_wave_clear.ogg"
+	if ResourceLoader.exists(sfx):
+		AudioManager.play_sfx(load(sfx), 0.0, 1.0)
 
 # Called when all waves in the list are done.
 func _on_all_waves_cleared() -> void:

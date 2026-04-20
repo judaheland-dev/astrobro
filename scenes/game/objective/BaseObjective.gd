@@ -164,9 +164,11 @@ func _flash_hit() -> void:
 func _die() -> void:
 	if _shield_pulse_tween:
 		_shield_pulse_tween.kill()
-	var sfx := "res://assets/audio/sfx_lose.ogg"
+	var sfx := "res://assets/audio/sfx_explosion.ogg"
+	if not ResourceLoader.exists(sfx):
+		sfx = "res://assets/audio/sfx_lose.ogg"
 	if ResourceLoader.exists(sfx):
-		AudioManager.play_sfx(load(sfx), 0.0, 1.0)
+		AudioManager.play_sfx(load(sfx), 0.0, 0.8)
 	destroyed.emit()
 	# Big explosion: flash orange, scale outward, fade to nothing
 	var t := create_tween()

@@ -11,3 +11,4 @@ scope = 1
 stat_deltas = {4: 1.0}
 shop_price = 60
 max_stacks = -1
+rarity = 1

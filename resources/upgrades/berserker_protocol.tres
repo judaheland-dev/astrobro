@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"damage_boost"
-display_name = "Overcharged Rounds"
-description = "+5 Weapon Damage"
+id = &"berserker_protocol"
+display_name = "Berserker Protocol"
+description = "+20 Damage, +15% Lifesteal"
 scope = 1
-stat_deltas = {3: 5.0}
-shop_price = 50
-max_stacks = -1
-rarity = 1
+stat_deltas = {3: 20.0, 8: 0.15}
+shop_price = 300
+max_stacks = 1
+rarity = 4

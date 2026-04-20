@@ -38,9 +38,12 @@ func try_fire(aim_dir: Vector2) -> void:
 		return
 
 	_fire_cooldown = 1.0 / fire_rate
-	var sfx_path := "res://assets/audio/sfx_laser1.ogg"
-	if ResourceLoader.exists(sfx_path):
-		AudioManager.play_sfx(load(sfx_path), -6.0, randf_range(0.9, 1.1))
+	if weapon_data.fire_sfx:
+		AudioManager.play_sfx(weapon_data.fire_sfx, -6.0, randf_range(0.9, 1.1))
+	else:
+		var sfx_path := "res://assets/audio/sfx_laser1.ogg"
+		if ResourceLoader.exists(sfx_path):
+			AudioManager.play_sfx(load(sfx_path), -6.0, randf_range(0.9, 1.1))
 	_spawn_projectiles(aim_dir)
 
 func _spawn_projectiles(base_dir: Vector2) -> void:

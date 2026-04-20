@@ -9,6 +9,14 @@ enum UpgradeScope {
 	PASSIVE,    # adds a passive effect
 }
 
+enum Rarity {
+	COMMON,
+	UNCOMMON,
+	RARE,
+	EPIC,
+	LEGENDARY,
+}
+
 enum StatKey {
 	MAX_HEALTH,
 	MOVE_SPEED,
@@ -28,6 +36,7 @@ enum StatKey {
 @export var description: String = ""
 @export var icon: Texture2D = null
 @export var scope: UpgradeScope = UpgradeScope.CHARACTER
+@export var rarity: Rarity = Rarity.COMMON
 
 # Which stats change and by how much (additive, absolute values)
 @export var stat_deltas: Dictionary = {}  # StatKey -> float

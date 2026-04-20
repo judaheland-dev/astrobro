@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"damage_boost"
-display_name = "Overcharged Rounds"
-description = "+5 Weapon Damage"
+id = &"overclock"
+display_name = "Overclock Module"
+description = "+2 Fire Rate, +200 Proj Speed"
 scope = 1
-stat_deltas = {3: 5.0}
-shop_price = 50
+stat_deltas = {4: 2.0, 5: 200.0}
+shop_price = 140
 max_stacks = -1
-rarity = 1
+rarity = 3

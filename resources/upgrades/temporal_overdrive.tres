@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"damage_boost"
-display_name = "Overcharged Rounds"
-description = "+5 Weapon Damage"
+id = &"temporal_overdrive"
+display_name = "Temporal Overdrive"
+description = "+5 Fire Rate, +300 Proj Speed, +30% XP"
 scope = 1
-stat_deltas = {3: 5.0}
-shop_price = 50
-max_stacks = -1
-rarity = 1
+stat_deltas = {4: 5.0, 5: 300.0, 6: 0.3}
+shop_price = 300
+max_stacks = 1
+rarity = 4
