@@ -106,17 +106,40 @@ Always guard asset loads with `ResourceLoader.exists(path)`. Available SFX files
 
 | File | Used for |
 |------|----------|
-| `assets/audio/sfx_laser1.ogg` | Weapon fire |
-| `assets/audio/sfx_laser2.ogg` | Enemy hit (non-death) |
+| `assets/audio/sfx_laser1.ogg` | Default weapon fire (fallback) |
+| `assets/audio/sfx_laser2.ogg` | Enemy hit (non-death), base hit |
 | `assets/audio/sfx_twoTone.ogg` | Enemy death, UI clicks, victory |
 | `assets/audio/sfx_lose.ogg` | Player hurt (pitch 0.7), game over |
+| `assets/audio/sfx_explosion.ogg` | Exploder enemy AoE death, base destroyed |
+| `assets/audio/sfx_rocket_fire.ogg` | Rocket weapon fire |
+| `assets/audio/sfx_shotgun.ogg` | Shotgun weapon fire |
+| `assets/audio/sfx_sniper.ogg` | Sniper rifle / spread laser fire |
+| `assets/audio/sfx_levelup.ogg` | Player level-up |
+| `assets/audio/sfx_xp_pickup.ogg` | XP orb collected |
+| `assets/audio/sfx_coin_pickup.ogg` | Coin collected |
+| `assets/audio/sfx_player_death.ogg` | Player death |
+| `assets/audio/sfx_heal.ogg` | Player healed (> 2 HP, to avoid lifesteal spam) |
+| `assets/audio/sfx_wave_start.ogg` | Wave begins |
+| `assets/audio/sfx_wave_clear.ogg` | Wave cleared |
+| `assets/audio/sfx_pause.ogg` | Game paused/unpaused |
 
-When assigning `death_sfx` in an enemy `.tres`, add an `ext_resource` entry and increment `load_steps`:
+When assigning `death_sfx` in an enemy `.tres`, or `fire_sfx` in a weapon `.tres`, add an `ext_resource` entry and increment `load_steps`:
 ```
 [ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
 ...
 death_sfx = ExtResource("2")
 ```
+
+## Generating new SFX
+
+New sounds are generated procedurally via `tools/gen_sfx.py` (pure Python stdlib + ffmpeg). To add a sound:
+
+1. Add a `make_mysound()` function in the script using `sine()`, `noise()`, and `adsr()` helpers.
+2. Append `('sfx_mysound', make_mysound())` to the `sounds` list at the bottom.
+3. Run `python3 tools/gen_sfx.py` from the project root — files are written to `assets/audio/`.
+4. Preview with `ffplay -nodisp -autoexit assets/audio/sfx_mysound.ogg`.
+
+The encoder is `libopus` in an `.ogg` container (Godot 4 imports this natively).
 
 ## Font
 
