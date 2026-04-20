@@ -47,6 +47,9 @@ func _ready() -> void:
 	_wave_manager.enemy_spawned.connect(_on_enemy_spawned)
 	_wave_manager.start_waves()
 	GameManager.set_state(GameManager.GameState.PLAYING)
+	var music_path := "res://assets/audio/music_game.ogg"
+	if ResourceLoader.exists(music_path):
+		AudioManager.play_music(load(music_path))
 
 # ---------------------------------------------------------------------------
 # Scene construction

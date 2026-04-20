@@ -71,6 +71,7 @@ func show_result(victory: bool) -> void:
 	_result_label.text = "VICTORY!" if victory else "GAME OVER"
 	_result_label.modulate = Color(0.3, 1.0, 0.3) if victory else Color(1.0, 0.3, 0.3)
 	_coins_label.text = "Coins earned: %d" % GameManager.run_coins_earned
+	AudioManager.stop_music()
 	var sfx_path := "res://assets/audio/sfx_twoTone.ogg" if victory else "res://assets/audio/sfx_lose.ogg"
 	if ResourceLoader.exists(sfx_path):
 		AudioManager.play_sfx(load(sfx_path))

@@ -5,6 +5,9 @@ extends CanvasLayer
 func _ready() -> void:
 	GameManager.set_state(GameManager.GameState.MENU)
 	get_tree().paused = false
+	var music_path := "res://assets/audio/music_menu.ogg"
+	if ResourceLoader.exists(music_path):
+		AudioManager.play_music(load(music_path))
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)

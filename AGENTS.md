@@ -100,7 +100,7 @@ else:
 
 - **`AudioManager.play_sfx(stream, volume_db, pitch_scale)`** — plays a one-shot sound on the SFX bus.
 - **`AudioManager.play_ui_click()`** — convenience helper for menu button sounds (uses `sfx_twoTone.ogg` at 1.2 pitch).
-- **`AudioManager.play_music(stream)`** / **`stop_music()`** — looping background music (no music files exist yet).
+- **`AudioManager.play_music(stream)`** / **`stop_music()`** — looping background music. Looping is handled via the `finished` signal in `AudioManager`, **not** by the `.import` file's `loop` param (which stays `false`).
 
 Always guard asset loads with `ResourceLoader.exists(path)`. Available SFX files:
 
@@ -123,6 +123,13 @@ Always guard asset loads with `ResourceLoader.exists(path)`. Available SFX files
 | `assets/audio/sfx_wave_clear.ogg` | Wave cleared |
 | `assets/audio/sfx_pause.ogg` | Game paused/unpaused |
 
+Available music files:
+
+| File | Used for |
+|------|----------|
+| `assets/audio/music_menu.ogg` | Main menu / character select (72 BPM ambient, ~60 s) |
+| `assets/audio/music_game.ogg` | In-round (138 BPM electronic, ~56 s) |
+
 When assigning `death_sfx` in an enemy `.tres`, or `fire_sfx` in a weapon `.tres`, add an `ext_resource` entry and increment `load_steps`:
 ```
 [ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
@@ -140,6 +147,36 @@ New sounds are generated procedurally via `tools/gen_sfx.py` (pure Python stdlib
 4. Preview with `ffplay -nodisp -autoexit assets/audio/sfx_mysound.ogg`.
 
 The encoder is `libopus` in an `.ogg` container (Godot 4 imports this natively).
+
+## Generating new music
+
+Music is generated procedurally via `tools/gen_music.py` (pure Python stdlib + ffmpeg, ~7 s runtime). It uses sample rate 22050 Hz internally but upsamples to 44100 Hz stereo on encode.
+
+**Critical: music files must be OGG Vorbis, not OGG Opus.**
+Godot's `oggvorbisstr` importer rejects Opus-encoded `.ogg` files with `valid=false` in the `.import` file and a runtime `Failed loading resource` error. The ffmpeg command must be:
+```
+ffmpeg -ar 44100 -ac 2 -strict experimental -c:a vorbis output.ogg
+```
+(`libvorbis` is not available in a typical Homebrew ffmpeg build; use the built-in `vorbis` encoder with `-strict experimental`.)
+
+After generating new music files, Godot must import them before they can be loaded at runtime:
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --import
+```
+This creates `assets/audio/music_*.ogg.import` and `.godot/imported/music_*.oggvorbisstr`. Without this step `ResourceLoader.exists()` returns `false`.
+
+To add a new music track:
+1. Add a `make_mytrack()` function in `tools/gen_music.py`.
+2. Append `('music_mytrack', make_mytrack)` to the `tracks` list at the bottom.
+3. Run `python3 tools/gen_music.py` from the project root.
+4. Run `godot --headless --import` to produce the `.import` file.
+5. Preview with `ffplay -nodisp -autoexit assets/audio/music_mytrack.ogg`.
+6. Play it in GDScript: `AudioManager.play_music(load("res://assets/audio/music_mytrack.ogg"))`.
+
+Where music is started/stopped:
+- `MainMenu._ready()` — starts `music_menu.ogg`
+- `Game._ready()` — starts `music_game.ogg`
+- `GameOverUI.show_result()` — calls `stop_music()` before playing the win/lose SFX
 
 ## Font
 
