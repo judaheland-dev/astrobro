@@ -48,7 +48,8 @@ def save_wav(path, samples):
 
 def to_ogg(wav_path, ogg_path):
     subprocess.run(
-        ['ffmpeg', '-y', '-i', wav_path, '-c:a', 'libopus', '-b:a', '64k', ogg_path],
+        ['ffmpeg', '-y', '-i', wav_path, '-ar', '44100', '-ac', '2',
+         '-strict', 'experimental', '-c:a', 'vorbis', ogg_path],
         check=True, capture_output=True
     )
 

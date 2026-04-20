@@ -98,7 +98,7 @@ else:
 
 `AudioManager` is an autoload with a 16-slot pooled SFX system and a single music player.
 
-- **`AudioManager.play_sfx(stream, volume_db, pitch_scale)`** — plays a one-shot sound on the SFX bus.
+- **`AudioManager.play_sfx(stream, volume_db, pitch_scale)`** — plays a one-shot sound on the Master bus.
 - **`AudioManager.play_ui_click()`** — convenience helper for menu button sounds (uses `sfx_twoTone.ogg` at 1.2 pitch).
 - **`AudioManager.play_music(stream)`** / **`stop_music()`** — looping background music. Looping is handled via the `finished` signal in `AudioManager`, **not** by the `.import` file's `loop` param (which stays `false`).
 
@@ -146,7 +146,7 @@ New sounds are generated procedurally via `tools/gen_sfx.py` (pure Python stdlib
 3. Run `python3 tools/gen_sfx.py` from the project root — files are written to `assets/audio/`.
 4. Preview with `ffplay -nodisp -autoexit assets/audio/sfx_mysound.ogg`.
 
-The encoder is `libopus` in an `.ogg` container (Godot 4 imports this natively).
+The encoder is OGG Vorbis (`-strict experimental -c:a vorbis`). **Do not use `libopus`** — Godot's `oggvorbisstr` importer rejects Opus-encoded `.ogg` files with `valid=false` and silent audio at runtime. After regenerating SFX, delete the old `.import` files and run `godot --headless --import` to force a clean reimport.
 
 ## Generating new music
 

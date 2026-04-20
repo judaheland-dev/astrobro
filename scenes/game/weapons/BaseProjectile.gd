@@ -8,6 +8,7 @@ var speed: float = 400.0
 var damage: float = 10.0
 var max_range: float = 600.0
 var piercing: int = 0
+var aoe_radius: float = 0.0
 var shooter: Node = null
 
 var _distance_traveled: float = 0.0
@@ -54,10 +55,57 @@ func _on_body_entered(body: Node) -> void:
 			if shooter.has_method("heal"):
 				shooter.heal(damage * shooter.lifesteal)
 
+	if aoe_radius > 0.0:
+		_explode_aoe()
+		queue_free()
+		return
+
 	if piercing <= 0:
 		queue_free()
 	else:
 		piercing -= 1
+
+func _explode_aoe() -> void:
+	# Visual shockwave ring
+	var ring := ColorRect.new()
+	ring.color = Color(1.0, 0.45, 0.1, 0.6)
+	ring.size = Vector2(aoe_radius * 2.0, aoe_radius * 2.0)
+	ring.pivot_offset = ring.size * 0.5
+	ring.position = global_position - ring.size * 0.5
+	get_tree().current_scene.add_child(ring)
+	var rt := ring.create_tween()
+	rt.set_parallel(true)
+	rt.tween_property(ring, "scale", Vector2(2.0, 2.0), 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	rt.tween_property(ring, "modulate:a", 0.0, 0.4)
+	rt.chain().tween_callback(ring.queue_free)
+
+	# Damage all enemies in radius via physics shape query
+	var space := get_world_2d().direct_space_state
+	var params := PhysicsShapeQueryParameters2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = aoe_radius
+	params.shape = shape
+	params.transform = Transform2D(0.0, global_position)
+	params.collision_mask = 2
+	params.collide_with_bodies = true
+	params.collide_with_areas = false
+	var results := space.intersect_shape(params, 32)
+	var already_damaged: Array[Node] = []
+	for result in results:
+		var body: Node = result["collider"]
+		if body in already_damaged or body in _hit_entities:
+			continue
+		already_damaged.append(body)
+		if body.has_method("take_damage"):
+			body.take_damage(damage)
+			if shooter != null and "lifesteal" in shooter and shooter.lifesteal > 0.0:
+				if shooter.has_method("heal"):
+					shooter.heal(damage * shooter.lifesteal)
+
+	# Explosion SFX
+	var sfx_path := "res://assets/audio/sfx_explosion.ogg"
+	if ResourceLoader.exists(sfx_path):
+		AudioManager.play_sfx(load(sfx_path), 0.0, randf_range(0.9, 1.1))
 
 func _spawn_impact_flash() -> void:
 	var flash := Sprite2D.new()

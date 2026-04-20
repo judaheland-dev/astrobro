@@ -48,7 +48,7 @@ func try_fire(aim_dir: Vector2) -> void:
 	if weapon_data.fire_sfx:
 		AudioManager.play_sfx(weapon_data.fire_sfx, -6.0, randf_range(0.9, 1.1))
 	else:
-		var sfx_path := "res://assets/audio/sfx_laser1.ogg"
+		var sfx_path := _sfx_for_weapon()
 		if ResourceLoader.exists(sfx_path):
 			AudioManager.play_sfx(load(sfx_path), -6.0, randf_range(0.9, 1.1))
 	_spawn_projectiles(aim_dir)
@@ -85,6 +85,8 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 		proj.add_child(col)
 
 		proj.shooter = get_parent()
+		if weapon_data != null and weapon_data.ammo_type == WeaponData.AmmoType.ROCKET:
+			proj.aoe_radius = 120.0
 		parent.add_child(proj)
 		proj.global_position = global_position
 		proj.setup(dir, damage * damage_multiplier * passive_multiplier, projectile_speed, range, piercing)
@@ -96,6 +98,18 @@ func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
 		UpgradeData.StatKey.PROJECTILE_SPEED: projectile_speed += delta
 		UpgradeData.StatKey.RANGE:           range            += delta
 		UpgradeData.StatKey.SPREAD:          spread            = maxf(0.0, spread + delta)
+
+func _sfx_for_weapon() -> String:
+	if weapon_data == null:
+		return "res://assets/audio/sfx_laser1.ogg"
+	if weapon_data.ammo_type == WeaponData.AmmoType.ROCKET:
+		return "res://assets/audio/sfx_rocket_fire.ogg"
+	if weapon_data.weapon_class == WeaponData.WeaponClass.SPREAD:
+		return "res://assets/audio/sfx_shotgun.ogg"
+	if weapon_data.weapon_class == WeaponData.WeaponClass.PRECISION \
+			or weapon_data.ammo_type == WeaponData.AmmoType.LASER:
+		return "res://assets/audio/sfx_sniper.ogg"
+	return "res://assets/audio/sfx_laser1.ogg"
 
 func _laser_sprite_for_ammo_type() -> String:
 	if weapon_data == null:

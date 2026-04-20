@@ -16,6 +16,7 @@ var _projectile_parent: Node2D = null
 var _title_label: Label
 var _scrap_label: Label
 var _shop_container: HBoxContainer
+var _loadout_container: HBoxContainer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -29,10 +30,10 @@ func _ready() -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)
-	vbox.offset_left = -380.0
-	vbox.offset_top = -210.0
-	vbox.offset_right = 380.0
-	vbox.offset_bottom = 210.0
+	vbox.offset_left = -430.0
+	vbox.offset_top = -275.0
+	vbox.offset_right = 430.0
+	vbox.offset_bottom = 275.0
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 12)
 	add_child(vbox)
@@ -56,6 +57,24 @@ func _ready() -> void:
 	_shop_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	_shop_container.add_theme_constant_override("separation", 16)
 	vbox.add_child(_shop_container)
+
+	var loadout_title := Label.new()
+	loadout_title.text = "Current Loadout  (sell for 50% scrap refund)"
+	loadout_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font:
+		loadout_title.add_theme_font_override("font", font)
+		loadout_title.add_theme_font_size_override("font_size", 15)
+	vbox.add_child(loadout_title)
+
+	var loadout_scroll := ScrollContainer.new()
+	loadout_scroll.custom_minimum_size = Vector2(0.0, 90.0)
+	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vbox.add_child(loadout_scroll)
+
+	_loadout_container = HBoxContainer.new()
+	_loadout_container.add_theme_constant_override("separation", 10)
+	loadout_scroll.add_child(_loadout_container)
 
 	var skip_btn := Button.new()
 	skip_btn.text = "Continue"
@@ -85,6 +104,7 @@ func _show_shop_for_player() -> void:
 	]
 	_scrap_label.text = "Scrap: %d" % player.scrap
 	_populate_shop(player)
+	_populate_loadout(player)
 
 func _populate_shop(player: Player) -> void:
 	for child in _shop_container.get_children():
@@ -164,9 +184,15 @@ func _populate_shop(player: Player) -> void:
 		card_vbox.add_child(cost_label)
 
 		var slots := player.character_data.weapon_slots if player.character_data else 2
-		var can_buy := player.scrap >= wdata.shop_cost and player.weapons.size() < slots
+		var is_full := player.weapons.size() >= slots
+		var can_buy := player.scrap >= wdata.shop_cost and not is_full
 		var buy_btn := Button.new()
-		buy_btn.text = "Buy" if can_buy else ("Full" if player.weapons.size() >= slots else "Need Scrap")
+		if can_buy:
+			buy_btn.text = "Buy"
+		elif is_full:
+			buy_btn.text = "Sell a weapon first"
+		else:
+			buy_btn.text = "Need Scrap"
 		buy_btn.disabled = not can_buy
 		buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 		buy_btn.pressed.connect(_on_buy_pressed.bind(player, wdata))
@@ -188,6 +214,59 @@ func _get_all_weapon_paths() -> Array[String]:
 				paths.append("res://resources/weapons/" + fname)
 			fname = dir.get_next()
 	return paths
+
+func _populate_loadout(player: Player) -> void:
+	for child in _loadout_container.get_children():
+		child.queue_free()
+
+	var font := GameManager.kenney_font()
+	for weapon_node in player.weapons:
+		var wdata: WeaponData = weapon_node.get("weapon_data")
+		if wdata == null:
+			continue
+		var sell_value: int = max(1, wdata.shop_cost / 2)
+
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(150.0, 80.0)
+
+		var card_vbox := VBoxContainer.new()
+		card_vbox.add_theme_constant_override("separation", 4)
+		card.add_child(card_vbox)
+
+		var name_label := Label.new()
+		name_label.text = wdata.display_name
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if font:
+			name_label.add_theme_font_override("font", font)
+			name_label.add_theme_font_size_override("font_size", 13)
+		card_vbox.add_child(name_label)
+
+		var sell_btn := Button.new()
+		sell_btn.text = "Sell +%d" % sell_value
+		sell_btn.disabled = player.weapons.size() <= 1
+		sell_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		sell_btn.pressed.connect(_on_sell_pressed.bind(player, weapon_node))
+		if font:
+			sell_btn.add_theme_font_override("font", font)
+			sell_btn.add_theme_font_size_override("font_size", 13)
+		card_vbox.add_child(sell_btn)
+
+		_loadout_container.add_child(card)
+
+func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
+	if player.weapons.size() <= 1:
+		return
+	AudioManager.play_ui_click()
+	var wdata: WeaponData = weapon_node.get("weapon_data")
+	var sell_value: int = 1
+	if wdata != null:
+		sell_value = max(1, wdata.shop_cost / 2)
+	player.weapons.erase(weapon_node)
+	weapon_node.queue_free()
+	player.scrap += sell_value
+	player.scrap_changed.emit(player.scrap)
+	_show_shop_for_player()
 
 func _on_buy_pressed(player: Player, wdata: WeaponData) -> void:
 	AudioManager.play_ui_click()

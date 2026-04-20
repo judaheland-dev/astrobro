@@ -2,8 +2,8 @@ extends Node
 
 ## AudioManager - music and SFX bus routing with pooled AudioStreamPlayers.
 
-const MUSIC_BUS: StringName = &"Music"
-const SFX_BUS: StringName = &"SFX"
+const MUSIC_BUS: StringName = &"Master"
+const SFX_BUS: StringName = &"Master"
 
 var _music_player: AudioStreamPlayer = null
 var _music_loop: bool = false

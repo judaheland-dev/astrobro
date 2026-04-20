@@ -7,7 +7,7 @@
 script = ExtResource("1")
 id = &"rocket"
 display_name = "Rocket Launcher"
-description = "Slow fire rate. Pierces multiple enemies."
+description = "Slow fire rate. Explodes on impact for AoE damage."
 ammo_type = 2
 weapon_class = 4
 shop_cost = 90
@@ -17,6 +17,6 @@ projectile_speed = 280.0
 range = 700.0
 spread = 0.02
 projectile_count = 1
-piercing = 3
+piercing = 0
 projectile_scene = ExtResource("2")
 unlock_cost = 80
