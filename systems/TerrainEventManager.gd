@@ -98,7 +98,7 @@ func _spawn_asteroid_field() -> Node:
 
 		var spr := Sprite2D.new()
 		spr.name = "Sprite"
-		var rock_scale := randf_range(0.3, 0.6)
+		var rock_scale := randf_range(0.7, 1.2)
 		spr.scale = Vector2.ONE * rock_scale
 		spr.rotation = randf_range(0.0, TAU)
 		spr.modulate = Color(1.0, 1.0, 1.0, 0.0)
@@ -291,14 +291,17 @@ func _spawn_space_gas() -> Node:
 	root.z_index = 1
 	get_tree().current_scene.add_child(root)
 
-	# Visual: Polygon2D rectangle centered at origin
+	# Visual: irregular blob polygon - 24 vertices with per-vertex radial jitter
 	var poly := Polygon2D.new()
-	var hw := GAS_ZONE_W * 0.5
-	var hh := GAS_ZONE_H * 0.5
-	poly.polygon = PackedVector2Array([
-		Vector2(-hw, -hh), Vector2(hw, -hh),
-		Vector2(hw, hh),   Vector2(-hw, hh)
-	])
+	var base_rx := GAS_ZONE_W * 0.5
+	var base_ry := GAS_ZONE_H * 0.5
+	var num_pts := 24
+	var verts := PackedVector2Array()
+	for vi in num_pts:
+		var angle := (TAU / num_pts) * vi
+		var jitter := randf_range(0.65, 1.0)
+		verts.append(Vector2(cos(angle) * base_rx * jitter, sin(angle) * base_ry * jitter))
+	poly.polygon = verts
 	poly.color = Color(0.15, 0.9, 0.6, 0.0)
 	root.add_child(poly)
 
@@ -319,8 +322,8 @@ func _spawn_space_gas() -> Node:
 	area.collision_layer = 0
 	area.collision_mask = 3
 	var col := CollisionShape2D.new()
-	var shape := RectangleShape2D.new()
-	shape.size = Vector2(GAS_ZONE_W, GAS_ZONE_H)
+	var shape := CircleShape2D.new()
+	shape.radius = (GAS_ZONE_W + GAS_ZONE_H) * 0.25
 	col.shape = shape
 	area.add_child(col)
 	root.add_child(area)
