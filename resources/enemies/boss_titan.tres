@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="Script" path="res://resources/RangedAttackData.gd" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_explosion.ogg" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemyRed5.png" id="4"]
+
+[resource]
+script = ExtResource("1")
+id = &"boss_titan"
+display_name = "Titan"
+ai_type = 9
+max_health = 1200.0
+move_speed = 40.0
+contact_damage = 40.0
+contact_damage_cooldown = 0.5
+armor = 15.0
+xp_drop = 200
+coin_drop_chance = 1.0
+coin_drop_amount = 100
+sprite = ExtResource("4")
+sprite_scale = Vector2(2.5, 2.5)
+death_sfx = ExtResource("3")

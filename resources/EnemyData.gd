@@ -4,12 +4,16 @@ class_name EnemyData
 ## Data resource defining an enemy type.
 
 enum AIType {
-	CHASER,      # beelines for nearest target
-	RANGED,      # keeps distance, fires projectiles
-	TANK,        # slow, high HP
-	FAST,        # low HP, very fast
-	EXPLODER,    # rushes then explodes on death
-	ELITE,       # boss-tier, multiple attacks
+	CHASER,          # beelines for nearest target
+	RANGED,          # keeps distance, fires projectiles
+	TANK,            # slow, high HP
+	FAST,            # low HP, very fast
+	EXPLODER,        # rushes then explodes on death
+	ELITE,           # boss: chases and fires projectiles; phase 2 at 50% HP
+	SENTINEL,        # stationary turret; fires rotating volley
+	ELITE_RANGED,    # boss: kiting ranged attacker; phase 2 fires homing acid shots
+	ELITE_SUMMONER,  # boss: summons minions periodically; phase 2 fires rotating volley
+	ELITE_PHASE,     # boss: very slow tank in phase 1; becomes fast + fires homing in phase 2
 }
 
 @export var id: StringName = &""
@@ -27,3 +31,6 @@ enum AIType {
 @export var coin_drop_chance: float = 0.15  # 0-1 probability of dropping a coin
 @export var coin_drop_amount: int = 1
 @export var death_sfx: AudioStream = null
+
+# Optional ranged attack configuration; null = use legacy hardcoded fire behavior
+@export var ranged_attack: RangedAttackData = null

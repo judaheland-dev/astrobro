@@ -49,3 +49,9 @@ enum WeaponClass {
 
 # Optional custom projectile sprite; if null BaseWeapon falls back to ammo-type default
 @export var projectile_sprite: Texture2D = null
+
+# Per-weapon projectile visual overrides
+@export var projectile_scale: Vector2 = Vector2(1.0, 1.0)
+@export var projectile_modulate: Color = Color.WHITE
+@export var projectile_hitbox_size: Vector2 = Vector2(10.0, 4.0)
+@export var emit_exhaust_trail: bool = false

@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="Script" path="res://resources/RangedAttackData.gd" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemyBlue4.png" id="4"]
+
+[sub_resource type="Resource" id="ra_1"]
+script = ExtResource("2")
+fire_mode = 3
+fire_cooldown = 3.2
+projectile_count = 1
+spread_angle_deg = 0.0
+burst_interval = 0.12
+projectile_speed = 300.0
+damage_multiplier = 0.65
+homing_strength = 0.0
+homing_lifetime = 0.0
+on_hit_slow_factor = 0.0
+on_hit_slow_duration = 2.0
+on_hit_dot_dps = 0.0
+on_hit_dot_ticks = 6
+
+[resource]
+script = ExtResource("1")
+id = &"heavy_ranger"
+display_name = "Heavy Ranger"
+ai_type = 1
+max_health = 70.0
+move_speed = 60.0
+contact_damage = 12.0
+contact_damage_cooldown = 1.0
+armor = 0.0
+xp_drop = 20
+coin_drop_chance = 0.6
+coin_drop_amount = 9
+sprite = ExtResource("4")
+death_sfx = ExtResource("3")
+ranged_attack = SubResource("ra_1")

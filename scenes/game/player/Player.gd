@@ -34,6 +34,14 @@ var acquired_upgrades: Array[UpgradeData] = []
 var damage_block_chance: float = 0.0
 var _block_cooldown: float = 0.0
 
+# Status effects from enemy projectiles
+var _slow_factor: float = 1.0
+var _slow_timer: float = 0.0
+var _base_move_speed: float = 0.0
+var _dot_dps: float = 0.0
+var _dot_ticks_left: int = 0
+var _dot_timer: float = 0.0
+
 # XP / leveling
 var xp: int = 0
 var level: int = 1
@@ -43,6 +51,7 @@ var pending_upgrades: int = 0  # picks banked this wave; consumed by BetweenWave
 # Weapons
 var weapons: Array[Node] = []           # BaseWeapon children
 var active_weapon_index: int = 0
+var _weapon_visuals: Array[Sprite2D] = []  # wing-mounted hull sprites
 
 # Thrust bob
 var _thrust_bob_time: float = 0.0
@@ -108,6 +117,25 @@ func _physics_process(delta: float) -> void:
 	velocity = move_dir * move_speed
 	move_and_slide()
 
+	# Tick slow timer
+	if _slow_timer > 0.0:
+		_slow_timer -= delta
+		if _slow_timer <= 0.0:
+			_slow_factor = 1.0
+			move_speed = _base_move_speed
+			sprite.modulate = Color.WHITE
+
+	# Tick acid/burn DoT
+	if _dot_ticks_left > 0:
+		_dot_timer -= delta
+		if _dot_timer <= 0.0:
+			_dot_timer = 0.5
+			_dot_ticks_left -= 1
+			take_damage(_dot_dps * 0.5)
+			if _dot_ticks_left <= 0:
+				_dot_dps = 0.0
+				sprite.modulate = Color.WHITE if _slow_timer <= 0.0 else Color(0.5, 0.9, 1.0)
+
 	var aim_dir := InputManager.get_aim_dir(player_index, global_position)
 	if aim_dir != Vector2.ZERO:
 		rotation = aim_dir.angle()
@@ -128,6 +156,26 @@ func _physics_process(delta: float) -> void:
 
 	if _block_cooldown > 0.0:
 		_block_cooldown -= delta
+
+func apply_slow(factor: float, duration: float) -> void:
+	## Apply a movement slow. Only takes effect if worse than current slow (worst-case cap).
+	if factor >= _slow_factor and _slow_timer > 0.0:
+		return  # existing slow is equal or more severe
+	if _slow_timer <= 0.0:
+		_base_move_speed = move_speed  # record clean speed before any slow
+	_slow_factor = factor
+	_slow_timer = duration
+	move_speed = _base_move_speed * factor
+	sprite.modulate = Color(0.5, 0.9, 1.0, 1.0)  # icy blue tint
+
+func apply_dot(dps: float, ticks: int) -> void:
+	## Apply an acid/burn DoT. Only takes effect if more damaging than current DoT (worst-case cap).
+	if dps <= _dot_dps and _dot_ticks_left > 0:
+		return
+	_dot_dps = dps
+	_dot_ticks_left = ticks
+	_dot_timer = 0.5
+	sprite.modulate = Color(0.5, 1.0, 0.3, 1.0)  # acid green tint
 
 func _fire_all_weapons(aim_dir: Vector2) -> void:
 	weapon_fired.emit()
@@ -281,10 +329,66 @@ func add_weapon(weapon_node: Node) -> void:
 		var bonus: float = character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0)
 		weapon_node.set("damage_multiplier", 1.0 + bonus)
 	weapons.append(weapon_node)
+	# Position the weapon node at its wing hardpoint so shots originate there.
+	# Slot 0 → port wing (-Y), slot 1 → starboard wing (+Y).
+	# With only one weapon it stays at center so both wings feel symmetric.
+	var slot_index := weapons.size() - 1
+	if slot_index == 0:
+		weapon_node.position = Vector2(12.0, -34.0)
+	elif slot_index == 1:
+		weapon_node.position = Vector2(12.0,  34.0)
 	add_child(weapon_node)
+	_update_weapon_visuals()
 
 func get_weapon_count() -> int:
 	return weapons.size()
+
+# Spawn/replace wing-mount sprites to reflect currently equipped weapons.
+func _update_weapon_visuals() -> void:
+	for v in _weapon_visuals:
+		if is_instance_valid(v):
+			v.queue_free()
+	_weapon_visuals.clear()
+	if weapons.is_empty():
+		return
+	# Hardpoint positions in player local space (player faces +X, wings at ±Y).
+	# With 1 weapon show symmetrically on both wings; with 2 split port/starboard.
+	var classes: Array[int] = []
+	for w in weapons:
+		var wd = w.get("weapon_data")
+		classes.append(int(wd.weapon_class) if wd != null else -1)
+	var port_class   := classes[0]
+	var stbd_class   := classes[1] if classes.size() > 1 else classes[0]
+	_add_mount_sprite(port_class,  Vector2(12.0, -34.0))
+	_add_mount_sprite(stbd_class,  Vector2(12.0,  34.0))
+
+func _add_mount_sprite(weapon_class: int, pos: Vector2) -> void:
+	if weapon_class < 0:
+		return
+	# Map WeaponClass enum to a hull-part sprite path.
+	# WeaponClass: RAPID=0, PRECISION=1, SPREAD=2, HEAVY=3, EXPLOSIVE=4
+	var path: String
+	var scale_factor := 1.0
+	match weapon_class:
+		0: path = "res://assets/sprites/spaceParts_092.png" # small barrel
+		1: path = "res://assets/sprites/spaceParts_095.png" # long cannon
+		2: path = "res://assets/sprites/spaceParts_093.png" # double barrel
+		3: path = "res://assets/sprites/spaceParts_094.png" # heavy cannon
+		4: # missile pod slung under wing
+			path = "res://assets/sprites/spaceMissiles_001.png"
+			scale_factor = 0.8
+			pos.x -= 8.0
+		_: return
+	if not ResourceLoader.exists(path):
+		return
+	var spr := Sprite2D.new()
+	spr.texture = load(path)
+	spr.rotation_degrees = 90.0  # barrel points forward (+X player-local)
+	spr.position = pos
+	spr.scale = Vector2(scale_factor, scale_factor)
+	spr.z_index = 1
+	add_child(spr)
+	_weapon_visuals.append(spr)
 
 func _setup_thruster() -> void:
 	for i in 20:

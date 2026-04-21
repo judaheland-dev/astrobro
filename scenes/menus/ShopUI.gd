@@ -14,8 +14,16 @@ var _current_player_index: int = 0
 var _projectile_parent: Node2D = null
 var _wave_number: int = 1
 
+# Persistent offer state - regenerated per player, preserved across buy/sell/lock
+var _offered_weapons: Array[WeaponData] = []
+var _offered_modules: Array[UpgradeData] = []
+var _locked_weapons: Array[bool] = []
+var _locked_modules: Array[bool] = []
+var _reroll_count: int = 0
+
 var _title_label: Label
 var _scrap_label: Label
+var _reroll_btn: Button
 var _shop_container: HBoxContainer
 var _module_container: HBoxContainer
 var _loadout_container: HBoxContainer
@@ -58,6 +66,15 @@ func _ready() -> void:
 		_scrap_label.add_theme_font_override("font", font)
 		_scrap_label.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(_scrap_label)
+
+	_reroll_btn = Button.new()
+	_reroll_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	_reroll_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	if font:
+		_reroll_btn.add_theme_font_override("font", font)
+		_reroll_btn.add_theme_font_size_override("font_size", 15)
+	_reroll_btn.pressed.connect(_on_reroll_pressed)
+	vbox.add_child(_reroll_btn)
 
 	_shop_container = HBoxContainer.new()
 	_shop_container.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -188,8 +205,16 @@ func show_for_players(players: Array, projectile_parent: Node2D, wave_number: in
 	_projectile_parent = projectile_parent
 	_wave_number = wave_number
 	_current_player_index = 0
+	_reset_offer_state()
 	visible = true
 	_show_shop_for_player()
+
+func _reset_offer_state() -> void:
+	_offered_weapons.clear()
+	_offered_modules.clear()
+	_locked_weapons.clear()
+	_locked_modules.clear()
+	_reroll_count = 0
 
 func _show_shop_for_player() -> void:
 	var player := _players[_current_player_index]
@@ -200,8 +225,14 @@ func _show_shop_for_player() -> void:
 		slots,
 	]
 	_scrap_label.text = "Scrap: %d" % player.scrap
-	_populate_shop(player)
-	_populate_modules(player)
+	# Only generate fresh offers when there are none (new player visit)
+	if _offered_weapons.is_empty():
+		_generate_weapon_offers(player)
+	if _offered_modules.is_empty():
+		_generate_module_offers(player)
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
 	_populate_loadout(player)
 	_populate_purchased(player)
 	_populate_stats(player)
@@ -278,22 +309,26 @@ func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], c
 				break
 	return result
 
-func _populate_shop(player: Player) -> void:
+func _generate_weapon_offers(player: Player) -> void:
+	var all_weapons := _load_all_weapons()
+	var weights := _get_rarity_weights(_wave_number)
+	_offered_weapons = _weighted_sample_weapons(all_weapons, weights, WEAPON_OFFER_COUNT)
+	_locked_weapons.clear()
+	for i in range(_offered_weapons.size()):
+		_locked_weapons.append(false)
+
+func _render_shop(player: Player) -> void:
 	for child in _shop_container.get_children():
 		child.queue_free()
 
 	var font := GameManager.kenney_font()
-	var all_paths := _get_all_weapon_paths()
-	var all_weapons: Array[WeaponData] = []
-	for path in all_paths:
-		var wd: WeaponData = ResourceLoader.load(path)
-		if wd != null:
-			all_weapons.append(wd)
-	var weights := _get_rarity_weights(_wave_number)
-	var offered_weapons := _weighted_sample_weapons(all_weapons, weights, WEAPON_OFFER_COUNT)
-	var offered := offered_weapons  # kept for loop below
+	var slots := player.character_data.weapon_slots if player.character_data else 2
+	var is_full := player.weapons.size() >= slots
 
-	for wdata in offered:
+	for slot_idx in range(_offered_weapons.size()):
+		var wdata := _offered_weapons[slot_idx]
+		var is_locked := _locked_weapons[slot_idx] if slot_idx < _locked_weapons.size() else false
+
 		var class_idx: int = int(wdata.weapon_class)
 		var class_name_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
 
@@ -314,20 +349,30 @@ func _populate_shop(player: Player) -> void:
 		elif bonus < -0.001:
 			affinity_color = Color(1.0, 0.35, 0.35)
 
-		# Card panel - rarity-tinted border
 		var rarity_col := _rarity_color(int(wdata.rarity))
+		var border_col := Color(0.9, 0.75, 0.1) if is_locked else rarity_col
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(210.0, 170.0)
+		card.custom_minimum_size = Vector2(210.0, 180.0)
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = rarity_col.darkened(0.6)
-		card_style.border_color = rarity_col
-		card_style.set_border_width_all(2)
+		card_style.border_color = border_col
+		card_style.set_border_width_all(3 if is_locked else 2)
 		card_style.set_corner_radius_all(6)
 		card.add_theme_stylebox_override("panel", card_style)
 
 		var card_vbox := VBoxContainer.new()
-		card_vbox.add_theme_constant_override("separation", 6)
+		card_vbox.add_theme_constant_override("separation", 5)
 		card.add_child(card_vbox)
+
+		if is_locked:
+			var lock_badge := Label.new()
+			lock_badge.text = "[LOCKED]"
+			lock_badge.modulate = Color(0.9, 0.75, 0.1)
+			lock_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if font:
+				lock_badge.add_theme_font_override("font", font)
+				lock_badge.add_theme_font_size_override("font_size", 11)
+			card_vbox.add_child(lock_badge)
 
 		var rarity_label := Label.new()
 		rarity_label.text = "[%s]" % _rarity_name(int(wdata.rarity))
@@ -373,8 +418,6 @@ func _populate_shop(player: Player) -> void:
 			cost_label.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(cost_label)
 
-		var slots := player.character_data.weapon_slots if player.character_data else 2
-		var is_full := player.weapons.size() >= slots
 		var can_buy := player.scrap >= wdata.shop_cost and not is_full
 		var buy_btn := Button.new()
 		if can_buy:
@@ -385,13 +428,21 @@ func _populate_shop(player: Player) -> void:
 			buy_btn.text = "Need Scrap"
 		buy_btn.disabled = not can_buy
 		buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-		buy_btn.pressed.connect(_on_buy_pressed.bind(player, wdata))
+		buy_btn.pressed.connect(_on_buy_pressed.bind(player, slot_idx))
 		if font:
 			buy_btn.add_theme_font_override("font", font)
 			buy_btn.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(buy_btn)
 
-		# Popover on focus/hover for shop weapon cards
+		var lock_btn := Button.new()
+		lock_btn.text = "Unlock" if is_locked else "Lock"
+		lock_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		lock_btn.pressed.connect(_on_toggle_weapon_lock.bind(player, slot_idx))
+		if font:
+			lock_btn.add_theme_font_override("font", font)
+			lock_btn.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(lock_btn)
+
 		var shop_pop := "[%s] %s\n[%s]%s\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nCost: %d scrap" % [
 			_rarity_name(int(wdata.rarity)), wdata.display_name,
 			class_name_str, affinity_str,
@@ -408,14 +459,23 @@ func _populate_shop(player: Player) -> void:
 
 		_shop_container.add_child(card)
 
-	# Focus first buy button for gamepad navigation
+	# Focus first available buy button for gamepad navigation
 	for card in _shop_container.get_children():
 		var vbox: VBoxContainer = card.get_child(0)
 		if vbox:
-			var last := vbox.get_child(vbox.get_child_count() - 1)
-			if last is Button and not last.disabled:
-				last.grab_focus()
-				break
+			for i in range(vbox.get_child_count()):
+				var child := vbox.get_child(i)
+				if child is Button and not (child as Button).disabled and (child as Button).text == "Buy":
+					(child as Button).grab_focus()
+					break
+
+func _load_all_weapons() -> Array[WeaponData]:
+	var result: Array[WeaponData] = []
+	for path in _get_all_weapon_paths():
+		var wd: WeaponData = ResourceLoader.load(path)
+		if wd != null:
+			result.append(wd)
+	return result
 
 func _get_all_weapon_paths() -> Array[String]:
 	var paths: Array[String] = []
@@ -523,9 +583,19 @@ func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	weapon_node.queue_free()
 	player.scrap += sell_value
 	player.scrap_changed.emit(player.scrap)
-	_show_shop_for_player()
+	# Re-render only - shop offers are unchanged after a sell
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	_populate_loadout(player)
+	_populate_stats(player)
+	_update_title(player)
 
-func _on_buy_pressed(player: Player, wdata: WeaponData) -> void:
+func _on_buy_pressed(player: Player, slot_idx: int) -> void:
+	if slot_idx >= _offered_weapons.size():
+		return
+	var wdata := _offered_weapons[slot_idx]
 	AudioManager.play_ui_click()
 	if player.scrap < wdata.shop_cost:
 		return
@@ -535,45 +605,67 @@ func _on_buy_pressed(player: Player, wdata: WeaponData) -> void:
 	weapon.weapon_data = wdata
 	weapon._projectile_parent = _projectile_parent
 	player.add_weapon(weapon)
-	# Refresh this player's shop view so slot count and scrap are updated
-	_show_shop_for_player()
+	# Replace only the purchased slot with a fresh item
+	_replace_weapon_offer(slot_idx)
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	_populate_loadout(player)
+	_populate_stats(player)
+	_update_title(player)
 
 func _on_skip_pressed() -> void:
 	AudioManager.play_ui_click()
 	_current_player_index += 1
 	if _current_player_index < _players.size():
+		_reset_offer_state()
 		_show_shop_for_player()
 	else:
 		_close()
 
-func _populate_modules(player: Player) -> void:
+func _generate_module_offers(player: Player) -> void:
+	var all_modules := _load_all_modules()
+	var weights := _get_rarity_weights(_wave_number)
+	_offered_modules = _weighted_sample_modules(all_modules, weights, 3)
+	_locked_modules.clear()
+	for i in range(_offered_modules.size()):
+		_locked_modules.append(false)
+
+func _render_modules(player: Player) -> void:
 	for child in _module_container.get_children():
 		child.queue_free()
 
 	var font := GameManager.kenney_font()
-	var all_paths := _get_all_module_paths()
-	var all_modules: Array[UpgradeData] = []
-	for path in all_paths:
-		var item: UpgradeData = ResourceLoader.load(path)
-		if item != null:
-			all_modules.append(item)
-	var weights := _get_rarity_weights(_wave_number)
-	var offered := _weighted_sample_modules(all_modules, weights, 3)
 
-	for item in offered:
+	for slot_idx in range(_offered_modules.size()):
+		var item := _offered_modules[slot_idx]
+		var is_locked := _locked_modules[slot_idx] if slot_idx < _locked_modules.size() else false
+
 		var rarity_col := _rarity_color(int(item.rarity))
+		var border_col := Color(0.9, 0.75, 0.1) if is_locked else rarity_col
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(200.0, 140.0)
+		card.custom_minimum_size = Vector2(200.0, 150.0)
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = rarity_col.darkened(0.6)
-		card_style.border_color = rarity_col
-		card_style.set_border_width_all(2)
+		card_style.border_color = border_col
+		card_style.set_border_width_all(3 if is_locked else 2)
 		card_style.set_corner_radius_all(6)
 		card.add_theme_stylebox_override("panel", card_style)
 
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 5)
 		card.add_child(card_vbox)
+
+		if is_locked:
+			var lock_badge := Label.new()
+			lock_badge.text = "[LOCKED]"
+			lock_badge.modulate = Color(0.9, 0.75, 0.1)
+			lock_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if font:
+				lock_badge.add_theme_font_override("font", font)
+				lock_badge.add_theme_font_size_override("font_size", 11)
+			card_vbox.add_child(lock_badge)
 
 		var rarity_label := Label.new()
 		rarity_label.text = "[%s]" % _rarity_name(int(item.rarity))
@@ -616,13 +708,21 @@ func _populate_modules(player: Player) -> void:
 		buy_btn.text = "Buy" if can_buy else "Need Scrap"
 		buy_btn.disabled = not can_buy
 		buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-		buy_btn.pressed.connect(_on_buy_module_pressed.bind(player, item))
+		buy_btn.pressed.connect(_on_buy_module_pressed.bind(player, slot_idx))
 		if font:
 			buy_btn.add_theme_font_override("font", font)
 			buy_btn.add_theme_font_size_override("font_size", 13)
 		card_vbox.add_child(buy_btn)
 
-		# Popover on focus/hover for module cards
+		var lock_btn := Button.new()
+		lock_btn.text = "Unlock" if is_locked else "Lock"
+		lock_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		lock_btn.pressed.connect(_on_toggle_module_lock.bind(player, slot_idx))
+		if font:
+			lock_btn.add_theme_font_override("font", font)
+			lock_btn.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(lock_btn)
+
 		var mod_pop := "[%s] %s\n\n%s\n\n%sCost: %d scrap" % [
 			_rarity_name(int(item.rarity)), item.display_name,
 			item.description,
@@ -636,6 +736,14 @@ func _populate_modules(player: Player) -> void:
 
 		_module_container.add_child(card)
 
+func _load_all_modules() -> Array[UpgradeData]:
+	var result: Array[UpgradeData] = []
+	for path in _get_all_module_paths():
+		var item: UpgradeData = ResourceLoader.load(path)
+		if item != null:
+			result.append(item)
+	return result
+
 func _get_all_module_paths() -> Array[String]:
 	var paths: Array[String] = []
 	var dir := DirAccess.open("res://resources/shop_items")
@@ -648,14 +756,156 @@ func _get_all_module_paths() -> Array[String]:
 			fname = dir.get_next()
 	return paths
 
-func _on_buy_module_pressed(player: Player, item: UpgradeData) -> void:
+func _on_buy_module_pressed(player: Player, slot_idx: int) -> void:
+	if slot_idx >= _offered_modules.size():
+		return
+	var item := _offered_modules[slot_idx]
 	AudioManager.play_ui_click()
 	if player.scrap < item.shop_price:
 		return
 	player.scrap -= item.shop_price
 	player.scrap_changed.emit(player.scrap)
 	player.apply_upgrade(item)
-	_show_shop_for_player()
+	# Replace only the purchased module slot with a fresh item
+	_replace_module_offer(slot_idx)
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	_populate_purchased(player)
+	_populate_stats(player)
+	_update_title(player)
+
+func _update_title(player: Player) -> void:
+	var slots := player.character_data.weapon_slots if player.character_data else 2
+	_title_label.text = "Weapon Shop  -  Player %d  (Slots: %d / %d)" % [
+		_current_player_index + 1,
+		player.weapons.size(),
+		slots,
+	]
+
+func _reroll_cost() -> int:
+	return 60 + (_wave_number * 10) + (_reroll_count * 80)
+
+func _update_reroll_btn(player: Player) -> void:
+	var cost := _reroll_cost()
+	_reroll_btn.text = "Re-roll  [%d Scrap]" % cost
+	_reroll_btn.disabled = player.scrap < cost
+
+func _replace_weapon_offer(slot_idx: int) -> void:
+	_offered_weapons.remove_at(slot_idx)
+	_locked_weapons.remove_at(slot_idx)
+	var pool := _load_all_weapons()
+	var exclude: Array[WeaponData] = []
+	for w in _offered_weapons:
+		exclude.append(w)
+	var filtered: Array[WeaponData] = []
+	for w in pool:
+		if not exclude.has(w):
+			filtered.append(w)
+	if filtered.is_empty():
+		filtered = pool
+	var weights := _get_rarity_weights(_wave_number)
+	var replacement := _weighted_sample_weapons(filtered, weights, 1)
+	if replacement.size() > 0:
+		_offered_weapons.insert(slot_idx, replacement[0])
+	elif pool.size() > 0:
+		_offered_weapons.insert(slot_idx, pool[0])
+	else:
+		_offered_weapons.insert(slot_idx, _offered_weapons[0] if _offered_weapons.size() > 0 else null)
+	_locked_weapons.insert(slot_idx, false)
+
+func _replace_module_offer(slot_idx: int) -> void:
+	_offered_modules.remove_at(slot_idx)
+	_locked_modules.remove_at(slot_idx)
+	var pool := _load_all_modules()
+	var exclude: Array[UpgradeData] = []
+	for m in _offered_modules:
+		exclude.append(m)
+	var filtered: Array[UpgradeData] = []
+	for m in pool:
+		if not exclude.has(m):
+			filtered.append(m)
+	if filtered.is_empty():
+		filtered = pool
+	var weights := _get_rarity_weights(_wave_number)
+	var replacement := _weighted_sample_modules(filtered, weights, 1)
+	if replacement.size() > 0:
+		_offered_modules.insert(slot_idx, replacement[0])
+	elif pool.size() > 0:
+		_offered_modules.insert(slot_idx, pool[0])
+	else:
+		_offered_modules.insert(slot_idx, _offered_modules[0] if _offered_modules.size() > 0 else null)
+	_locked_modules.insert(slot_idx, false)
+
+func _on_toggle_weapon_lock(player: Player, slot_idx: int) -> void:
+	AudioManager.play_ui_click()
+	if slot_idx < _locked_weapons.size():
+		_locked_weapons[slot_idx] = not _locked_weapons[slot_idx]
+	_render_shop(player)
+
+func _on_toggle_module_lock(player: Player, slot_idx: int) -> void:
+	AudioManager.play_ui_click()
+	if slot_idx < _locked_modules.size():
+		_locked_modules[slot_idx] = not _locked_modules[slot_idx]
+	_render_modules(player)
+
+func _on_reroll_pressed() -> void:
+	if _players.is_empty() or _current_player_index >= _players.size():
+		return
+	var player := _players[_current_player_index]
+	var cost := _reroll_cost()
+	if player.scrap < cost:
+		return
+	AudioManager.play_ui_click()
+	player.scrap -= cost
+	player.scrap_changed.emit(player.scrap)
+	_reroll_count += 1
+
+	# Re-sample all unlocked weapon slots
+	var pool_w := _load_all_weapons()
+	var weights := _get_rarity_weights(_wave_number)
+	for i in range(_offered_weapons.size()):
+		if _locked_weapons[i]:
+			continue
+		# Build exclude list: locked offers
+		var excl: Array[WeaponData] = []
+		for j in range(_offered_weapons.size()):
+			if j != i and _locked_weapons[j]:
+				excl.append(_offered_weapons[j])
+		var filtered: Array[WeaponData] = []
+		for w in pool_w:
+			if not excl.has(w):
+				filtered.append(w)
+		if filtered.is_empty():
+			filtered = pool_w
+		var rep := _weighted_sample_weapons(filtered, weights, 1)
+		if rep.size() > 0:
+			_offered_weapons[i] = rep[0]
+
+	# Re-sample all unlocked module slots
+	var pool_m := _load_all_modules()
+	for i in range(_offered_modules.size()):
+		if _locked_modules[i]:
+			continue
+		var excl_m: Array[UpgradeData] = []
+		for j in range(_offered_modules.size()):
+			if j != i and _locked_modules[j]:
+				excl_m.append(_offered_modules[j])
+		var filtered_m: Array[UpgradeData] = []
+		for m in pool_m:
+			if not excl_m.has(m):
+				filtered_m.append(m)
+		if filtered_m.is_empty():
+			filtered_m = pool_m
+		var rep_m := _weighted_sample_modules(filtered_m, weights, 1)
+		if rep_m.size() > 0:
+			_offered_modules[i] = rep_m[0]
+
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
 
 func _close() -> void:
 	visible = false

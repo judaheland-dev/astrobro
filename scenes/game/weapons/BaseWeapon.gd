@@ -78,20 +78,34 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 				var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
 				img.fill(Color(1.0, 0.9, 0.3))
 				sprite.texture = ImageTexture.create_from_image(img)
+
+		# Apply per-weapon visual overrides
+		if weapon_data != null:
+			sprite.scale = weapon_data.projectile_scale
+			sprite.modulate = weapon_data.projectile_modulate
 		proj.add_child(sprite)
 
-		# Collision - rockets get a slightly larger hitbox
+		# Collision - use per-weapon hitbox size from WeaponData
 		var col := CollisionShape2D.new()
 		var shape := RectangleShape2D.new()
-		var is_rocket := weapon_data != null and weapon_data.ammo_type == WeaponData.AmmoType.ROCKET
-		shape.size = Vector2(30.0, 8.0) if is_rocket else Vector2(10.0, 4.0)
+		if weapon_data != null:
+			shape.size = weapon_data.projectile_hitbox_size
+		else:
+			shape.size = Vector2(10.0, 4.0)
 		col.shape = shape
 		proj.add_child(col)
 
 		proj.shooter = get_parent()
-		if weapon_data != null and weapon_data.ammo_type == WeaponData.AmmoType.ROCKET:
-			proj.aoe_radius = 120.0
+		if weapon_data != null:
+			if weapon_data.ammo_type == WeaponData.AmmoType.ROCKET:
+				proj.aoe_radius = 120.0
+			proj.emit_exhaust_trail = weapon_data.emit_exhaust_trail
+			proj.projectile_color = weapon_data.projectile_modulate
 		parent.add_child(proj)
+		# Tint the procedural trail to match the projectile colour
+		var trail := proj.get_node_or_null("Trail")
+		if trail and weapon_data != null:
+			trail.modulate = weapon_data.projectile_modulate
 		proj.global_position = global_position
 		proj.setup(dir, damage * damage_multiplier * passive_multiplier, projectile_speed, range, piercing)
 

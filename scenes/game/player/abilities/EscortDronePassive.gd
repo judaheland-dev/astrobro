@@ -21,9 +21,14 @@ func setup(player: Player) -> void:
 	_orbit_angle = randf() * TAU
 
 	_sprite = Sprite2D.new()
-	var img := Image.create(10, 10, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0.3, 0.9, 1.0, 1.0))
-	_sprite.texture = ImageTexture.create_from_image(img)
+	const DRONE_ASSET := "res://assets/sprites/spaceStation_022.png"
+	if ResourceLoader.exists(DRONE_ASSET):
+		_sprite.texture = load(DRONE_ASSET)
+		_sprite.scale = Vector2(0.2, 0.2)
+	else:
+		var img := Image.create(10, 10, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0.3, 0.9, 1.0, 1.0))
+		_sprite.texture = ImageTexture.create_from_image(img)
 	_sprite.z_index = 2
 	get_tree().current_scene.add_child(_sprite)
 
@@ -43,7 +48,7 @@ func _process(delta: float) -> void:
 
 func _try_fire() -> void:
 	var target := _find_nearest_enemy()
-	if target == null:
+	if not is_instance_valid(target):
 		return
 	_fire_timer = FIRE_COOLDOWN
 	var origin := _sprite.global_position
@@ -71,7 +76,7 @@ func _try_fire() -> void:
 	proj.global_position = origin
 	proj.setup(dir, DRONE_DAMAGE, DRONE_SPEED, DRONE_RANGE, 0)
 
-func _find_nearest_enemy() -> Node:
+func _find_nearest_enemy() -> Node2D:
 	var space := _player.get_world_2d().direct_space_state
 	var params := PhysicsShapeQueryParameters2D.new()
 	var circle := CircleShape2D.new()
@@ -82,10 +87,10 @@ func _find_nearest_enemy() -> Node:
 	params.collide_with_bodies = true
 	params.collide_with_areas = false
 	var hits := space.intersect_shape(params, 10)
-	var closest: Node = null
+	var closest: Node2D = null
 	var closest_dist: float = INF
 	for hit in hits:
-		var body: Node = hit["collider"]
+		var body: Node2D = hit["collider"]
 		if body == null or not body.has_method("take_damage"):
 			continue
 		var d := _player.global_position.distance_to(body.global_position)

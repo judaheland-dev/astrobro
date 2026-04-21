@@ -116,12 +116,21 @@ func _spawn_next() -> void:
 	sprite.name = "Sprite2D"
 	var enemy_id: StringName = entry["data"].id if entry["data"] else &""
 	var sprite_map: Dictionary = {
-		&"grunt":    "res://assets/sprites/enemyRed1.png",
-		&"speeder":  "res://assets/sprites/enemyBlue1.png",
-		&"brute":    "res://assets/sprites/enemyBlack1.png",
-		&"exploder": "res://assets/sprites/enemyGreen1.png",
-		&"ranger":   "res://assets/sprites/enemyBlue2.png",
-		&"boss":     "res://assets/sprites/enemyRed2.png",
+		&"grunt":         "res://assets/sprites/enemyRed1.png",
+		&"speeder":       "res://assets/sprites/enemyBlue1.png",
+		&"brute":         "res://assets/sprites/enemyBlack1.png",
+		&"exploder":      "res://assets/sprites/enemyGreen1.png",
+		&"ranger":        "res://assets/sprites/enemyBlue2.png",
+		&"sniper":        "res://assets/sprites/enemyBlue3.png",
+		&"sentinel":      "res://assets/sprites/enemyBlack3.png",
+		&"acid_ranger":   "res://assets/sprites/enemyGreen2.png",
+		&"heavy_ranger":  "res://assets/sprites/enemyBlue4.png",
+		&"tracker":       "res://assets/sprites/enemyRed3.png",
+		&"corruptor":     "res://assets/sprites/enemyGreen4.png",
+		&"boss":          "res://assets/sprites/enemyBlack5.png",
+		&"boss_harbinger":"res://assets/sprites/enemyBlue5.png",
+		&"boss_broodmother":"res://assets/sprites/enemyGreen5.png",
+		&"boss_titan":    "res://assets/sprites/enemyRed5.png",
 	}
 	var sprite_path: String = sprite_map.get(enemy_id, "")
 	if sprite_path != "" and ResourceLoader.exists(sprite_path):
@@ -171,6 +180,10 @@ func _spawn_next() -> void:
 
 	enemy_node.register_targets(_targets)
 	enemy_node.scale_with_wave(entry["multiplier"], entry["speed_mult"])
+	# Give boss-type enemies a reference to the spawn container for summoning
+	if entry["data"] and entry["data"].ai_type in [
+			EnemyData.AIType.ELITE_SUMMONER]:
+		enemy_node.spawn_container = parent
 	enemy_node.global_position = _random_spawn_position()
 	enemy_node.died.connect(_on_enemy_died)
 	active_enemies += 1
@@ -259,13 +272,22 @@ func _generate_procedural_wave(wave_idx: int) -> WaveData:
 	wave.bonus_xp = 0
 
 	if is_boss:
-		var boss_data: EnemyData = ResourceLoader.load("res://resources/enemies/boss.tres")
-		var num_bosses: int = mini(1 + (tier / 10), 2)
-		var num_grunts: int = 8 + (tier / 2)
+		# Rotate through boss pool: Dreadlord, Harbinger, Broodmother, Titan
+		var boss_paths: Array[String] = [
+			"res://resources/enemies/boss.tres",
+			"res://resources/enemies/boss_harbinger.tres",
+			"res://resources/enemies/boss_broodmother.tres",
+			"res://resources/enemies/boss_titan.tres",
+		]
+		# Boss waves occur at 15, 20, 25, 30... (tier 4, 9, 14, 19...)
+		# Use tier / 5 to advance the pool index once every 5 boss waves
+		var boss_pool_idx: int = (tier / 5) % boss_paths.size()
+		var boss_path: String = boss_paths[boss_pool_idx]
+		var boss_data: EnemyData = ResourceLoader.load(boss_path)
 		wave.enemy_pool.append(boss_data)
-		wave.enemy_counts.append(num_bosses)
+		wave.enemy_counts.append(1)
 		wave.enemy_pool.append(grunt_data)
-		wave.enemy_counts.append(num_grunts)
+		wave.enemy_counts.append(8 + (tier / 2))
 		if tier >= 3:
 			var brute_data: EnemyData = ResourceLoader.load("res://resources/enemies/brute.tres")
 			wave.enemy_pool.append(brute_data)
@@ -282,12 +304,45 @@ func _generate_procedural_wave(wave_idx: int) -> WaveData:
 		wave.enemy_counts.append(maxi(speeder_count, 1))
 		wave.enemy_pool.append(exploder_data)
 		wave.enemy_counts.append(maxi(exploder_count, 1))
+		# tier >= 1: snipers + heavy_rangers
+		if tier >= 1:
+			var sniper_data: EnemyData = ResourceLoader.load("res://resources/enemies/sniper.tres")
+			wave.enemy_pool.append(sniper_data)
+			wave.enemy_counts.append(maxi((total_enemies * 1) / 10, 1))
+			extra_count += (total_enemies * 1) / 10
+			var heavy_ranger_data: EnemyData = ResourceLoader.load("res://resources/enemies/heavy_ranger.tres")
+			wave.enemy_pool.append(heavy_ranger_data)
+			wave.enemy_counts.append(maxi((total_enemies * 1) / 10, 1))
+			extra_count += (total_enemies * 1) / 10
+		# tier >= 2: trackers + sentinels + acid_rangers
+		if tier >= 2:
+			var tracker_data: EnemyData = ResourceLoader.load("res://resources/enemies/tracker.tres")
+			wave.enemy_pool.append(tracker_data)
+			wave.enemy_counts.append(maxi((total_enemies * 1) / 10, 1))
+			extra_count += (total_enemies * 1) / 10
+			var sentinel_data: EnemyData = ResourceLoader.load("res://resources/enemies/sentinel.tres")
+			wave.enemy_pool.append(sentinel_data)
+			wave.enemy_counts.append(maxi((total_enemies * 1) / 10, 1))
+			extra_count += (total_enemies * 1) / 10
+			var acid_ranger_data: EnemyData = ResourceLoader.load("res://resources/enemies/acid_ranger.tres")
+			wave.enemy_pool.append(acid_ranger_data)
+			wave.enemy_counts.append(maxi((total_enemies * 1) / 10, 1))
+			extra_count += (total_enemies * 1) / 10
+		# tier >= 3: brutes
 		if tier >= 3:
 			var brute_data: EnemyData = ResourceLoader.load("res://resources/enemies/brute.tres")
 			var brute_count: int = (total_enemies * 1) / 10
 			wave.enemy_pool.append(brute_data)
 			wave.enemy_counts.append(maxi(brute_count, 1))
 			extra_count += brute_count
+		# tier >= 4: corruptors
+		if tier >= 4:
+			var corruptor_data: EnemyData = ResourceLoader.load("res://resources/enemies/corruptor.tres")
+			var corruptor_count: int = (total_enemies * 1) / 10
+			wave.enemy_pool.append(corruptor_data)
+			wave.enemy_counts.append(maxi(corruptor_count, 1))
+			extra_count += corruptor_count
+		# tier >= 6: rangers
 		if tier >= 6:
 			var ranger_data: EnemyData = ResourceLoader.load("res://resources/enemies/ranger.tres")
 			var ranger_count: int = (total_enemies * 1) / 10

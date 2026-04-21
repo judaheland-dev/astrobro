@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="Script" path="res://resources/RangedAttackData.gd" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_explosion.ogg" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemyGreen5.png" id="4"]
+
+[resource]
+script = ExtResource("1")
+id = &"boss_broodmother"
+display_name = "Broodmother"
+ai_type = 8
+max_health = 700.0
+move_speed = 50.0
+contact_damage = 30.0
+contact_damage_cooldown = 0.6
+armor = 12.0
+xp_drop = 150
+coin_drop_chance = 1.0
+coin_drop_amount = 80
+sprite = ExtResource("4")
+sprite_scale = Vector2(2, 2)
+death_sfx = ExtResource("3")
