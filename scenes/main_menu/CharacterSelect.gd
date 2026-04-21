@@ -2,12 +2,24 @@ extends CanvasLayer
 
 ## CharacterSelect - builds its own UI. No editor wiring needed.
 
+const SHIP_SPRITES: Dictionary = {
+	&"scout":       "res://assets/sprites/playerShip1_blue.png",
+	&"sniper":      "res://assets/sprites/playerShip2_orange.png",
+	&"gunship":     "res://assets/sprites/playerShip3_red.png",
+	&"rogue":       "res://assets/sprites/spaceShips_001.png",
+	&"runner":      "res://assets/sprites/spaceShips_002.png",
+	&"dreadnought": "res://assets/sprites/spaceShips_003.png",
+	&"tank":        "res://assets/sprites/spaceShips_004.png",
+}
+
 var _selected: Array[StringName] = [&"scout", &"scout"]
 var _player_count: int = 1
 var _available: Array[StringName] = []
 var _p1_btn: Button
 var _p2_btn: Button
 var _p2_panel: Control   # shown/hidden on 1P/2P toggle
+var _ship_sprites: Array = [null, null]
+var _star_nodes: Array = []
 
 func _ready() -> void:
 	_available = MetaProgression._data.unlocked_characters.duplicate()
@@ -20,30 +32,58 @@ func _ready() -> void:
 
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
+	# Dark base
 	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.05, 0.15)
+	bg.color = Color(0.04, 0.04, 0.12)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(bg)
+
+	# Tiled space texture
+	var bg_tex_path := "res://assets/sprites/bg_darkPurple.png"
+	if ResourceLoader.exists(bg_tex_path):
+		var tex_rect := TextureRect.new()
+		tex_rect.texture = load(bg_tex_path)
+		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex_rect.stretch_mode = TextureRect.STRETCH_TILE
+		tex_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(tex_rect)
+
+	# Scrolling stars
+	var star_tex_path := "res://assets/sprites/star1.png"
+	if ResourceLoader.exists(star_tex_path):
+		var star_tex: Texture2D = load(star_tex_path)
+		for i in 25:
+			var s := Sprite2D.new()
+			s.texture = star_tex
+			s.scale = Vector2(randf_range(0.3, 0.8), randf_range(0.3, 0.8))
+			s.position = Vector2(randf_range(0.0, 1920.0), randf_range(0.0, 1080.0))
+			s.modulate = Color(1.0, 1.0, 1.0, randf_range(0.4, 0.9))
+			root.add_child(s)
+			_star_nodes.append(s)
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)
 	vbox.offset_left  = -320.0
-	vbox.offset_top   = -260.0
+	vbox.offset_top   = -300.0
 	vbox.offset_right =  320.0
-	vbox.offset_bottom = 260.0
+	vbox.offset_bottom = 300.0
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 16)
 	root.add_child(vbox)
 
 	# Title
 	var title := Label.new()
-	title.text = "Select Characters"
+	title.text = "Select Your Ship"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if font:
 		title.add_theme_font_override("font", font)
 		title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
 	vbox.add_child(title)
 
 	# 1P / 2P toggle row
@@ -95,6 +135,22 @@ func _ready() -> void:
 
 	_p1_btn.grab_focus()
 
+
+func _process(delta: float) -> void:
+	for s in _star_nodes:
+		(s as Sprite2D).position.y += 25.0 * delta
+		if (s as Sprite2D).position.y > 1100.0:
+			(s as Sprite2D).position.y = -20.0
+			(s as Sprite2D).position.x = randf_range(0.0, 1920.0)
+
+
+func _ship_tex_for(char_id: StringName) -> Texture2D:
+	var path: String = SHIP_SPRITES.get(char_id, "res://assets/sprites/playerShip1_blue.png")
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+
 func _build_char_picker(player_idx: int, label_text: String, font: FontFile) -> Control:
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -107,6 +163,15 @@ func _build_char_picker(player_idx: int, label_text: String, font: FontFile) -> 
 		lbl.add_theme_font_override("font", font)
 		lbl.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(lbl)
+
+	# Ship sprite preview
+	var ship_preview := TextureRect.new()
+	ship_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ship_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ship_preview.custom_minimum_size = Vector2(120, 120)
+	ship_preview.texture = _ship_tex_for(_selected[player_idx])
+	vbox.add_child(ship_preview)
+	_ship_sprites[player_idx] = ship_preview
 
 	var name_lbl := Label.new()
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -134,12 +199,21 @@ func _build_char_picker(player_idx: int, label_text: String, font: FontFile) -> 
 
 	return vbox
 
+
 func _cycle_char(player_idx: int, dir: int, name_lbl: Label) -> void:
 	AudioManager.play_ui_click()
 	var cur_i := _available.find(_selected[player_idx])
 	cur_i = (cur_i + dir + _available.size()) % _available.size()
 	_selected[player_idx] = _available[cur_i]
 	name_lbl.text = _selected[player_idx].capitalize()
+	var preview: TextureRect = _ship_sprites[player_idx]
+	if preview:
+		preview.texture = _ship_tex_for(_selected[player_idx])
+		preview.scale = Vector2.ZERO
+		var tw := create_tween()
+		tw.tween_property(preview, "scale", Vector2(1.15, 1.15), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(preview, "scale", Vector2(1.0, 1.0), 0.1)
+
 
 func _on_start_pressed() -> void:
 	AudioManager.play_ui_click()

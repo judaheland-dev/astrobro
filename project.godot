@@ -14,8 +14,8 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Space Roguelite"
-config/description="Brotato-style space roguelite with horde defense and local co-op"
+config/name="Astro Bro"
+config/description="Co-op space roguelite. Shoot. Survive. Ascend."
 run/main_scene="res://scenes/main_menu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
