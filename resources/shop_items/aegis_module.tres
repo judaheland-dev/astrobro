@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"aegis_module"
+display_name = "Aegis Module"
+description = "+10% chance to block an incoming hit (8 s cooldown)"
+scope = 0
+stat_deltas = {11: 0.1}
+shop_price = 120
+max_stacks = 4
+rarity = 1

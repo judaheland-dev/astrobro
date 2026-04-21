@@ -29,6 +29,9 @@ enum StatKey {
 	LIFESTEAL,         # % of damage dealt returned as HP
 	RANGE,
 	SPREAD,            # negative = better (less spread)
+	DAMAGE_BLOCK_CHANCE,   # additive block chance (0..1)
+	SCRAP_BONUS_CHANCE,    # additive chance to double scrap drops
+	INSTANT_HEAL,          # one-time: heals player by delta HP on pickup
 }
 
 @export var id: StringName = &""
@@ -49,3 +52,7 @@ enum StatKey {
 
 # Optional passive scene to add to the player
 @export var passive_scene: PackedScene = null
+
+# If set, this GDScript path is loaded and instantiated as a passive ability
+# node added to the player when the upgrade is applied.
+@export var passive_script: String = ""

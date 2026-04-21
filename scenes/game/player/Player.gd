@@ -224,14 +224,25 @@ func apply_upgrade(data: UpgradeData) -> void:
 				coin_multiplier += delta
 			UpgradeData.StatKey.LIFESTEAL:
 				lifesteal += delta
+			UpgradeData.StatKey.DAMAGE_BLOCK_CHANCE:
+				damage_block_chance += delta
+			UpgradeData.StatKey.SCRAP_BONUS_CHANCE:
+				scrap_bonus_chance += delta
+			UpgradeData.StatKey.INSTANT_HEAL:
+				heal(delta)
 			UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
 			UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
 			UpgradeData.StatKey.SPREAD:
 				for weapon in weapons:
 					if weapon.has_method("apply_stat_delta"):
 						weapon.apply_stat_delta(key, delta)
-	health_changed.emit(current_health, max_health)
-
+	if data.passive_script != "":
+		if ResourceLoader.exists(data.passive_script):
+			var passive_scr: Script = load(data.passive_script)
+			var passive_node: Node = passive_scr.new()
+			add_child(passive_node)
+			if passive_node.has_method("setup"):
+				passive_node.call("setup", self)
 # --- Weapons ---
 
 func add_weapon(weapon_node: Node) -> void:

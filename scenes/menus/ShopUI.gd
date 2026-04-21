@@ -16,6 +16,7 @@ var _projectile_parent: Node2D = null
 var _title_label: Label
 var _scrap_label: Label
 var _shop_container: HBoxContainer
+var _module_container: HBoxContainer
 var _loadout_container: HBoxContainer
 
 func _ready() -> void:
@@ -31,9 +32,9 @@ func _ready() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)
 	vbox.offset_left = -430.0
-	vbox.offset_top = -275.0
+	vbox.offset_top = -330.0
 	vbox.offset_right = 430.0
-	vbox.offset_bottom = 275.0
+	vbox.offset_bottom = 330.0
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 12)
 	add_child(vbox)
@@ -57,6 +58,19 @@ func _ready() -> void:
 	_shop_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	_shop_container.add_theme_constant_override("separation", 16)
 	vbox.add_child(_shop_container)
+
+	var modules_title := Label.new()
+	modules_title.text = "-- Modules --"
+	modules_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font:
+		modules_title.add_theme_font_override("font", font)
+		modules_title.add_theme_font_size_override("font_size", 15)
+	vbox.add_child(modules_title)
+
+	_module_container = HBoxContainer.new()
+	_module_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_module_container.add_theme_constant_override("separation", 16)
+	vbox.add_child(_module_container)
 
 	var loadout_title := Label.new()
 	loadout_title.text = "Current Loadout  (sell for 50% scrap refund)"
@@ -104,6 +118,7 @@ func _show_shop_for_player() -> void:
 	]
 	_scrap_label.text = "Scrap: %d" % player.scrap
 	_populate_shop(player)
+	_populate_modules(player)
 	_populate_loadout(player)
 
 func _populate_shop(player: Player) -> void:
@@ -288,6 +303,94 @@ func _on_skip_pressed() -> void:
 		_show_shop_for_player()
 	else:
 		_close()
+
+func _populate_modules(player: Player) -> void:
+	for child in _module_container.get_children():
+		child.queue_free()
+
+	var font := GameManager.kenney_font()
+	var all_paths := _get_all_module_paths()
+	all_paths.shuffle()
+	var offered := all_paths.slice(0, 3)
+
+	for path in offered:
+		var item: UpgradeData = ResourceLoader.load(path)
+		if item == null:
+			continue
+
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(200.0, 140.0)
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = Color(0.04, 0.18, 0.22)
+		card_style.border_color = Color(0.2, 0.7, 0.8)
+		card_style.set_border_width_all(2)
+		card_style.set_corner_radius_all(6)
+		card.add_theme_stylebox_override("panel", card_style)
+
+		var card_vbox := VBoxContainer.new()
+		card_vbox.add_theme_constant_override("separation", 5)
+		card.add_child(card_vbox)
+
+		var name_label := Label.new()
+		name_label.text = item.display_name
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if font:
+			name_label.add_theme_font_override("font", font)
+			name_label.add_theme_font_size_override("font_size", 15)
+		card_vbox.add_child(name_label)
+
+		var desc_label := Label.new()
+		desc_label.text = item.description
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		if font:
+			desc_label.add_theme_font_override("font", font)
+			desc_label.add_theme_font_size_override("font_size", 12)
+		card_vbox.add_child(desc_label)
+
+		var cost_label := Label.new()
+		cost_label.text = "%d Scrap" % item.shop_price
+		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			cost_label.add_theme_font_override("font", font)
+			cost_label.add_theme_font_size_override("font_size", 13)
+		card_vbox.add_child(cost_label)
+
+		var can_buy := player.scrap >= item.shop_price
+		var buy_btn := Button.new()
+		buy_btn.text = "Buy" if can_buy else "Need Scrap"
+		buy_btn.disabled = not can_buy
+		buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		buy_btn.pressed.connect(_on_buy_module_pressed.bind(player, item))
+		if font:
+			buy_btn.add_theme_font_override("font", font)
+			buy_btn.add_theme_font_size_override("font_size", 13)
+		card_vbox.add_child(buy_btn)
+
+		_module_container.add_child(card)
+
+func _get_all_module_paths() -> Array[String]:
+	var paths: Array[String] = []
+	var dir := DirAccess.open("res://resources/shop_items")
+	if dir:
+		dir.list_dir_begin()
+		var fname := dir.get_next()
+		while fname != "":
+			if fname.ends_with(".tres"):
+				paths.append("res://resources/shop_items/" + fname)
+			fname = dir.get_next()
+	return paths
+
+func _on_buy_module_pressed(player: Player, item: UpgradeData) -> void:
+	AudioManager.play_ui_click()
+	if player.scrap < item.shop_price:
+		return
+	player.scrap -= item.shop_price
+	player.scrap_changed.emit(player.scrap)
+	player.apply_upgrade(item)
+	_show_shop_for_player()
 
 func _close() -> void:
 	visible = false
