@@ -30,8 +30,8 @@ func _ready() -> void:
 	var center := Vector2(SZ * 0.5, SZ * 0.5)
 	for y in SZ:
 		for x in SZ:
-			var dx := abs(x + 0.5 - center.x)
-			var dy := abs(y + 0.5 - center.y)
+			var dx: float = abs(x + 0.5 - center.x)
+			var dy: float = abs(y + 0.5 - center.y)
 			if dx + dy <= SZ * 0.45:
 				img.set_pixel(x, y, Color(0.9, 0.75, 0.1, 1.0))
 	_sprite = Sprite2D.new()
