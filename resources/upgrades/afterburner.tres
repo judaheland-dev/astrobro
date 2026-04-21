@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"afterburner"
+display_name = "Afterburner"
+description = "Press Left Shift to boost speed x2.2 for 0.7 s. 6 s recharge."
+scope = 2
+stat_deltas = {}
+shop_price = 100
+max_stacks = 1
+rarity = 2
+passive_script = "res://scenes/game/player/abilities/AfterburnerPassive.gd"

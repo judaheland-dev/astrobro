@@ -51,7 +51,15 @@ func try_fire(aim_dir: Vector2) -> void:
 		var sfx_path := _sfx_for_weapon()
 		if ResourceLoader.exists(sfx_path):
 			AudioManager.play_sfx(load(sfx_path), -6.0, randf_range(0.9, 1.1))
-	_spawn_projectiles(aim_dir)
+	# Apply fire arc offset (e.g. PI = rear-facing weapon / mine)
+	var fire_dir := aim_dir
+	if weapon_data.fire_arc_offset != 0.0:
+		fire_dir = aim_dir.rotated(weapon_data.fire_arc_offset)
+	# Mines are stationary; spawn a single mine at player position, skip the projectile loop
+	if weapon_data.ammo_type == WeaponData.AmmoType.MINE:
+		_spawn_mine(fire_dir)
+		return
+	_spawn_projectiles(fire_dir)
 
 func _spawn_projectiles(base_dir: Vector2) -> void:
 	var parent := _projectile_parent if _projectile_parent else get_tree().current_scene
@@ -61,7 +69,7 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 
 		var proj := BaseProjectile.new()
 		proj.collision_layer = 0   # projectiles have no layer of their own
-		proj.collision_mask  = 2   # only detect enemies on layer 2
+		proj.collision_mask  = 10  # enemies (layer 2) + interceptable missiles (layer 4)
 
 		# Visible sprite - use weapon-specific sprite, fall back to ammo-type default
 		var sprite := Sprite2D.new()
@@ -101,6 +109,9 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 				proj.aoe_radius = 120.0
 			proj.emit_exhaust_trail = weapon_data.emit_exhaust_trail
 			proj.projectile_color = weapon_data.projectile_modulate
+			# Homing toward enemies (player homing missiles)
+			if weapon_data.is_homing:
+				proj.enemy_homing_strength = weapon_data.homing_strength
 		parent.add_child(proj)
 		# Tint the procedural trail to match the projectile colour
 		var trail := proj.get_node_or_null("Trail")
@@ -109,8 +120,18 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 		proj.global_position = global_position
 		proj.setup(dir, damage * damage_multiplier * passive_multiplier, projectile_speed, range, piercing)
 
-func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
-	match key:
+func _spawn_mine(_fire_dir: Vector2) -> void:
+	var parent := _projectile_parent if _projectile_parent else get_tree().current_scene
+	var mine_script_path := "res://scenes/game/weapons/MineProjectile.gd"
+	if not ResourceLoader.exists(mine_script_path):
+		return
+	var mine_script: Script = load(mine_script_path)
+	var mine: Node = mine_script.new()
+	parent.add_child(mine)
+	mine.global_position = global_position
+	mine.call("setup", damage * damage_multiplier * passive_multiplier, 80.0, get_parent())
+
+func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:	match key:
 		UpgradeData.StatKey.DAMAGE:          damage           += delta
 		UpgradeData.StatKey.FIRE_RATE:       fire_rate        += delta
 		UpgradeData.StatKey.PROJECTILE_SPEED: projectile_speed += delta

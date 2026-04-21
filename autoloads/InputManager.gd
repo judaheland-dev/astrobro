@@ -71,6 +71,13 @@ func is_interact_pressed(player_index: int) -> bool:
 		var device: int = player_index
 		return Input.is_joy_button_pressed(device, JOY_BUTTON_A)
 
+# Returns true if the boost (afterburner) button was just pressed this frame.
+func is_boosting(player_index: int) -> bool:
+	if player_index == 0:
+		return Input.is_action_just_pressed("boost")
+	else:
+		return Input.is_action_just_pressed("p2_boost")
+
 func _get_gamepad_stick(device: int, stick: int) -> Vector2:
 	# stick 0 = left analog, stick 1 = right analog
 	var x_axis: int = JOY_AXIS_LEFT_X if stick == 0 else JOY_AXIS_RIGHT_X

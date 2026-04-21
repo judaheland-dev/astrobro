@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"reflective_shield"
+display_name = "Reflective Shield"
+description = "Intercepted enemy missiles bounce back as player projectiles."
+scope = 2
+stat_deltas = {}
+shop_price = 200
+max_stacks = 1
+rarity = 4
+passive_script = "res://scenes/game/player/abilities/ReflectiveShieldPassive.gd"

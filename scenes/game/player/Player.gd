@@ -4,6 +4,7 @@ class_name Player
 ## Player - movement, health, XP, weapon management, and co-op device routing.
 
 signal health_changed(current: float, maximum: float)
+signal shield_changed(current: float, maximum: float)
 signal died()
 signal took_damage()
 signal xp_gained(new_xp: int, threshold: int)
@@ -30,9 +31,32 @@ var scrap_bonus_chance: float = 0.0   # set by Rogue passive
 # All upgrades acquired this run (level-up picks + shop modules)
 var acquired_upgrades: Array[UpgradeData] = []
 
+# Rechargeable shield
+var shield_max: float = 0.0
+var current_shield: float = 0.0
+var shield_regen_rate: float = 20.0
+var shield_regen_delay: float = 3.0
+var _shield_regen_timer: float = 0.0
+var _shield_ring: Sprite2D = null
+
 # Damage blocking (Tank passive sets this)
 var damage_block_chance: float = 0.0
 var _block_cooldown: float = 0.0
+
+# Critical hits and EMP
+var crit_chance: float = 0.0
+var crit_multiplier: float = 2.0
+var emp_radius: float = 0.0
+
+# Afterburner
+var boost_factor: float = 0.0         # speed multiplier while boosting (0 = no boost)
+var boost_duration: float = 0.7       # seconds per burst
+var _boost_timer: float = 0.0
+var _boost_cooldown: float = 0.0
+var _boost_recharge: float = 6.0
+
+# Reflective shield
+var reflective_shield: bool = false
 
 # Status effects from enemy projectiles
 var _slow_factor: float = 1.0
@@ -74,7 +98,7 @@ var _damage_overlay: Sprite2D = null
 
 func _ready() -> void:
 	collision_layer = 1   # player on layer 1
-	collision_mask  = 3   # collide with layer 1 (walls) and layer 2 (enemies)
+	collision_mask  = 10  # collide with layer 1 (walls), layer 2 (enemies), layer 4 (interceptable missiles)
 	if character_data:
 		_apply_character_data()
 	current_health = max_health
@@ -83,13 +107,18 @@ func _ready() -> void:
 	sprite.rotation_degrees = 90.0
 	_setup_thruster()
 	_setup_damage_overlay()
+	_setup_shield_ring()
 
 func _apply_character_data() -> void:
-	max_health      = character_data.max_health
-	move_speed      = character_data.move_speed
-	armor           = character_data.armor
-	xp_multiplier   = character_data.xp_multiplier
-	coin_multiplier = character_data.coin_multiplier
+	max_health         = character_data.max_health
+	move_speed         = character_data.move_speed
+	armor              = character_data.armor
+	xp_multiplier      = character_data.xp_multiplier
+	coin_multiplier    = character_data.coin_multiplier
+	shield_max         = character_data.shield_max
+	shield_regen_rate  = character_data.shield_regen_rate
+	shield_regen_delay = character_data.shield_regen_delay
+	current_shield     = shield_max
 	if character_data.sprite:
 		sprite.texture = character_data.sprite
 
@@ -115,6 +144,9 @@ func add_scrap(amount: int) -> void:
 func _physics_process(delta: float) -> void:
 	var move_dir := InputManager.get_move_dir(player_index)
 	velocity = move_dir * move_speed
+	# Afterburner velocity scale
+	if _boost_timer > 0.0:
+		velocity *= boost_factor
 	move_and_slide()
 
 	# Tick slow timer
@@ -143,6 +175,9 @@ func _physics_process(delta: float) -> void:
 	if InputManager.is_firing(player_index):
 		_fire_all_weapons(aim_dir)
 
+	if InputManager.is_boosting(player_index):
+		activate_boost()
+
 	# Thrust bob: subtle sideways oscillation when moving
 	_is_moving = velocity.length_squared() > 1.0
 	if _is_moving:
@@ -156,6 +191,21 @@ func _physics_process(delta: float) -> void:
 
 	if _block_cooldown > 0.0:
 		_block_cooldown -= delta
+
+	# Shield regeneration
+	if shield_max > 0.0:
+		if _shield_regen_timer > 0.0:
+			_shield_regen_timer -= delta
+		elif current_shield < shield_max:
+			current_shield = minf(current_shield + shield_regen_rate * delta, shield_max)
+			shield_changed.emit(current_shield, shield_max)
+			_update_shield_ring()
+
+	# Afterburner
+	if _boost_timer > 0.0:
+		_boost_timer -= delta
+	if _boost_cooldown > 0.0:
+		_boost_cooldown -= delta
 
 func apply_slow(factor: float, duration: float) -> void:
 	## Apply a movement slow. Only takes effect if worse than current slow (worst-case cap).
@@ -183,6 +233,18 @@ func _fire_all_weapons(aim_dir: Vector2) -> void:
 		if weapon.has_method("try_fire"):
 			weapon.try_fire(aim_dir)
 
+func activate_boost() -> void:
+	## Called by InputManager handler or passive to trigger an afterburner burst.
+	if boost_factor <= 0.0 or _boost_cooldown > 0.0:
+		return
+	_boost_timer = boost_duration
+	_boost_cooldown = _boost_recharge
+	# Briefly brighten thruster
+	if _thruster:
+		_thruster.modulate = Color(2.0, 1.5, 0.5)
+		var t := create_tween()
+		t.tween_property(_thruster, "modulate", Color.WHITE, boost_duration)
+
 # --- Health ---
 
 func take_damage(amount: float) -> void:
@@ -190,7 +252,17 @@ func take_damage(amount: float) -> void:
 		_block_cooldown = 8.0
 		_flash_damage()
 		return
+	_shield_regen_timer = shield_regen_delay  # reset regen delay on any hit
 	var effective := maxf(0.0, amount - armor)
+	if current_shield > 0.0:
+		var absorbed := minf(current_shield, effective)
+		current_shield -= absorbed
+		effective -= absorbed
+		shield_changed.emit(current_shield, shield_max)
+		_update_shield_ring()
+		if effective <= 0.0:
+			_flash_shield_hit()
+			return
 	current_health -= effective
 	took_damage.emit()
 	_flash_damage()
@@ -304,6 +376,15 @@ func apply_upgrade(data: UpgradeData) -> void:
 				scrap_bonus_chance += delta
 			UpgradeData.StatKey.INSTANT_HEAL:
 				heal(delta)
+			UpgradeData.StatKey.SHIELD_MAX:
+				shield_max += delta
+				current_shield = minf(current_shield + delta, shield_max)
+				shield_changed.emit(current_shield, shield_max)
+				_update_shield_ring()
+			UpgradeData.StatKey.SHIELD_REGEN_RATE:
+				shield_regen_rate += delta
+			UpgradeData.StatKey.CRIT_CHANCE:
+				crit_chance += delta
 			UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
 			UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
 			UpgradeData.StatKey.SPREAD:
@@ -467,3 +548,43 @@ func _update_thruster(delta: float) -> void:
 	var tex = _thruster_textures[_thruster_frame_idx] if _thruster_textures.size() > _thruster_frame_idx else null
 	if tex != null:
 		_thruster.texture = tex
+
+func _setup_shield_ring() -> void:
+	## Builds a procedural blue circle Sprite2D as the shield visual ring.
+	if shield_max <= 0.0:
+		return
+	const RING_SIZE: int = 64
+	var img := Image.create(RING_SIZE, RING_SIZE, false, Image.FORMAT_RGBA8)
+	var center := Vector2(RING_SIZE * 0.5, RING_SIZE * 0.5)
+	var outer := RING_SIZE * 0.5
+	var inner := outer - 4.0
+	for y in RING_SIZE:
+		for x in RING_SIZE:
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if d <= outer and d >= inner:
+				var edge := minf((d - inner) / 2.0, (outer - d) / 2.0)
+				img.set_pixel(x, y, Color(0.2, 0.6, 1.0, clampf(edge, 0.0, 1.0)))
+	_shield_ring = Sprite2D.new()
+	_shield_ring.texture = ImageTexture.create_from_image(img)
+	_shield_ring.scale = Vector2(1.3, 1.3)
+	_shield_ring.z_index = 3
+	add_child(_shield_ring)
+	_update_shield_ring()
+
+func _update_shield_ring() -> void:
+	if _shield_ring == null:
+		return
+	if shield_max <= 0.0:
+		_shield_ring.visible = false
+		return
+	var frac := current_shield / shield_max
+	_shield_ring.visible = frac > 0.0
+	_shield_ring.modulate = Color(0.2, 0.6, 1.0, frac)
+
+func _flash_shield_hit() -> void:
+	## Blue flash when a hit is fully absorbed by the shield.
+	if _shield_ring == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(_shield_ring, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.04)
+	tween.tween_property(_shield_ring, "modulate", Color(0.2, 0.6, 1.0, current_shield / shield_max), 0.15)

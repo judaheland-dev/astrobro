@@ -29,3 +29,8 @@ class_name CharacterData
 
 # WeaponData.WeaponClass int -> damage multiplier delta (e.g. 0.2 = +20%, -0.15 = -15%)
 @export var weapon_class_bonuses: Dictionary = {}
+
+# Rechargeable shield
+@export var shield_max: float = 0.0           # 0 = no shield
+@export var shield_regen_rate: float = 20.0    # HP/s while recharging
+@export var shield_regen_delay: float = 3.0    # seconds after last hit before regen starts

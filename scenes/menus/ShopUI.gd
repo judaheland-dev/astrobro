@@ -931,7 +931,7 @@ func _show_popover(anchor: Control, text: String, rarity_col: Color) -> void:
 	# Position above the anchor; we need one frame for size to be measured,
 	# but we can set an approximate position immediately.
 	await get_tree().process_frame
-	if not _popover.visible:
+	if not _popover.visible or not is_instance_valid(anchor):
 		return
 	var vp_size := get_viewport().get_visible_rect().size
 	var anchor_rect := anchor.get_global_rect()

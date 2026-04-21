@@ -32,6 +32,9 @@ enum StatKey {
 	DAMAGE_BLOCK_CHANCE,   # additive block chance (0..1)
 	SCRAP_BONUS_CHANCE,    # additive chance to double scrap drops
 	INSTANT_HEAL,          # one-time: heals player by delta HP on pickup
+	SHIELD_MAX,            # increases max shield capacity
+	SHIELD_REGEN_RATE,     # increases shield regen speed (HP/s)
+	CRIT_CHANCE,           # additive crit probability (0..1)
 }
 
 @export var id: StringName = &""

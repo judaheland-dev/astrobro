@@ -22,6 +22,17 @@ var contact_damage: float = 10.0
 var contact_cooldown: float = 1.0
 var armor: float = 0.0
 
+# Rechargeable shield
+var shield_max: float = 0.0
+var current_shield: float = 0.0
+var shield_regen_rate: float = 0.0
+var shield_regen_delay: float = 4.0
+var _shield_regen_timer: float = 0.0
+var _shield_ring: Sprite2D = null
+
+# Stun state
+var _stun_timer: float = 0.0
+
 var _state: State = State.CHASE
 var _contact_timer: float = 0.0
 var _ranged_timer: float = 0.0
@@ -56,6 +67,7 @@ const ATTACK_RANGE: float = 52.0           # melee range for all targets
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 
 func _ready() -> void:
+	add_to_group("enemies")
 	if enemy_data:
 		_apply_data()
 	current_health = max_health
@@ -65,14 +77,20 @@ func _ready() -> void:
 	spawn_tween.tween_property(self, "scale", Vector2.ONE * 1.2, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	spawn_tween.tween_property(self, "scale", Vector2.ONE, 0.08)
 	_setup_enemy_thruster()
+	if shield_max > 0.0:
+		_setup_shield_ring()
 
 func _apply_data() -> void:
-	max_health      = enemy_data.max_health
-	current_health  = enemy_data.max_health
-	move_speed      = enemy_data.move_speed
-	contact_damage  = enemy_data.contact_damage
+	max_health       = enemy_data.max_health
+	current_health   = enemy_data.max_health
+	move_speed       = enemy_data.move_speed
+	contact_damage   = enemy_data.contact_damage
 	contact_cooldown = enemy_data.contact_damage_cooldown
-	armor           = enemy_data.armor
+	armor            = enemy_data.armor
+	shield_max         = enemy_data.shield_max
+	shield_regen_rate  = enemy_data.shield_regen_rate
+	shield_regen_delay = enemy_data.shield_regen_delay
+	current_shield     = shield_max
 	if enemy_data.sprite:
 		sprite.texture = enemy_data.sprite
 		sprite.scale   = enemy_data.sprite_scale
@@ -99,6 +117,20 @@ func _physics_process(delta: float) -> void:
 	_update_enemy_thruster(delta)
 	if _contact_timer > 0.0:
 		_contact_timer -= delta
+
+	# Shield regeneration
+	if shield_max > 0.0:
+		if _shield_regen_timer > 0.0:
+			_shield_regen_timer -= delta
+		elif current_shield < shield_max:
+			current_shield = minf(current_shield + shield_regen_rate * delta, shield_max)
+			_update_shield_ring()
+
+	# Stun: skip all AI while stunned
+	if _stun_timer > 0.0:
+		_stun_timer -= delta
+		velocity = Vector2.ZERO
+		return
 
 	var target := _get_primary_target()
 	if target == null:
@@ -186,7 +218,16 @@ func _attack_contact(target: Node) -> void:
 func take_damage(amount: float) -> void:
 	if _state == State.DEAD:
 		return
+	_shield_regen_timer = shield_regen_delay  # reset regen delay on any hit
 	var effective := maxf(0.0, amount - armor)
+	if current_shield > 0.0:
+		var absorbed := minf(current_shield, effective)
+		current_shield -= absorbed
+		effective -= absorbed
+		_update_shield_ring()
+		if effective <= 0.0:
+			_flash_shield_hit()
+			return
 	current_health -= effective
 	_flash_hit()
 	# Boss phase transition at 50% HP
@@ -196,6 +237,51 @@ func take_damage(amount: float) -> void:
 		_trigger_phase_2()
 	if current_health <= 0.0:
 		_die()
+
+func stun(duration: float) -> void:
+	## Temporarily halt this enemy's AI. Stacks by taking the longest duration.
+	if duration > _stun_timer:
+		_stun_timer = duration
+	# Blue pulse visual to signal stun
+	sprite.modulate = Color(0.4, 0.6, 1.0, 1.0)
+	var t := create_tween()
+	t.tween_property(sprite, "modulate", Color.WHITE, duration * 0.5)
+
+func _setup_shield_ring() -> void:
+	const RING_SIZE: int = 64
+	var img := Image.create(RING_SIZE, RING_SIZE, false, Image.FORMAT_RGBA8)
+	var center := Vector2(RING_SIZE * 0.5, RING_SIZE * 0.5)
+	var outer := RING_SIZE * 0.5
+	var inner := outer - 4.0
+	for y in RING_SIZE:
+		for x in RING_SIZE:
+			var d := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if d <= outer and d >= inner:
+				var edge := minf((d - inner) / 2.0, (outer - d) / 2.0)
+				img.set_pixel(x, y, Color(0.2, 0.6, 1.0, clampf(edge, 0.0, 1.0)))
+	_shield_ring = Sprite2D.new()
+	_shield_ring.texture = ImageTexture.create_from_image(img)
+	_shield_ring.scale = Vector2(1.4, 1.4)
+	_shield_ring.z_index = 3
+	add_child(_shield_ring)
+	_update_shield_ring()
+
+func _update_shield_ring() -> void:
+	if _shield_ring == null:
+		return
+	if shield_max <= 0.0:
+		_shield_ring.visible = false
+		return
+	var frac := current_shield / shield_max
+	_shield_ring.visible = frac > 0.0
+	_shield_ring.modulate = Color(0.2, 0.6, 1.0, frac)
+
+func _flash_shield_hit() -> void:
+	if _shield_ring == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(_shield_ring, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.04)
+	tween.tween_property(_shield_ring, "modulate", Color(0.2, 0.6, 1.0, current_shield / shield_max), 0.15)
 
 func _flash_hit() -> void:
 	# White flash + quick scale punch
@@ -481,7 +567,12 @@ func _fire_at_target(target: Node) -> void:
 
 func _build_projectile(spr_path: String, color_fallback: Color) -> BaseProjectile:
 	var proj := BaseProjectile.new()
-	proj.collision_layer = 0
+	proj.is_enemy_projectile = true
+	if enemy_data and enemy_data.fires_interceptable_missiles:
+		proj.interceptable = true
+		proj.collision_layer = 8   # layer 4 (bit 3) - interceptable enemy projectiles
+	else:
+		proj.collision_layer = 0
 	proj.collision_mask  = 1
 	var spr := Sprite2D.new()
 	if ResourceLoader.exists(spr_path):

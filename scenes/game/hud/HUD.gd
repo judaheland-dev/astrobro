@@ -48,6 +48,7 @@ func register_player(player: Player) -> void:
 	var panel := _create_player_panel(player.player_index)
 	_players_vbox.add_child(panel)
 	player.health_changed.connect(func(cur, mx): _update_health(panel, cur, mx))
+	player.shield_changed.connect(func(cur, mx): _update_shield(panel, cur, mx))
 	player.xp_gained.connect(func(xp, threshold): _update_xp(panel, xp, threshold))
 	player.leveled_up.connect(func(lvl): _update_level(panel, lvl))
 	player.scrap_changed.connect(func(amount): _update_scrap(panel, amount))
@@ -66,6 +67,13 @@ func _create_player_panel(index: int) -> Control:
 		name_label.add_theme_font_override("font", panel_font)
 		name_label.add_theme_font_size_override("font_size", 20)
 	vbox.add_child(name_label)
+
+	var shield_bar := ProgressBar.new()
+	shield_bar.name = "ShieldBar"
+	shield_bar.custom_minimum_size = Vector2(220, 8)
+	shield_bar.modulate = Color(0.3, 0.7, 1.0)
+	shield_bar.visible = false
+	vbox.add_child(shield_bar)
 
 	var hp_bar := ProgressBar.new()
 	hp_bar.name = "HPBar"
@@ -105,6 +113,13 @@ func _mark_dead(panel: Control) -> void:
 func _update_health(panel: Control, current: float, maximum: float) -> void:
 	var bar := panel.get_node_or_null("HPBar") as ProgressBar
 	if bar:
+		bar.max_value = maximum
+		bar.value = current
+
+func _update_shield(panel: Control, current: float, maximum: float) -> void:
+	var bar := panel.get_node_or_null("ShieldBar") as ProgressBar
+	if bar:
+		bar.visible = maximum > 0.0
 		bar.max_value = maximum
 		bar.value = current
 

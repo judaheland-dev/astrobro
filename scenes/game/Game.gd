@@ -16,6 +16,7 @@ var _game_over_ui: CanvasLayer
 var _camera: Camera2D
 
 var _players: Array[Player] = []
+var _extra_targets: Array[Node] = []   # decoys and other non-player targets
 var _wave_manager: WaveManager = WaveManager.new()
 var _game_mode: GameMode = null
 var _current_wave_number: int = 1
@@ -382,6 +383,29 @@ func _on_shop_closed() -> void:
 
 func _on_player_died() -> void:
 	pass  # GameMode handles multi-player death tracking
+
+func register_extra_target(node: Node) -> void:
+	## Add a decoy or other non-player node to the enemy target list.
+	if node not in _extra_targets:
+		_extra_targets.append(node)
+	_refresh_all_targets()
+
+func unregister_extra_target(node: Node) -> void:
+	_extra_targets.erase(node)
+	_refresh_all_targets()
+
+func _refresh_all_targets() -> void:
+	var targets: Array[Node] = []
+	for p in _players:
+		targets.append(p)
+	for t in _extra_targets:
+		if is_instance_valid(t):
+			targets.append(t)
+	_wave_manager.register_targets(targets)
+	# Update all currently-living enemies
+	for enemy in _enemies_container.get_children():
+		if enemy.has_method("register_targets"):
+			enemy.register_targets(targets)
 
 func _on_enemy_spawned(enemy: BaseEnemy) -> void:
 	enemy.xp_dropped.connect(_on_xp_dropped)

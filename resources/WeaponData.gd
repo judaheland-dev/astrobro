@@ -55,3 +55,11 @@ enum WeaponClass {
 @export var projectile_modulate: Color = Color.WHITE
 @export var projectile_hitbox_size: Vector2 = Vector2(10.0, 4.0)
 @export var emit_exhaust_trail: bool = false
+
+# Angle offset applied to the aim direction before firing (radians).
+# 0 = forward, PI = directly behind the player (rear weapon / mine drop).
+@export var fire_arc_offset: float = 0.0
+
+# Homing: when true this weapon's projectiles steer toward the nearest enemy.
+@export var is_homing: bool = false
+@export var homing_strength: float = 0.0   # turn rate in rad/s (0 = straight)

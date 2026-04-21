@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"homing_missile"
+display_name = "Homing Missile"
+description = "Slow rockets that steer toward the nearest enemy. AoE blast on impact."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 120
+damage = 45.0
+fire_rate = 1.2
+projectile_speed = 350.0
+range = 900.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+is_homing = true
+homing_strength = 4.0
+emit_exhaust_trail = true
+unlock_cost = 0
+rarity = 2
+projectile_scale = Vector2(0.9, 0.9)
+projectile_modulate = Color(1.0, 0.6, 0.2, 1.0)
