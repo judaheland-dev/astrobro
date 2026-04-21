@@ -9,6 +9,7 @@ var aoe_radius: float = 80.0
 var shooter: Node = null
 var armed: bool = false
 const ARM_DELAY: float = 1.5
+const SZ: int = 20
 var _arm_timer: float = ARM_DELAY
 
 var _sprite: Sprite2D = null
@@ -25,7 +26,6 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 	# Build mine sprite (yellow diamond shape via Image)
-	const SZ: int = 20
 	var img := Image.create(SZ, SZ, false, Image.FORMAT_RGBA8)
 	var center := Vector2(SZ * 0.5, SZ * 0.5)
 	for y in SZ:

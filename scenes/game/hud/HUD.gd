@@ -155,3 +155,38 @@ func update_timer(remaining: float) -> void:
 		_timer_label.visible = true
 		var secs := int(remaining) + 1
 		_timer_label.text = "WAVE ENDS: %ds" % secs
+
+func show_event_banner(text: String, color: Color) -> void:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.modulate = color
+	lbl.modulate.a = 0.0
+	lbl.set_anchors_preset(Control.PRESET_CENTER)
+	lbl.offset_left = -300.0
+	lbl.offset_right = 300.0
+	lbl.offset_top = -28.0
+	lbl.offset_bottom = 28.0
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bfont := GameManager.kenney_font()
+	if bfont:
+		lbl.add_theme_font_override("font", bfont)
+		lbl.add_theme_font_size_override("font_size", 38)
+	lbl.scale = Vector2(0.4, 0.4)
+	lbl.pivot_offset = Vector2(300.0, 28.0)
+
+	# Mount on a fresh CanvasLayer so it always renders above HUD
+	var cl := CanvasLayer.new()
+	cl.layer = 10
+	get_tree().current_scene.add_child(cl)
+	cl.add_child(lbl)
+
+	var tw := lbl.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "modulate:a", 1.0, 0.25)
+	tw.tween_property(lbl, "scale", Vector2(1.1, 1.1), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.chain().tween_property(lbl, "scale", Vector2(1.0, 1.0), 0.1)
+	tw.chain().tween_interval(2.0)
+	tw.chain().tween_property(lbl, "modulate:a", 0.0, 0.4)
+	tw.chain().tween_callback(cl.queue_free)

@@ -294,6 +294,15 @@ func _setup_terrain_events() -> void:
 	add_child(terrain)
 	_game_mode.run_ended.connect(func(_v: bool): GameManager.solar_flare_active = false)
 
+	var special := SpecialEnemyEventManager.new()
+	special.players = _players
+	special.wave_manager = _wave_manager
+	special.hud = _hud
+	add_child(special)
+	special.special_xp_dropped.connect(_on_xp_dropped)
+	special.special_coin_dropped.connect(_on_coin_dropped)
+	_game_mode.run_ended.connect(func(_v: bool): special.stop())
+
 # ---------------------------------------------------------------------------
 # HUD
 # ---------------------------------------------------------------------------
