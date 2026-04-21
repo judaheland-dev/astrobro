@@ -13,6 +13,7 @@ var range: float = 600.0
 var spread: float = 0.0
 var projectile_count: int = 1
 var piercing: int = 0
+var port_index: int = 0   # which hull port this weapon occupies (see Player.PORT_DATA)
 
 var _fire_cooldown: float = 0.0
 var _projectile_parent: Node = null   # set by Game so projectiles don't rotate with player

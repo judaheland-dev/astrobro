@@ -73,6 +73,19 @@ var xp_threshold: int = 100
 var pending_upgrades: int = 0  # picks banked this wave; consumed by BetweenWaveUI
 
 # Weapons
+# Port positions in player-local space (player faces +X; wings along Y).
+# Index order chosen so first weapon goes to the nose (centered).
+const PORT_DATA: Array = [
+	{"pos": Vector2(10.0,  -34.0), "mount_rot":  90.0, "is_rear": false, "label": "Port Fwd"},
+	{"pos": Vector2(10.0,   34.0), "mount_rot":  90.0, "is_rear": false, "label": "Stbd Fwd"},
+	{"pos": Vector2(32.0,    0.0), "mount_rot":  90.0, "is_rear": false, "label": "Nose"},
+	{"pos": Vector2(-30.0,   0.0), "mount_rot": -90.0, "is_rear": true,  "label": "Tail"},
+	{"pos": Vector2(-18.0, -28.0), "mount_rot": -90.0, "is_rear": true,  "label": "Port Rear"},
+	{"pos": Vector2(-18.0,  28.0), "mount_rot": -90.0, "is_rear": true,  "label": "Stbd Rear"},
+]
+# Default assignment sequence: Nose first, then wings, then rear ports.
+const _DEFAULT_PORT_ORDER: Array = [2, 0, 1, 3, 4, 5]
+
 var weapons: Array[Node] = []           # BaseWeapon children
 var active_weapon_index: int = 0
 var _weapon_visuals: Array[Sprite2D] = []  # wing-mounted hull sprites
@@ -231,7 +244,9 @@ func _fire_all_weapons(aim_dir: Vector2) -> void:
 	weapon_fired.emit()
 	for weapon in weapons:
 		if weapon.has_method("try_fire"):
-			weapon.try_fire(aim_dir)
+			var pidx: int = weapon.get("port_index")
+			var fire_dir := -aim_dir if PORT_DATA[pidx]["is_rear"] else aim_dir
+			weapon.try_fire(fire_dir)
 
 func activate_boost() -> void:
 	## Called by InputManager handler or passive to trigger an afterburner burst.
@@ -410,43 +425,50 @@ func add_weapon(weapon_node: Node) -> void:
 		var bonus: float = character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0)
 		weapon_node.set("damage_multiplier", 1.0 + bonus)
 	weapons.append(weapon_node)
-	# Position the weapon node at its wing hardpoint so shots originate there.
-	# Slot 0 → port wing (-Y), slot 1 → starboard wing (+Y).
-	# With only one weapon it stays at center so both wings feel symmetric.
+	# Assign to the next port in the default order.
 	var slot_index := weapons.size() - 1
-	if slot_index == 0:
-		weapon_node.position = Vector2(12.0, -34.0)
-	elif slot_index == 1:
-		weapon_node.position = Vector2(12.0,  34.0)
+	var port_idx: int = _DEFAULT_PORT_ORDER[min(slot_index, PORT_DATA.size() - 1)]
+	weapon_node.set("port_index", port_idx)
+	weapon_node.position = PORT_DATA[port_idx]["pos"]
 	add_child(weapon_node)
 	_update_weapon_visuals()
 
 func get_weapon_count() -> int:
 	return weapons.size()
 
-# Spawn/replace wing-mount sprites to reflect currently equipped weapons.
+# Swap the port assignments of two equipped weapons.
+func reassign_port(wa: Node, wb: Node) -> void:
+	var tmp_idx: int = wa.get("port_index")
+	var tmp_pos: Vector2 = wa.position
+	wa.set("port_index", wb.get("port_index"))
+	wa.position = wb.position
+	wb.set("port_index", tmp_idx)
+	wb.position = tmp_pos
+	_update_weapon_visuals()
+
+# Move a weapon to an unoccupied port.
+func move_to_empty_port(weapon_node: Node, port_idx: int) -> void:
+	weapon_node.set("port_index", port_idx)
+	weapon_node.position = PORT_DATA[port_idx]["pos"]
+	_update_weapon_visuals()
+
+# Rebuild wing-mount sprites to match currently equipped weapons.
+# Only renders sprites for occupied ports; empty ports show nothing.
 func _update_weapon_visuals() -> void:
 	for v in _weapon_visuals:
 		if is_instance_valid(v):
 			v.queue_free()
 	_weapon_visuals.clear()
-	if weapons.is_empty():
-		return
-	# Hardpoint positions in player local space (player faces +X, wings at ±Y).
-	# With 1 weapon show symmetrically on both wings; with 2 split port/starboard.
-	var classes: Array[int] = []
 	for w in weapons:
-		var wd = w.get("weapon_data")
-		classes.append(int(wd.weapon_class) if wd != null else -1)
-	var port_class   := classes[0]
-	var stbd_class   := classes[1] if classes.size() > 1 else classes[0]
-	_add_mount_sprite(port_class,  Vector2(12.0, -34.0))
-	_add_mount_sprite(stbd_class,  Vector2(12.0,  34.0))
+		var pidx: int = w.get("port_index")
+		var port: Dictionary = PORT_DATA[pidx]
+		var wdata = w.get("weapon_data")
+		var wclass: int = int(wdata.weapon_class) if wdata != null else -1
+		_add_mount_sprite(wclass, port["pos"], port["mount_rot"])
 
-func _add_mount_sprite(weapon_class: int, pos: Vector2) -> void:
+func _add_mount_sprite(weapon_class: int, pos: Vector2, mount_rot: float) -> void:
 	if weapon_class < 0:
 		return
-	# Map WeaponClass enum to a hull-part sprite path.
 	# WeaponClass: RAPID=0, PRECISION=1, SPREAD=2, HEAVY=3, EXPLOSIVE=4
 	var path: String
 	var scale_factor := 1.0
@@ -455,16 +477,15 @@ func _add_mount_sprite(weapon_class: int, pos: Vector2) -> void:
 		1: path = "res://assets/sprites/spaceParts_095.png" # long cannon
 		2: path = "res://assets/sprites/spaceParts_093.png" # double barrel
 		3: path = "res://assets/sprites/spaceParts_094.png" # heavy cannon
-		4: # missile pod slung under wing
+		4: # missile pod
 			path = "res://assets/sprites/spaceMissiles_001.png"
 			scale_factor = 0.8
-			pos.x -= 8.0
 		_: return
 	if not ResourceLoader.exists(path):
 		return
 	var spr := Sprite2D.new()
 	spr.texture = load(path)
-	spr.rotation_degrees = 90.0  # barrel points forward (+X player-local)
+	spr.rotation_degrees = mount_rot
 	spr.position = pos
 	spr.scale = Vector2(scale_factor, scale_factor)
 	spr.z_index = 1

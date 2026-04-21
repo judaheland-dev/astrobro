@@ -20,13 +20,14 @@ var _offered_modules: Array[UpgradeData] = []
 var _locked_weapons: Array[bool] = []
 var _locked_modules: Array[bool] = []
 var _reroll_count: int = 0
+var _selected_weapon_node: Node = null   # port-swap selection state
 
 var _title_label: Label
 var _scrap_label: Label
 var _reroll_btn: Button
 var _shop_container: HBoxContainer
 var _module_container: HBoxContainer
-var _loadout_container: HBoxContainer
+var _loadout_container: GridContainer
 var _purchased_container: HBoxContainer
 var _stats_container: VBoxContainer
 var _popover: PanelContainer
@@ -43,13 +44,13 @@ func _ready() -> void:
 	add_child(bg)
 
 	var vbox := VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_CENTER)
-	vbox.offset_left = -430.0
-	vbox.offset_top = -330.0
-	vbox.offset_right = 430.0
-	vbox.offset_bottom = 330.0
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vbox.offset_left = 20.0
+	vbox.offset_top = 8.0
+	vbox.offset_right = -20.0
+	vbox.offset_bottom = -8.0
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 12)
+	vbox.add_theme_constant_override("separation", 8)
 	add_child(vbox)
 
 	_title_label = Label.new()
@@ -103,13 +104,16 @@ func _ready() -> void:
 	vbox.add_child(loadout_title)
 
 	var loadout_scroll := ScrollContainer.new()
-	loadout_scroll.custom_minimum_size = Vector2(0.0, 110.0)
-	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	loadout_scroll.custom_minimum_size = Vector2(0.0, 160.0)
+	loadout_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	vbox.add_child(loadout_scroll)
 
-	_loadout_container = HBoxContainer.new()
-	_loadout_container.add_theme_constant_override("separation", 10)
+	_loadout_container = GridContainer.new()
+	_loadout_container.columns = 3
+	_loadout_container.add_theme_constant_override("h_separation", 10)
+	_loadout_container.add_theme_constant_override("v_separation", 8)
 	loadout_scroll.add_child(_loadout_container)
 
 	# Bottom row: acquired upgrades (left) + ship stats (right)
@@ -494,82 +498,174 @@ func _populate_loadout(player: Player) -> void:
 		child.queue_free()
 
 	var font := GameManager.kenney_font()
-	for weapon_node in player.weapons:
-		var wdata: WeaponData = weapon_node.get("weapon_data")
-		if wdata == null:
-			continue
-		var sell_value: int = max(1, wdata.shop_cost / 2)
-		var rarity_col := _rarity_color(int(wdata.rarity))
-		var class_idx: int = int(wdata.weapon_class)
-		var class_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
+	# Build a lookup: port_index -> weapon_node
+	var port_to_weapon: Dictionary = {}
+	for w in player.weapons:
+		port_to_weapon[w.get("port_index")] = w
+
+	for port_idx in 6:
+		var port: Dictionary = player.PORT_DATA[port_idx]
+		var port_label_str: String = port["label"]
+		var is_rear: bool = port["is_rear"]
+		var weapon_node: Node = port_to_weapon.get(port_idx, null)
+		var is_selected: bool = (_selected_weapon_node != null and _selected_weapon_node == weapon_node)
+		var is_swap_target: bool = (_selected_weapon_node != null and weapon_node != null and weapon_node != _selected_weapon_node)
+		var is_empty_target: bool = (_selected_weapon_node != null and weapon_node == null)
 
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(160.0, 105.0)
+		card.custom_minimum_size = Vector2(165.0, 115.0)
+		card.focus_mode = Control.FOCUS_ALL
 		var card_style := StyleBoxFlat.new()
-		card_style.bg_color = rarity_col.darkened(0.6)
-		card_style.border_color = rarity_col
-		card_style.set_border_width_all(2)
+		if weapon_node != null:
+			var wdata: WeaponData = weapon_node.get("weapon_data")
+			var rarity_col := _rarity_color(int(wdata.rarity) if wdata else 0)
+			card_style.bg_color = rarity_col.darkened(0.65)
+			if is_selected:
+				card_style.border_color = Color(1.0, 0.85, 0.1)  # gold highlight
+				card_style.set_border_width_all(3)
+			elif is_swap_target:
+				card_style.border_color = Color(0.3, 0.8, 1.0)  # cyan = swap here
+				card_style.set_border_width_all(2)
+			else:
+				card_style.border_color = rarity_col
+				card_style.set_border_width_all(2)
+		else:
+			card_style.bg_color = Color(0.08, 0.08, 0.12)
+			if is_empty_target:
+				card_style.border_color = Color(0.3, 0.8, 1.0)  # cyan = move here
+				card_style.set_border_width_all(2)
+			else:
+				card_style.border_color = Color(0.3, 0.3, 0.35)
+				card_style.set_border_width_all(1)
 		card_style.set_corner_radius_all(6)
 		card.add_theme_stylebox_override("panel", card_style)
 
-		var card_vbox := VBoxContainer.new()
-		card_vbox.add_theme_constant_override("separation", 4)
-		card.add_child(card_vbox)
+		var cvbox := VBoxContainer.new()
+		cvbox.add_theme_constant_override("separation", 3)
+		card.add_child(cvbox)
 
-		var rarity_lbl := Label.new()
-		rarity_lbl.text = "[%s]" % _rarity_name(int(wdata.rarity))
-		rarity_lbl.modulate = rarity_col.lightened(0.2)
-		rarity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		# Port label row
+		var port_lbl := Label.new()
+		port_lbl.text = "%s  [%s]" % [port_label_str, "REAR" if is_rear else "FWD"]
+		port_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		port_lbl.modulate = Color(0.6, 0.9, 1.0) if is_rear else Color(0.9, 0.9, 0.9)
 		if font:
-			rarity_lbl.add_theme_font_override("font", font)
-			rarity_lbl.add_theme_font_size_override("font_size", 11)
-		card_vbox.add_child(rarity_lbl)
+			port_lbl.add_theme_font_override("font", font)
+			port_lbl.add_theme_font_size_override("font_size", 10)
+		cvbox.add_child(port_lbl)
 
-		var name_label := Label.new()
-		name_label.text = wdata.display_name
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		if font:
-			name_label.add_theme_font_override("font", font)
-			name_label.add_theme_font_size_override("font_size", 14)
-		card_vbox.add_child(name_label)
+		if weapon_node != null:
+			var wdata: WeaponData = weapon_node.get("weapon_data")
+			var sell_value: int = max(1, wdata.shop_cost / 2) if wdata else 1
+			var rarity_col := _rarity_color(int(wdata.rarity) if wdata else 0)
+			var class_idx: int = int(wdata.weapon_class) if wdata else 0
+			var class_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
 
-		var class_lbl := Label.new()
-		class_lbl.text = "[%s]" % class_str
-		class_lbl.modulate = Color(0.8, 0.8, 0.8)
-		class_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		if font:
-			class_lbl.add_theme_font_override("font", font)
-			class_lbl.add_theme_font_size_override("font_size", 11)
-		card_vbox.add_child(class_lbl)
+			var name_lbl := Label.new()
+			name_lbl.text = wdata.display_name if wdata else "?"
+			name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			if font:
+				name_lbl.add_theme_font_override("font", font)
+				name_lbl.add_theme_font_size_override("font_size", 13)
+			cvbox.add_child(name_lbl)
 
-		var sell_btn := Button.new()
-		sell_btn.text = "Sell +%d" % sell_value
-		sell_btn.disabled = player.weapons.size() <= 1
-		sell_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-		sell_btn.pressed.connect(_on_sell_pressed.bind(player, weapon_node))
-		if font:
-			sell_btn.add_theme_font_override("font", font)
-			sell_btn.add_theme_font_size_override("font_size", 12)
-		card_vbox.add_child(sell_btn)
+			var class_lbl := Label.new()
+			class_lbl.text = "[%s]" % class_str
+			class_lbl.modulate = Color(0.75, 0.75, 0.75)
+			class_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if font:
+				class_lbl.add_theme_font_override("font", font)
+				class_lbl.add_theme_font_size_override("font_size", 10)
+			cvbox.add_child(class_lbl)
 
-		# Build popover lines for this weapon
-		var effective_dmg: float = weapon_node.get("damage") * weapon_node.get("damage_multiplier") * weapon_node.get("passive_multiplier")
-		var pop_lines := "[%s] %s\n[%s]\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nSell: +%d scrap" % [
-			_rarity_name(int(wdata.rarity)), wdata.display_name,
-			class_str,
-			wdata.description,
-			effective_dmg, weapon_node.get("fire_rate"),
-			weapon_node.get("range"), weapon_node.get("spread"),
-			weapon_node.get("projectile_count"), weapon_node.get("piercing"),
-			sell_value,
-		]
-		sell_btn.focus_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
-		sell_btn.focus_exited.connect(_hide_popover)
-		sell_btn.mouse_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
-		sell_btn.mouse_exited.connect(_hide_popover)
+			var btn_row := HBoxContainer.new()
+			btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+			btn_row.add_theme_constant_override("separation", 6)
+			cvbox.add_child(btn_row)
+
+			# Select/swap button
+			var move_btn := Button.new()
+			move_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+			if is_selected:
+				move_btn.text = "Cancel"
+			elif _selected_weapon_node != null:
+				move_btn.text = "Swap"
+			else:
+				move_btn.text = "Move"
+			if font:
+				move_btn.add_theme_font_override("font", font)
+				move_btn.add_theme_font_size_override("font_size", 11)
+			move_btn.pressed.connect(_on_port_select_pressed.bind(player, weapon_node, port_idx))
+			btn_row.add_child(move_btn)
+
+			# Sell button
+			var sell_btn := Button.new()
+			sell_btn.text = "Sell +%d" % sell_value
+			sell_btn.disabled = player.weapons.size() <= 1
+			sell_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+			if font:
+				sell_btn.add_theme_font_override("font", font)
+				sell_btn.add_theme_font_size_override("font_size", 11)
+			sell_btn.pressed.connect(_on_sell_pressed.bind(player, weapon_node))
+			var effective_dmg: float = weapon_node.get("damage") * weapon_node.get("damage_multiplier") * weapon_node.get("passive_multiplier")
+			var pop_lines := "[%s] %s\n[%s]\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nSell: +%d scrap" % [
+				_rarity_name(int(wdata.rarity) if wdata else 0), wdata.display_name if wdata else "?",
+				class_str, wdata.description if wdata else "",
+				effective_dmg, weapon_node.get("fire_rate"),
+				weapon_node.get("range"), weapon_node.get("spread"),
+				weapon_node.get("projectile_count"), weapon_node.get("piercing"),
+				sell_value,
+			]
+			sell_btn.focus_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
+			sell_btn.focus_exited.connect(_hide_popover)
+			sell_btn.mouse_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
+			sell_btn.mouse_exited.connect(_hide_popover)
+			btn_row.add_child(sell_btn)
+		else:
+			# Empty port
+			var empty_lbl := Label.new()
+			empty_lbl.text = "-- Empty --"
+			empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			empty_lbl.modulate = Color(0.4, 0.4, 0.45)
+			if font:
+				empty_lbl.add_theme_font_override("font", font)
+				empty_lbl.add_theme_font_size_override("font_size", 12)
+			cvbox.add_child(empty_lbl)
+
+			if _selected_weapon_node != null:
+				var here_btn := Button.new()
+				here_btn.text = "Move Here"
+				here_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+				if font:
+					here_btn.add_theme_font_override("font", font)
+					here_btn.add_theme_font_size_override("font_size", 11)
+				here_btn.pressed.connect(_on_port_move_here_pressed.bind(player, port_idx))
+				cvbox.add_child(here_btn)
 
 		_loadout_container.add_child(card)
+
+func _on_port_select_pressed(player: Player, weapon_node: Node, _port_idx: int) -> void:
+	AudioManager.play_ui_click()
+	if _selected_weapon_node == weapon_node:
+		# Deselect
+		_selected_weapon_node = null
+	elif _selected_weapon_node != null:
+		# Swap the two weapons
+		player.reassign_port(_selected_weapon_node, weapon_node)
+		_selected_weapon_node = null
+	else:
+		# Select this weapon
+		_selected_weapon_node = weapon_node
+	_populate_loadout(player)
+
+func _on_port_move_here_pressed(player: Player, port_idx: int) -> void:
+	if _selected_weapon_node == null:
+		return
+	AudioManager.play_ui_click()
+	player.move_to_empty_port(_selected_weapon_node, port_idx)
+	_selected_weapon_node = null
+	_populate_loadout(player)
 
 func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	if player.weapons.size() <= 1:
@@ -579,8 +675,11 @@ func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	var sell_value: int = 1
 	if wdata != null:
 		sell_value = max(1, wdata.shop_cost / 2)
+	if _selected_weapon_node == weapon_node:
+		_selected_weapon_node = null
 	player.weapons.erase(weapon_node)
 	weapon_node.queue_free()
+	player.call("_update_weapon_visuals")
 	player.scrap += sell_value
 	player.scrap_changed.emit(player.scrap)
 	# Re-render only - shop offers are unchanged after a sell
