@@ -27,6 +27,9 @@ var lifesteal: float = 0.0
 var scrap: int = 0
 var scrap_bonus_chance: float = 0.0   # set by Rogue passive
 
+# All upgrades acquired this run (level-up picks + shop modules)
+var acquired_upgrades: Array[UpgradeData] = []
+
 # Damage blocking (Tank passive sets this)
 var damage_block_chance: float = 0.0
 var _block_cooldown: float = 0.0
@@ -174,6 +177,29 @@ func heal(amount: float) -> void:
 		if ResourceLoader.exists(sfx):
 			AudioManager.play_sfx(load(sfx), -6.0, randf_range(0.95, 1.05))
 
+const REVIVE_SCRAP_PENALTY: int = 50
+
+func revive() -> void:
+	# Restore to half max health and re-enable physics
+	current_health = max_health * 0.5
+	set_physics_process(true)
+	show()
+	scale = Vector2.ONE
+	sprite.modulate = Color.WHITE
+	sprite.rotation = 0.0
+	health_changed.emit(current_health, max_health)
+	_update_damage_overlay(current_health / max_health)
+	# Scrap penalty - take as much as the player has, up to the cap
+	var penalty := mini(scrap, REVIVE_SCRAP_PENALTY)
+	if penalty > 0:
+		scrap -= penalty
+		scrap_changed.emit(scrap)
+	# Pop-in animation
+	scale = Vector2.ZERO
+	var t := create_tween()
+	t.tween_property(self, "scale", Vector2.ONE * 1.2, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(self, "scale", Vector2.ONE, 0.1)
+
 func _die() -> void:
 	died.emit()
 	set_physics_process(false)
@@ -243,6 +269,7 @@ func apply_upgrade(data: UpgradeData) -> void:
 			add_child(passive_node)
 			if passive_node.has_method("setup"):
 				passive_node.call("setup", self)
+	acquired_upgrades.append(data)
 # --- Weapons ---
 
 func add_weapon(weapon_node: Node) -> void:

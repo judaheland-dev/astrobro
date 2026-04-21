@@ -50,6 +50,7 @@ func _ready() -> void:
 
 	_continue_button = Button.new()
 	_continue_button.text = "Skip"
+	_continue_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	_continue_button.pressed.connect(_on_continue_pressed)
 	vbox.add_child(_continue_button)
 
@@ -126,7 +127,23 @@ func _populate_choices(player: Player) -> void:
 		btn.add_theme_color_override("font_hover_color", Color.WHITE)
 
 		btn.pressed.connect(_on_upgrade_chosen.bind(player, data))
+		btn.process_mode = Node.PROCESS_MODE_ALWAYS
 		_choices_container.add_child(btn)
+
+	# Explicitly wire left/right focus neighbors so joystick navigation is reliable
+	var btns := _choices_container.get_children()
+	for i in btns.size():
+		btns[i].focus_neighbor_left   = btns[(i - 1 + btns.size()) % btns.size()].get_path()
+		btns[i].focus_neighbor_right  = btns[(i + 1) % btns.size()].get_path()
+		btns[i].focus_neighbor_top    = _continue_button.get_path()
+		btns[i].focus_neighbor_bottom = _continue_button.get_path()
+	if btns.size() > 0:
+		_continue_button.focus_neighbor_top    = btns[0].get_path()
+		_continue_button.focus_neighbor_bottom = btns[0].get_path()
+
+	# Give focus to the first card so gamepad can navigate immediately
+	if btns.size() > 0:
+		btns[0].grab_focus()
 
 # Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary]
 # linearly scaled by wave progress so higher rarities become more likely over time.

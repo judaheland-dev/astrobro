@@ -23,6 +23,13 @@ func _on_wave_cleared(_wave_number: int) -> void:
 	var sfx := "res://assets/audio/sfx_wave_clear.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), 0.0, 1.0)
+	# Award the wave-clear bonus scrap to all players.
+	var idx := wave_manager.current_wave_index
+	if idx >= 0 and idx < wave_manager.wave_data_list.size():
+		var bonus: int = wave_manager.wave_data_list[idx].bonus_coins
+		if bonus > 0:
+			for p in players:
+				p.add_scrap(bonus)
 
 # Called when all waves in the list are done.
 func _on_all_waves_cleared() -> void:
@@ -42,4 +49,6 @@ func _end_run(victory: bool) -> void:
 	if is_finished:
 		return
 	is_finished = true
+	if wave_manager:
+		wave_manager.stop()
 	run_ended.emit(victory)

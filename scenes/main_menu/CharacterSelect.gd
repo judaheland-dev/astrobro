@@ -93,6 +93,8 @@ func _ready() -> void:
 	back_btn.pressed.connect(_on_back_pressed)
 	vbox.add_child(back_btn)
 
+	_p1_btn.grab_focus()
+
 func _build_char_picker(player_idx: int, label_text: String, font: FontFile) -> Control:
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER

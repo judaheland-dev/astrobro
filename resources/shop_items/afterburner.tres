@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"afterburner"
+display_name = "Afterburner"
+description = "+20 move speed"
+scope = 0
+stat_deltas = {1: 20.0}
+shop_price = 20
+max_stacks = 3
+rarity = 0

@@ -12,12 +12,17 @@ const WEAPON_CLASS_NAMES: Array[String] = ["RAPID", "PRECISION", "SPREAD", "HEAV
 var _players: Array[Player] = []
 var _current_player_index: int = 0
 var _projectile_parent: Node2D = null
+var _wave_number: int = 1
 
 var _title_label: Label
 var _scrap_label: Label
 var _shop_container: HBoxContainer
 var _module_container: HBoxContainer
 var _loadout_container: HBoxContainer
+var _purchased_container: HBoxContainer
+var _stats_container: VBoxContainer
+var _popover: PanelContainer
+var _popover_label: Label
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -81,7 +86,7 @@ func _ready() -> void:
 	vbox.add_child(loadout_title)
 
 	var loadout_scroll := ScrollContainer.new()
-	loadout_scroll.custom_minimum_size = Vector2(0.0, 90.0)
+	loadout_scroll.custom_minimum_size = Vector2(0.0, 110.0)
 	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox.add_child(loadout_scroll)
@@ -89,6 +94,59 @@ func _ready() -> void:
 	_loadout_container = HBoxContainer.new()
 	_loadout_container.add_theme_constant_override("separation", 10)
 	loadout_scroll.add_child(_loadout_container)
+
+	# Bottom row: acquired upgrades (left) + ship stats (right)
+	var bottom_hbox := HBoxContainer.new()
+	bottom_hbox.add_theme_constant_override("separation", 16)
+	bottom_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(bottom_hbox)
+
+	var acquired_vbox := VBoxContainer.new()
+	acquired_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	acquired_vbox.add_theme_constant_override("separation", 4)
+	bottom_hbox.add_child(acquired_vbox)
+
+	var acquired_title := Label.new()
+	acquired_title.text = "-- Acquired Upgrades --"
+	acquired_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font:
+		acquired_title.add_theme_font_override("font", font)
+		acquired_title.add_theme_font_size_override("font_size", 14)
+	acquired_vbox.add_child(acquired_title)
+
+	var purchased_scroll := ScrollContainer.new()
+	purchased_scroll.custom_minimum_size = Vector2(0.0, 80.0)
+	purchased_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	purchased_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	acquired_vbox.add_child(purchased_scroll)
+
+	_purchased_container = HBoxContainer.new()
+	_purchased_container.add_theme_constant_override("separation", 8)
+	purchased_scroll.add_child(_purchased_container)
+
+	# Ship stats panel (right side)
+	var stats_vbox := VBoxContainer.new()
+	stats_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats_vbox.add_theme_constant_override("separation", 4)
+	bottom_hbox.add_child(stats_vbox)
+
+	var stats_title := Label.new()
+	stats_title.text = "-- Ship Stats --"
+	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font:
+		stats_title.add_theme_font_override("font", font)
+		stats_title.add_theme_font_size_override("font_size", 14)
+	stats_vbox.add_child(stats_title)
+
+	var stats_scroll := ScrollContainer.new()
+	stats_scroll.custom_minimum_size = Vector2(0.0, 80.0)
+	stats_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	stats_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	stats_vbox.add_child(stats_scroll)
+
+	_stats_container = VBoxContainer.new()
+	_stats_container.add_theme_constant_override("separation", 2)
+	stats_scroll.add_child(_stats_container)
 
 	var skip_btn := Button.new()
 	skip_btn.text = "Continue"
@@ -99,11 +157,36 @@ func _ready() -> void:
 		skip_btn.add_theme_font_size_override("font_size", 16)
 	vbox.add_child(skip_btn)
 
-func show_for_players(players: Array, projectile_parent: Node2D) -> void:
+	# Popover - built last so it renders on top; parented to CanvasLayer directly
+	_popover = PanelContainer.new()
+	_popover.visible = false
+	_popover.z_index = 100
+	_popover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pop_style := StyleBoxFlat.new()
+	pop_style.bg_color = Color(0.05, 0.05, 0.1, 0.96)
+	pop_style.border_color = Color(0.6, 0.6, 0.6)
+	pop_style.set_border_width_all(2)
+	pop_style.set_corner_radius_all(6)
+	pop_style.content_margin_left = 10.0
+	pop_style.content_margin_right = 10.0
+	pop_style.content_margin_top = 8.0
+	pop_style.content_margin_bottom = 8.0
+	_popover.add_theme_stylebox_override("panel", pop_style)
+	_popover_label = Label.new()
+	_popover_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_popover_label.custom_minimum_size = Vector2(220.0, 0.0)
+	if font:
+		_popover_label.add_theme_font_override("font", font)
+		_popover_label.add_theme_font_size_override("font_size", 13)
+	_popover.add_child(_popover_label)
+	add_child(_popover)
+
+func show_for_players(players: Array, projectile_parent: Node2D, wave_number: int = 1) -> void:
 	_players.clear()
 	for p in players:
 		_players.append(p)
 	_projectile_parent = projectile_parent
+	_wave_number = wave_number
 	_current_player_index = 0
 	visible = true
 	_show_shop_for_player()
@@ -120,6 +203,80 @@ func _show_shop_for_player() -> void:
 	_populate_shop(player)
 	_populate_modules(player)
 	_populate_loadout(player)
+	_populate_purchased(player)
+	_populate_stats(player)
+
+# Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary]
+func _get_rarity_weights(wave: int) -> Array[float]:
+	var t := clampf(float(wave - 1) / 9.0, 0.0, 1.0)
+	var weights: Array[float] = [
+		lerpf(60.0, 25.0, t),   # COMMON
+		lerpf(25.0, 28.0, t),   # UNCOMMON
+		lerpf(12.0, 25.0, t),   # RARE
+		lerpf(3.0,  15.0, t),   # EPIC
+		lerpf(0.0,  7.0,  t),   # LEGENDARY
+	]
+	return weights
+
+func _rarity_color(rarity: int) -> Color:
+	match rarity:
+		0: return Color(0.55, 0.55, 0.55)   # COMMON - grey
+		1: return Color(0.15, 0.75, 0.3)    # UNCOMMON - green
+		2: return Color(0.2,  0.45, 0.95)   # RARE - blue
+		3: return Color(0.65, 0.1,  0.95)   # EPIC - purple
+		4: return Color(0.95, 0.7,  0.0)    # LEGENDARY - gold
+		_: return Color(0.55, 0.55, 0.55)
+
+func _rarity_name(rarity: int) -> String:
+	match rarity:
+		0: return "COMMON"
+		1: return "UNCOMMON"
+		2: return "RARE"
+		3: return "EPIC"
+		4: return "LEGENDARY"
+		_: return "COMMON"
+
+func _weighted_sample_weapons(pool: Array[WeaponData], weights: Array[float], count: int) -> Array[WeaponData]:
+	var result: Array[WeaponData] = []
+	var remaining := pool.duplicate()
+	var attempts := 0
+	while result.size() < count and remaining.size() > 0 and attempts < 1000:
+		attempts += 1
+		var total := 0.0
+		for item in remaining:
+			total += weights[int(item.rarity)]
+		if total <= 0.0:
+			break
+		var roll := randf() * total
+		var acc := 0.0
+		for i in range(remaining.size()):
+			acc += weights[int(remaining[i].rarity)]
+			if roll <= acc:
+				result.append(remaining[i])
+				remaining.remove_at(i)
+				break
+	return result
+
+func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], count: int) -> Array[UpgradeData]:
+	var result: Array[UpgradeData] = []
+	var remaining := pool.duplicate()
+	var attempts := 0
+	while result.size() < count and remaining.size() > 0 and attempts < 1000:
+		attempts += 1
+		var total := 0.0
+		for item in remaining:
+			total += weights[int(item.rarity)]
+		if total <= 0.0:
+			break
+		var roll := randf() * total
+		var acc := 0.0
+		for i in range(remaining.size()):
+			acc += weights[int(remaining[i].rarity)]
+			if roll <= acc:
+				result.append(remaining[i])
+				remaining.remove_at(i)
+				break
+	return result
 
 func _populate_shop(player: Player) -> void:
 	for child in _shop_container.get_children():
@@ -127,14 +284,16 @@ func _populate_shop(player: Player) -> void:
 
 	var font := GameManager.kenney_font()
 	var all_paths := _get_all_weapon_paths()
-	all_paths.shuffle()
-	var offered := all_paths.slice(0, WEAPON_OFFER_COUNT)
+	var all_weapons: Array[WeaponData] = []
+	for path in all_paths:
+		var wd: WeaponData = ResourceLoader.load(path)
+		if wd != null:
+			all_weapons.append(wd)
+	var weights := _get_rarity_weights(_wave_number)
+	var offered_weapons := _weighted_sample_weapons(all_weapons, weights, WEAPON_OFFER_COUNT)
+	var offered := offered_weapons  # kept for loop below
 
-	for path in offered:
-		var wdata: WeaponData = ResourceLoader.load(path)
-		if wdata == null:
-			continue
-
+	for wdata in offered:
 		var class_idx: int = int(wdata.weapon_class)
 		var class_name_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
 
@@ -155,13 +314,29 @@ func _populate_shop(player: Player) -> void:
 		elif bonus < -0.001:
 			affinity_color = Color(1.0, 0.35, 0.35)
 
-		# Card panel
+		# Card panel - rarity-tinted border
+		var rarity_col := _rarity_color(int(wdata.rarity))
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(210.0, 170.0)
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = rarity_col.darkened(0.6)
+		card_style.border_color = rarity_col
+		card_style.set_border_width_all(2)
+		card_style.set_corner_radius_all(6)
+		card.add_theme_stylebox_override("panel", card_style)
 
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 6)
 		card.add_child(card_vbox)
+
+		var rarity_label := Label.new()
+		rarity_label.text = "[%s]" % _rarity_name(int(wdata.rarity))
+		rarity_label.modulate = rarity_col.lightened(0.2)
+		rarity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			rarity_label.add_theme_font_override("font", font)
+			rarity_label.add_theme_font_size_override("font_size", 12)
+		card_vbox.add_child(rarity_label)
 
 		var class_label := Label.new()
 		class_label.text = "[%s]%s" % [class_name_str, affinity_str]
@@ -216,7 +391,31 @@ func _populate_shop(player: Player) -> void:
 			buy_btn.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(buy_btn)
 
+		# Popover on focus/hover for shop weapon cards
+		var shop_pop := "[%s] %s\n[%s]%s\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nCost: %d scrap" % [
+			_rarity_name(int(wdata.rarity)), wdata.display_name,
+			class_name_str, affinity_str,
+			wdata.description,
+			wdata.damage, wdata.fire_rate,
+			wdata.range, wdata.spread,
+			wdata.projectile_count, wdata.piercing,
+			wdata.shop_cost,
+		]
+		buy_btn.focus_entered.connect(_show_popover.bind(buy_btn, shop_pop, rarity_col))
+		buy_btn.focus_exited.connect(_hide_popover)
+		buy_btn.mouse_entered.connect(_show_popover.bind(buy_btn, shop_pop, rarity_col))
+		buy_btn.mouse_exited.connect(_hide_popover)
+
 		_shop_container.add_child(card)
+
+	# Focus first buy button for gamepad navigation
+	for card in _shop_container.get_children():
+		var vbox: VBoxContainer = card.get_child(0)
+		if vbox:
+			var last := vbox.get_child(vbox.get_child_count() - 1)
+			if last is Button and not last.disabled:
+				last.grab_focus()
+				break
 
 func _get_all_weapon_paths() -> Array[String]:
 	var paths: Array[String] = []
@@ -240,13 +439,31 @@ func _populate_loadout(player: Player) -> void:
 		if wdata == null:
 			continue
 		var sell_value: int = max(1, wdata.shop_cost / 2)
+		var rarity_col := _rarity_color(int(wdata.rarity))
+		var class_idx: int = int(wdata.weapon_class)
+		var class_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
 
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(150.0, 80.0)
+		card.custom_minimum_size = Vector2(160.0, 105.0)
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = rarity_col.darkened(0.6)
+		card_style.border_color = rarity_col
+		card_style.set_border_width_all(2)
+		card_style.set_corner_radius_all(6)
+		card.add_theme_stylebox_override("panel", card_style)
 
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 4)
 		card.add_child(card_vbox)
+
+		var rarity_lbl := Label.new()
+		rarity_lbl.text = "[%s]" % _rarity_name(int(wdata.rarity))
+		rarity_lbl.modulate = rarity_col.lightened(0.2)
+		rarity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			rarity_lbl.add_theme_font_override("font", font)
+			rarity_lbl.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(rarity_lbl)
 
 		var name_label := Label.new()
 		name_label.text = wdata.display_name
@@ -254,8 +471,17 @@ func _populate_loadout(player: Player) -> void:
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if font:
 			name_label.add_theme_font_override("font", font)
-			name_label.add_theme_font_size_override("font_size", 13)
+			name_label.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(name_label)
+
+		var class_lbl := Label.new()
+		class_lbl.text = "[%s]" % class_str
+		class_lbl.modulate = Color(0.8, 0.8, 0.8)
+		class_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			class_lbl.add_theme_font_override("font", font)
+			class_lbl.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(class_lbl)
 
 		var sell_btn := Button.new()
 		sell_btn.text = "Sell +%d" % sell_value
@@ -264,8 +490,24 @@ func _populate_loadout(player: Player) -> void:
 		sell_btn.pressed.connect(_on_sell_pressed.bind(player, weapon_node))
 		if font:
 			sell_btn.add_theme_font_override("font", font)
-			sell_btn.add_theme_font_size_override("font_size", 13)
+			sell_btn.add_theme_font_size_override("font_size", 12)
 		card_vbox.add_child(sell_btn)
+
+		# Build popover lines for this weapon
+		var effective_dmg: float = weapon_node.get("damage") * weapon_node.get("damage_multiplier") * weapon_node.get("passive_multiplier")
+		var pop_lines := "[%s] %s\n[%s]\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nSell: +%d scrap" % [
+			_rarity_name(int(wdata.rarity)), wdata.display_name,
+			class_str,
+			wdata.description,
+			effective_dmg, weapon_node.get("fire_rate"),
+			weapon_node.get("range"), weapon_node.get("spread"),
+			weapon_node.get("projectile_count"), weapon_node.get("piercing"),
+			sell_value,
+		]
+		sell_btn.focus_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
+		sell_btn.focus_exited.connect(_hide_popover)
+		sell_btn.mouse_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
+		sell_btn.mouse_exited.connect(_hide_popover)
 
 		_loadout_container.add_child(card)
 
@@ -310,19 +552,21 @@ func _populate_modules(player: Player) -> void:
 
 	var font := GameManager.kenney_font()
 	var all_paths := _get_all_module_paths()
-	all_paths.shuffle()
-	var offered := all_paths.slice(0, 3)
-
-	for path in offered:
+	var all_modules: Array[UpgradeData] = []
+	for path in all_paths:
 		var item: UpgradeData = ResourceLoader.load(path)
-		if item == null:
-			continue
+		if item != null:
+			all_modules.append(item)
+	var weights := _get_rarity_weights(_wave_number)
+	var offered := _weighted_sample_modules(all_modules, weights, 3)
 
+	for item in offered:
+		var rarity_col := _rarity_color(int(item.rarity))
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(200.0, 140.0)
 		var card_style := StyleBoxFlat.new()
-		card_style.bg_color = Color(0.04, 0.18, 0.22)
-		card_style.border_color = Color(0.2, 0.7, 0.8)
+		card_style.bg_color = rarity_col.darkened(0.6)
+		card_style.border_color = rarity_col
 		card_style.set_border_width_all(2)
 		card_style.set_corner_radius_all(6)
 		card.add_theme_stylebox_override("panel", card_style)
@@ -330,6 +574,15 @@ func _populate_modules(player: Player) -> void:
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 5)
 		card.add_child(card_vbox)
+
+		var rarity_label := Label.new()
+		rarity_label.text = "[%s]" % _rarity_name(int(item.rarity))
+		rarity_label.modulate = rarity_col.lightened(0.2)
+		rarity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			rarity_label.add_theme_font_override("font", font)
+			rarity_label.add_theme_font_size_override("font_size", 12)
+		card_vbox.add_child(rarity_label)
 
 		var name_label := Label.new()
 		name_label.text = item.display_name
@@ -369,6 +622,18 @@ func _populate_modules(player: Player) -> void:
 			buy_btn.add_theme_font_size_override("font_size", 13)
 		card_vbox.add_child(buy_btn)
 
+		# Popover on focus/hover for module cards
+		var mod_pop := "[%s] %s\n\n%s\n\n%sCost: %d scrap" % [
+			_rarity_name(int(item.rarity)), item.display_name,
+			item.description,
+			_upgrade_delta_summary(item) + ("\n\n" if not item.stat_deltas.is_empty() else ""),
+			item.shop_price,
+		]
+		buy_btn.focus_entered.connect(_show_popover.bind(buy_btn, mod_pop, rarity_col))
+		buy_btn.focus_exited.connect(_hide_popover)
+		buy_btn.mouse_entered.connect(_show_popover.bind(buy_btn, mod_pop, rarity_col))
+		buy_btn.mouse_exited.connect(_hide_popover)
+
 		_module_container.add_child(card)
 
 func _get_all_module_paths() -> Array[String]:
@@ -395,3 +660,266 @@ func _on_buy_module_pressed(player: Player, item: UpgradeData) -> void:
 func _close() -> void:
 	visible = false
 	ui_closed.emit()
+
+# ---------------------------------------------------------------------------
+# Popover helpers
+# ---------------------------------------------------------------------------
+
+func _show_popover(anchor: Control, text: String, rarity_col: Color) -> void:
+	var pop_style := StyleBoxFlat.new()
+	pop_style.bg_color = Color(0.05, 0.05, 0.1, 0.96)
+	pop_style.border_color = rarity_col
+	pop_style.set_border_width_all(2)
+	pop_style.set_corner_radius_all(6)
+	pop_style.content_margin_left = 10.0
+	pop_style.content_margin_right = 10.0
+	pop_style.content_margin_top = 8.0
+	pop_style.content_margin_bottom = 8.0
+	_popover.add_theme_stylebox_override("panel", pop_style)
+	_popover_label.text = text
+	_popover.visible = true
+	# Position above the anchor; we need one frame for size to be measured,
+	# but we can set an approximate position immediately.
+	await get_tree().process_frame
+	if not _popover.visible:
+		return
+	var vp_size := get_viewport().get_visible_rect().size
+	var anchor_rect := anchor.get_global_rect()
+	var pop_size := _popover.size
+	var px := anchor_rect.position.x + anchor_rect.size.x * 0.5 - pop_size.x * 0.5
+	var py := anchor_rect.position.y - pop_size.y - 6.0
+	px = clampf(px, 4.0, vp_size.x - pop_size.x - 4.0)
+	py = clampf(py, 4.0, vp_size.y - pop_size.y - 4.0)
+	_popover.position = Vector2(px, py)
+
+func _hide_popover() -> void:
+	_popover.visible = false
+
+# ---------------------------------------------------------------------------
+# Acquired upgrades section
+# ---------------------------------------------------------------------------
+
+func _populate_purchased(player: Player) -> void:
+	for child in _purchased_container.get_children():
+		child.queue_free()
+
+	var font := GameManager.kenney_font()
+	if player.acquired_upgrades.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "(none yet)"
+		empty_lbl.modulate = Color(0.5, 0.5, 0.5)
+		if font:
+			empty_lbl.add_theme_font_override("font", font)
+			empty_lbl.add_theme_font_size_override("font_size", 12)
+		_purchased_container.add_child(empty_lbl)
+		return
+
+	for item in player.acquired_upgrades:
+		var rarity_col := _rarity_color(int(item.rarity))
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(140.0, 72.0)
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = rarity_col.darkened(0.65)
+		card_style.border_color = rarity_col
+		card_style.set_border_width_all(2)
+		card_style.set_corner_radius_all(5)
+		card.add_theme_stylebox_override("panel", card_style)
+
+		var card_vbox := VBoxContainer.new()
+		card_vbox.add_theme_constant_override("separation", 3)
+		card.add_child(card_vbox)
+
+		var rarity_lbl := Label.new()
+		rarity_lbl.text = "[%s]" % _rarity_name(int(item.rarity))
+		rarity_lbl.modulate = rarity_col.lightened(0.2)
+		rarity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			rarity_lbl.add_theme_font_override("font", font)
+			rarity_lbl.add_theme_font_size_override("font_size", 10)
+		card_vbox.add_child(rarity_lbl)
+
+		var name_lbl := Label.new()
+		name_lbl.text = item.display_name
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if font:
+			name_lbl.add_theme_font_override("font", font)
+			name_lbl.add_theme_font_size_override("font_size", 12)
+		card_vbox.add_child(name_lbl)
+
+		# Focusable invisible button for popover trigger
+		var focus_btn := Button.new()
+		focus_btn.text = ""
+		focus_btn.flat = true
+		focus_btn.custom_minimum_size = Vector2(0.0, 1.0)
+		focus_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		if font:
+			focus_btn.add_theme_font_override("font", font)
+			focus_btn.add_theme_font_size_override("font_size", 1)
+		card_vbox.add_child(focus_btn)
+
+		var pop_lines := "[%s] %s\n\n%s\n\n%s" % [
+			_rarity_name(int(item.rarity)), item.display_name,
+			item.description,
+			_upgrade_delta_summary(item),
+		]
+		focus_btn.focus_entered.connect(_show_popover.bind(focus_btn, pop_lines, rarity_col))
+		focus_btn.focus_exited.connect(_hide_popover)
+		focus_btn.mouse_entered.connect(_show_popover.bind(focus_btn, pop_lines, rarity_col))
+		focus_btn.mouse_exited.connect(_hide_popover)
+
+		_purchased_container.add_child(card)
+
+func _upgrade_delta_summary(item: UpgradeData) -> String:
+	if item.stat_deltas.is_empty():
+		return ""
+	var stat_names := {
+		UpgradeData.StatKey.MAX_HEALTH:         "Max HP",
+		UpgradeData.StatKey.MOVE_SPEED:         "Move Spd",
+		UpgradeData.StatKey.ARMOR:              "Armor",
+		UpgradeData.StatKey.DAMAGE:             "Damage",
+		UpgradeData.StatKey.FIRE_RATE:          "Fire Rate",
+		UpgradeData.StatKey.PROJECTILE_SPEED:   "Proj Spd",
+		UpgradeData.StatKey.XP_MULTIPLIER:      "XP Mult",
+		UpgradeData.StatKey.COIN_MULTIPLIER:    "Coin Mult",
+		UpgradeData.StatKey.LIFESTEAL:          "Lifesteal",
+		UpgradeData.StatKey.RANGE:              "Range",
+		UpgradeData.StatKey.SPREAD:             "Spread",
+		UpgradeData.StatKey.DAMAGE_BLOCK_CHANCE: "Block Chance",
+		UpgradeData.StatKey.SCRAP_BONUS_CHANCE: "Scrap Bonus",
+		UpgradeData.StatKey.INSTANT_HEAL:       "Instant Heal",
+	}
+	var parts: Array[String] = []
+	for key in item.stat_deltas:
+		var delta: float = item.stat_deltas[key]
+		var label: String = stat_names.get(key, "Stat %d" % key)
+		var sign_str := "+" if delta >= 0.0 else ""
+		parts.append("%s: %s%.4g" % [label, sign_str, delta])
+	return "\n".join(parts)
+
+# ---------------------------------------------------------------------------
+# Ship & weapon stats panel
+# ---------------------------------------------------------------------------
+
+func _populate_stats(player: Player) -> void:
+	for child in _stats_container.get_children():
+		child.queue_free()
+
+	var font := GameManager.kenney_font()
+	var base := player.character_data
+
+	# Helper to add a single stat row
+	var _add_row := func(label: String, base_val: float, cur_val: float, fmt: String) -> void:
+		var lbl := Label.new()
+		var cur_str  := fmt % cur_val
+		var buffed := cur_val > base_val + 0.001
+		if buffed:
+			lbl.text = "%s: %s  (base: %s)" % [label, cur_str, fmt % base_val]
+			lbl.modulate = Color(0.6, 1.0, 0.6)
+		else:
+			lbl.text = "%s: %s" % [label, cur_str]
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		if font:
+			lbl.add_theme_font_override("font", font)
+			lbl.add_theme_font_size_override("font_size", 12)
+		_stats_container.add_child(lbl)
+
+	# Ship stats
+	var header := Label.new()
+	header.text = "Ship"
+	header.modulate = Color(0.8, 0.8, 1.0)
+	if font:
+		header.add_theme_font_override("font", font)
+		header.add_theme_font_size_override("font_size", 13)
+	_stats_container.add_child(header)
+
+	var base_hp   := base.max_health if base else 100.0
+	var base_spd  := base.move_speed if base else 200.0
+	var base_arm  := base.armor if base else 0.0
+	var base_xp   := base.xp_multiplier if base else 1.0
+	var base_coin := base.coin_multiplier if base else 1.0
+
+	# HP shown as cur/max rather than base comparison
+	var hp_lbl := Label.new()
+	var hp_buffed := player.max_health > base_hp + 0.001
+	if hp_buffed:
+		hp_lbl.text = "HP: %.0f / %.0f  (base: %.0f)" % [player.current_health, player.max_health, base_hp]
+		hp_lbl.modulate = Color(0.6, 1.0, 0.6)
+	else:
+		hp_lbl.text = "HP: %.0f / %.0f" % [player.current_health, player.max_health]
+	if font:
+		hp_lbl.add_theme_font_override("font", font)
+		hp_lbl.add_theme_font_size_override("font_size", 12)
+	_stats_container.add_child(hp_lbl)
+
+	_add_row.call("Move Spd", base_spd, player.move_speed, "%.0f")
+	_add_row.call("Armor",    base_arm,  player.armor,      "%.1f")
+	_add_row.call("XP Mult",  base_xp,   player.xp_multiplier, "%.2f")
+	_add_row.call("Coin Mult", base_coin, player.coin_multiplier, "%.2f")
+	if player.lifesteal > 0.001:
+		_add_row.call("Lifesteal", 0.0, player.lifesteal, "%.1f%%")
+	if player.damage_block_chance > 0.001:
+		_add_row.call("Block", 0.0, player.damage_block_chance * 100.0, "%.0f%%")
+	if player.scrap_bonus_chance > 0.001:
+		_add_row.call("Scrap Bonus", 0.0, player.scrap_bonus_chance * 100.0, "%.0f%%")
+
+	# Per-weapon stats
+	for weapon_node in player.weapons:
+		var wdata: WeaponData = weapon_node.get("weapon_data")
+		if wdata == null:
+			continue
+		var rarity_col := _rarity_color(int(wdata.rarity))
+		var class_idx: int = int(wdata.weapon_class)
+		var class_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
+
+		var sep := Label.new()
+		sep.text = ""
+		sep.custom_minimum_size = Vector2(0.0, 4.0)
+		_stats_container.add_child(sep)
+
+		var w_header := Label.new()
+		w_header.text = "%s  [%s]" % [wdata.display_name, class_str]
+		w_header.modulate = rarity_col.lightened(0.15)
+		if font:
+			w_header.add_theme_font_override("font", font)
+			w_header.add_theme_font_size_override("font_size", 13)
+		_stats_container.add_child(w_header)
+
+		var dmg_mult: float = weapon_node.get("damage_multiplier") * weapon_node.get("passive_multiplier")
+		var eff_dmg: float   = weapon_node.get("damage") * dmg_mult
+		var base_dmg: float  = wdata.damage
+
+		# Damage row: shows base and effective with multiplier note
+		var dmg_lbl := Label.new()
+		if absf(eff_dmg - base_dmg) > 0.5 or absf(dmg_mult - 1.0) > 0.01:
+			dmg_lbl.text = "DMG: %.0f -> %.0f (x%.2f)" % [base_dmg, eff_dmg, dmg_mult]
+			dmg_lbl.modulate = Color(0.6, 1.0, 0.6)
+		else:
+			dmg_lbl.text = "DMG: %.0f" % base_dmg
+		if font:
+			dmg_lbl.add_theme_font_override("font", font)
+			dmg_lbl.add_theme_font_size_override("font_size", 12)
+		_stats_container.add_child(dmg_lbl)
+
+		# Generic weapon stat rows
+		var w_add_row := func(label: String, base_v: float, cur_v: float, fmt: String) -> void:
+			var wlbl := Label.new()
+			var buffed := cur_v > base_v + 0.001
+			var nerfed := cur_v < base_v - 0.001
+			if buffed:
+				wlbl.text = "%s: %s -> %s" % [label, fmt % base_v, fmt % cur_v]
+				wlbl.modulate = Color(0.6, 1.0, 0.6)
+			elif nerfed:
+				wlbl.text = "%s: %s -> %s" % [label, fmt % base_v, fmt % cur_v]
+				wlbl.modulate = Color(1.0, 0.6, 0.6)
+			else:
+				wlbl.text = "%s: %s" % [label, fmt % cur_v]
+			if font:
+				wlbl.add_theme_font_override("font", font)
+				wlbl.add_theme_font_size_override("font_size", 12)
+			_stats_container.add_child(wlbl)
+
+		w_add_row.call("Rate",   wdata.fire_rate,       weapon_node.get("fire_rate"),       "%.1f/s")
+		w_add_row.call("Range",  wdata.range,           weapon_node.get("range"),           "%.0f")
+		w_add_row.call("Spread", wdata.spread,          weapon_node.get("spread"),          "%.2f")
+		w_add_row.call("Shots",  float(wdata.projectile_count), float(weapon_node.get("projectile_count")), "%.0f")

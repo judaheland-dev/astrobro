@@ -3,6 +3,7 @@ extends CanvasLayer
 ## HUD - builds its own UI nodes in code. No .tscn required.
 
 var _wave_label: Label
+var _timer_label: Label
 var _players_vbox: VBoxContainer
 
 func _ready() -> void:
@@ -28,6 +29,20 @@ func _ready() -> void:
 		_wave_label.add_theme_font_override("font", hud_font)
 		_wave_label.add_theme_font_size_override("font_size", 22)
 	root.add_child(_wave_label)
+
+	_timer_label = Label.new()
+	_timer_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_timer_label.offset_left = -120.0
+	_timer_label.offset_top = 12.0
+	_timer_label.offset_right = 120.0
+	_timer_label.offset_bottom = 52.0
+	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_timer_label.modulate = Color(1.0, 0.7, 0.2)
+	_timer_label.visible = false
+	if hud_font:
+		_timer_label.add_theme_font_override("font", hud_font)
+		_timer_label.add_theme_font_size_override("font_size", 28)
+	root.add_child(_timer_label)
 
 func register_player(player: Player) -> void:
 	var panel := _create_player_panel(player.player_index)
@@ -111,4 +126,17 @@ func _update_scrap(panel: Control, amount: int) -> void:
 
 func update_wave(current: int, total: int) -> void:
 	if _wave_label:
-		_wave_label.text = "Wave %d / %d" % [current, total]
+		if total == 0:
+			_wave_label.text = "Wave %d" % current
+		else:
+			_wave_label.text = "Wave %d / %d" % [current, total]
+
+func update_timer(remaining: float) -> void:
+	if not _timer_label:
+		return
+	if remaining <= 0.0:
+		_timer_label.visible = false
+	else:
+		_timer_label.visible = true
+		var secs := int(remaining) + 1
+		_timer_label.text = "WAVE ENDS: %ds" % secs

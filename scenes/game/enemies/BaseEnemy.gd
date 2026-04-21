@@ -78,10 +78,11 @@ func register_targets(targets: Array[Node]) -> void:
 		else:
 			_base_target = t
 
-func scale_with_wave(wave_multiplier: float) -> void:
+func scale_with_wave(wave_multiplier: float, speed_mult: float = 1.0) -> void:
 	max_health     = max_health * wave_multiplier
 	current_health = max_health
 	contact_damage = contact_damage * wave_multiplier
+	move_speed     = move_speed * speed_mult
 
 func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
@@ -115,11 +116,11 @@ func _physics_process(delta: float) -> void:
 			_attack_contact(target)
 
 func _get_primary_target() -> Node:
-	# Prefer the nearest player within PLAYER_PREFER_RADIUS
+	# Prefer the nearest living player within PLAYER_PREFER_RADIUS
 	var best_player: Node = null
 	var best_dist_sq := PLAYER_PREFER_RADIUS * PLAYER_PREFER_RADIUS
 	for t in _player_targets:
-		if not is_instance_valid(t):
+		if not is_instance_valid(t) or not t.is_physics_processing():
 			continue
 		var d := global_position.distance_squared_to(t.global_position)
 		if d < best_dist_sq:
@@ -130,11 +131,11 @@ func _get_primary_target() -> Node:
 	# No nearby player - attack the base objective
 	if _base_target != null and is_instance_valid(_base_target):
 		return _base_target
-	# Fallback: nearest player regardless of distance (wave survival / no base)
+	# Fallback: nearest living player regardless of distance (wave survival / no base)
 	var fallback: Node = null
 	var fallback_d := INF
 	for t in _player_targets:
-		if not is_instance_valid(t):
+		if not is_instance_valid(t) or not t.is_physics_processing():
 			continue
 		var d := global_position.distance_squared_to(t.global_position)
 		if d < fallback_d:

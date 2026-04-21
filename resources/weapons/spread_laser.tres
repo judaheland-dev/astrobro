@@ -21,4 +21,5 @@ projectile_count = 3
 piercing = 0
 projectile_scene = ExtResource("2")
 unlock_cost = 60
+rarity = 1
 projectile_sprite = ExtResource("3")

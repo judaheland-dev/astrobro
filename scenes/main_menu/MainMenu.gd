@@ -27,12 +27,13 @@ func _ready() -> void:
 		title.add_theme_font_size_override("font_size", 32)
 	vbox.add_child(title)
 
-	_add_button(vbox, "Wave Survival", _on_survival_pressed)
+	var first_btn := _add_button(vbox, "Wave Survival", _on_survival_pressed)
 	_add_button(vbox, "Horde Defense", _on_horde_defense_pressed)
 	_add_button(vbox, "Upgrades",      _on_meta_menu_pressed)
 	_add_button(vbox, "Quit",          _on_quit_pressed)
+	first_btn.grab_focus()
 
-func _add_button(parent: Node, text: String, callback: Callable) -> void:
+func _add_button(parent: Node, text: String, callback: Callable) -> Button:
 	var btn := Button.new()
 	btn.text = text
 	btn.pressed.connect(func():
@@ -40,6 +41,7 @@ func _add_button(parent: Node, text: String, callback: Callable) -> void:
 		callback.call()
 	)
 	parent.add_child(btn)
+	return btn
 
 func _on_survival_pressed() -> void:
 	GameManager.current_mode = GameManager.RunMode.WAVE_SURVIVAL

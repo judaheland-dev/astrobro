@@ -18,6 +18,7 @@ var _camera: Camera2D
 var _players: Array[Player] = []
 var _wave_manager: WaveManager = WaveManager.new()
 var _game_mode: GameMode = null
+var _current_wave_number: int = 1
 
 # ---------------------------------------------------------------------------
 # Camera shake
@@ -308,6 +309,10 @@ func _connect_hud() -> void:
 			if ResourceLoader.exists(sfx):
 				AudioManager.play_sfx(load(sfx), -4.0, 1.0)
 	)
+	_wave_manager.wave_timer_updated.connect(
+		func(r: float) -> void:
+			_hud.call("update_timer", r)
+	)
 
 # ---------------------------------------------------------------------------
 # Per-frame
@@ -351,6 +356,7 @@ func _process(delta: float) -> void:
 # ---------------------------------------------------------------------------
 
 func _show_between_wave_ui(wave_number: int) -> void:
+	_current_wave_number = wave_number
 	GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
 	get_tree().paused = true
 	if _between_wave_ui.has_method("show_for_players"):
@@ -361,9 +367,15 @@ func _on_between_wave_closed() -> void:
 		var arr: Array = []
 		for p in _players:
 			arr.append(p)
-		_shop_ui.call("show_for_players", arr, _projectiles_container)
+		_shop_ui.call("show_for_players", arr, _projectiles_container, _current_wave_number)
 
 func _on_shop_closed() -> void:
+	# Revive any dead co-op players before the next wave
+	if _players.size() > 1:
+		for p in _players:
+			if not p.is_physics_processing():
+				p.revive()
+				_spawn_floating_text("REVIVED  -%d Scrap" % Player.REVIVE_SCRAP_PENALTY, p.global_position, Color(0.4, 1.0, 0.6))
 	get_tree().paused = false
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	_wave_manager.next_wave()

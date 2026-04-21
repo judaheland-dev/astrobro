@@ -44,5 +44,8 @@ enum WeaponClass {
 # Unlock cost in meta coins (0 = free/default)
 @export var unlock_cost: int = 0
 
+# Rarity tier - controls how early in a run this weapon can appear in the shop
+@export var rarity: UpgradeData.Rarity = UpgradeData.Rarity.COMMON
+
 # Optional custom projectile sprite; if null BaseWeapon falls back to ammo-type default
 @export var projectile_sprite: Texture2D = null

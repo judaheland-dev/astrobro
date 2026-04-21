@@ -28,4 +28,5 @@ func _on_base_destroyed() -> void:
 	_end_run(false)
 
 func _on_wave_cleared(wave_number: int) -> void:
+	super._on_wave_cleared(wave_number)
 	show_between_wave_ui.emit(wave_number)

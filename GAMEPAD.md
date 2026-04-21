@@ -4,8 +4,8 @@
 
 `InputManager.gd` routes input per player index:
 
-- **Player 0** — keyboard/mouse primary; right analog stick overrides mouse aim when pushed past deadzone, then falls back to mouse
-- **Player 1** — IJKL keyboard primary; right analog stick aims; falls back to movement direction
+- **Player 0** — keyboard/mouse primary; gamepad device 0 (first gamepad) for movement/aim fallback
+- **Player 1** — IJKL keyboard primary; gamepad device 1 (second gamepad) for movement/aim/fire — first gamepad does NOT control P2
 
 ### P1 Aim Priority (InputManager.get_aim_dir)
 Right stick is checked **before** mouse for Player 0. Do not revert this — it is intentional so a solo gamepad player can aim without a mouse.
@@ -44,3 +44,5 @@ On macOS, SDL2 remaps this controller as follows:
 | `fire` | Mouse button 1 | R1 (button_index 10) |
 | `interact` | E | Face 2 / A (button_index 0) |
 | `pause` | Escape | Start (button_index 6) |
+| `ui_accept` | Enter / Space | A (button_index 0, any device) |
+| `ui_up/down/left/right` | Arrow keys | D-pad (buttons 11-14) + left stick |

@@ -2,8 +2,8 @@ extends Node
 
 ## InputManager - routes keyboard/mouse and gamepad input per player device.
 ## Player 0: keyboard + mouse (device_id = -1 in Godot = any keyboard)
-## Player 1: gamepad device 0
-## Player 2: gamepad device 1
+## Player 1: gamepad device 0 (first gamepad)
+## Player 2: IJKL keyboard + gamepad device 1 (second gamepad only)
 
 const DEADZONE: float = 0.2
 
@@ -19,14 +19,14 @@ func get_move_dir(player_index: int) -> Vector2:
 			dir = _get_gamepad_stick(0, 0)
 		return dir.normalized() if dir.length() > DEADZONE else Vector2.ZERO
 	else:
-		# P2: IJKL keyboard first, then gamepad
+		# P2: IJKL keyboard first, then gamepad 2 (device 1 only)
 		var dir := Vector2.ZERO
 		if Input.is_action_pressed("p2_move_up"):    dir.y -= 1.0
 		if Input.is_action_pressed("p2_move_down"):  dir.y += 1.0
 		if Input.is_action_pressed("p2_move_left"):  dir.x -= 1.0
 		if Input.is_action_pressed("p2_move_right"): dir.x += 1.0
 		if dir == Vector2.ZERO:
-			var device: int = player_index - 1
+			var device: int = player_index
 			dir = _get_gamepad_stick(device, 0)
 		return dir.normalized() if dir.length() > DEADZONE else Vector2.ZERO
 
@@ -43,8 +43,8 @@ func get_aim_dir(player_index: int, player_world_pos: Vector2) -> Vector2:
 		var dir: Vector2 = mouse_world - player_world_pos
 		return dir.normalized() if dir.length() > 1.0 else Vector2.RIGHT
 	else:
-		# P2: right analog stick, fall back to movement direction
-		var device: int = player_index - 1
+		# P2: right analog stick (gamepad 2 only), fall back to movement direction
+		var device: int = player_index
 		var dir := _get_gamepad_stick(device, 1)
 		if dir.length() > DEADZONE:
 			return dir.normalized()
@@ -57,10 +57,10 @@ func is_firing(player_index: int) -> bool:
 	if player_index == 0:
 		return Input.is_action_pressed("fire")
 	else:
-		# P2: Space key or gamepad right shoulder
+		# P2: Space key or gamepad 2 (device 1) right shoulder
 		if Input.is_action_pressed("p2_fire"):
 			return true
-		var device: int = player_index - 1
+		var device: int = player_index
 		return Input.is_joy_button_pressed(device, JOY_BUTTON_RIGHT_SHOULDER)
 
 # Returns true if interact was just pressed.
@@ -68,7 +68,7 @@ func is_interact_pressed(player_index: int) -> bool:
 	if player_index == 0:
 		return Input.is_action_just_pressed("interact")
 	else:
-		var device: int = player_index - 1
+		var device: int = player_index
 		return Input.is_joy_button_pressed(device, JOY_BUTTON_A)
 
 func _get_gamepad_stick(device: int, stick: int) -> Vector2:

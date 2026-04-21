@@ -16,6 +16,6 @@ contact_damage_cooldown = 0.8
 armor = 5.0
 xp_drop = 18
 coin_drop_chance = 0.7
-coin_drop_amount = 6
+coin_drop_amount = 10
 sprite = ExtResource("3")
 death_sfx = ExtResource("2")
