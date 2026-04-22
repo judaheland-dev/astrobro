@@ -285,6 +285,8 @@ func take_damage(amount: float) -> void:
 		_flash_damage()
 		return
 	_shield_regen_timer = shield_regen_delay  # reset regen delay on any hit
+	if GameManager.ion_storm_active:
+		amount *= 1.5
 	var effective := maxf(0.0, amount - armor)
 	if current_shield > 0.0:
 		var absorbed := minf(current_shield, effective)

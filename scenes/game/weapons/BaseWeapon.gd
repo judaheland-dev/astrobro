@@ -42,7 +42,8 @@ func try_fire(aim_dir: Vector2) -> void:
 		return
 	if aim_dir == Vector2.ZERO:
 		return
-	if weapon_data.ammo_type == WeaponData.AmmoType.LASER and GameManager.solar_flare_active:
+	# Strong solar flare (intensity 2.0) jams laser weapons; weaker tiers boost them instead
+	if weapon_data.ammo_type == WeaponData.AmmoType.LASER and GameManager.solar_flare_intensity >= 2.0:
 		return
 
 	_fire_cooldown = 1.0 / fire_rate
@@ -119,7 +120,8 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 		if trail and weapon_data != null:
 			trail.modulate = weapon_data.projectile_modulate
 		proj.global_position = global_position
-		proj.setup(dir, damage * damage_multiplier * passive_multiplier, projectile_speed, range, piercing)
+		var flare_mult := GameManager.solar_flare_intensity if weapon_data != null and weapon_data.ammo_type == WeaponData.AmmoType.LASER else 1.0
+		proj.setup(dir, damage * damage_multiplier * passive_multiplier * flare_mult, projectile_speed, range, piercing)
 
 func _spawn_mine(_fire_dir: Vector2) -> void:
 	var parent := _projectile_parent if _projectile_parent else get_tree().current_scene

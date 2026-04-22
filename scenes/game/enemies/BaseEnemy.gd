@@ -219,6 +219,8 @@ func take_damage(amount: float) -> void:
 	if _state == State.DEAD:
 		return
 	_shield_regen_timer = shield_regen_delay  # reset regen delay on any hit
+	if GameManager.ion_storm_active:
+		amount *= 1.5
 	var effective := maxf(0.0, amount - armor)
 	if current_shield > 0.0:
 		var absorbed := minf(current_shield, effective)
@@ -548,7 +550,7 @@ func _summon_minions(use_basic: bool) -> void:
 		# Summoned minions do NOT connect died signal to WaveManager - wave clears by boss death
 
 func _fire_at_target(target: Node) -> void:
-	if GameManager.solar_flare_active:
+	if GameManager.solar_flare_intensity >= 2.0:
 		return
 	if not enemy_data or not enemy_data.ranged_attack:
 		# Legacy fallback: single straight laser

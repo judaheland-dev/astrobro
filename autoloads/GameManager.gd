@@ -36,6 +36,8 @@ var run_coins_earned: int = 0
 
 # Terrain event flags
 var solar_flare_active: bool = false
+var solar_flare_intensity: float = 1.0  # 1.0=inactive, 1.3/1.5/2.0 for weak/medium/strong
+var ion_storm_active: bool = false
 
 signal state_changed(new_state: GameState)
 
@@ -53,6 +55,8 @@ func start_run(mode: RunMode, characters: Array[StringName], players: int) -> vo
 	run_wave = 0
 	run_coins_earned = 0
 	solar_flare_active = false
+	solar_flare_intensity = 1.0
+	ion_storm_active = false
 	set_state(GameState.PLAYING)
 	get_tree().change_scene_to_file("res://scenes/game/Game.tscn")
 

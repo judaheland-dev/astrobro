@@ -292,8 +292,13 @@ func _setup_terrain_events() -> void:
 	terrain.players = _players
 	terrain.enemies_container = _enemies_container
 	terrain.wave_manager = _wave_manager
+	terrain.hud = _hud
 	add_child(terrain)
-	_game_mode.run_ended.connect(func(_v: bool): GameManager.solar_flare_active = false)
+	_game_mode.run_ended.connect(func(_v: bool):
+		GameManager.solar_flare_active = false
+		GameManager.solar_flare_intensity = 1.0
+		GameManager.ion_storm_active = false
+	)
 
 	var special := SpecialEnemyEventManager.new()
 	special.players = _players
