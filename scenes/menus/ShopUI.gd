@@ -33,9 +33,11 @@ var _scrap_label: Label
 var _reroll_btn: Button
 var _shop_container: HBoxContainer
 var _module_container: HBoxContainer
-var _loadout_container: GridContainer
-var _purchased_container: HBoxContainer
+var _loadout_control: Control
+var _purchased_container: FlowContainer
 var _stats_container: VBoxContainer
+var _stats_overlay: PanelContainer
+var _stats_toggle_btn: Button
 var _popover: PanelContainer
 var _popover_label: Label
 
@@ -101,37 +103,38 @@ func _ready() -> void:
 	_module_container.add_theme_constant_override("separation", 16)
 	vbox.add_child(_module_container)
 
+	# Two-column bottom: left = spatial ship diagram, right = acquired upgrades + stats
+	var bottom_hbox := HBoxContainer.new()
+	bottom_hbox.add_theme_constant_override("separation", 12)
+	bottom_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(bottom_hbox)
+
+	# ---- LEFT COLUMN: Ship diagram ----
+	var left_col := VBoxContainer.new()
+	left_col.custom_minimum_size = Vector2(370.0, 0.0)
+	left_col.add_theme_constant_override("separation", 4)
+	bottom_hbox.add_child(left_col)
+
 	var loadout_title := Label.new()
 	loadout_title.text = "Current Loadout  (sell for 50% scrap refund)"
 	loadout_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if font:
 		loadout_title.add_theme_font_override("font", font)
-		loadout_title.add_theme_font_size_override("font_size", 15)
-	vbox.add_child(loadout_title)
+		loadout_title.add_theme_font_size_override("font_size", 14)
+	left_col.add_child(loadout_title)
 
-	var loadout_scroll := ScrollContainer.new()
-	loadout_scroll.custom_minimum_size = Vector2(0.0, 160.0)
-	loadout_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	loadout_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	loadout_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	vbox.add_child(loadout_scroll)
+	_loadout_control = Control.new()
+	_loadout_control.custom_minimum_size = Vector2(360.0, 332.0)
+	_loadout_control.clip_contents = true
+	left_col.add_child(_loadout_control)
 
-	_loadout_container = GridContainer.new()
-	_loadout_container.columns = 3
-	_loadout_container.add_theme_constant_override("h_separation", 10)
-	_loadout_container.add_theme_constant_override("v_separation", 8)
-	loadout_scroll.add_child(_loadout_container)
-
-	# Bottom row: acquired upgrades (left) + ship stats (right)
-	var bottom_hbox := HBoxContainer.new()
-	bottom_hbox.add_theme_constant_override("separation", 16)
-	bottom_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(bottom_hbox)
-
-	var acquired_vbox := VBoxContainer.new()
-	acquired_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	acquired_vbox.add_theme_constant_override("separation", 4)
-	bottom_hbox.add_child(acquired_vbox)
+	# ---- RIGHT COLUMN: Acquired upgrades + stats toggle ----
+	var right_col := VBoxContainer.new()
+	right_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_col.add_theme_constant_override("separation", 6)
+	bottom_hbox.add_child(right_col)
 
 	var acquired_title := Label.new()
 	acquired_title.text = "-- Acquired Upgrades --"
@@ -139,41 +142,30 @@ func _ready() -> void:
 	if font:
 		acquired_title.add_theme_font_override("font", font)
 		acquired_title.add_theme_font_size_override("font_size", 14)
-	acquired_vbox.add_child(acquired_title)
+	right_col.add_child(acquired_title)
 
 	var purchased_scroll := ScrollContainer.new()
-	purchased_scroll.custom_minimum_size = Vector2(0.0, 80.0)
-	purchased_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	purchased_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	acquired_vbox.add_child(purchased_scroll)
+	purchased_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	purchased_scroll.custom_minimum_size = Vector2(0.0, 100.0)
+	purchased_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	purchased_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	right_col.add_child(purchased_scroll)
 
-	_purchased_container = HBoxContainer.new()
-	_purchased_container.add_theme_constant_override("separation", 8)
+	_purchased_container = FlowContainer.new()
+	_purchased_container.add_theme_constant_override("h_separation", 6)
+	_purchased_container.add_theme_constant_override("v_separation", 6)
+	_purchased_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	purchased_scroll.add_child(_purchased_container)
 
-	# Ship stats panel (right side)
-	var stats_vbox := VBoxContainer.new()
-	stats_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stats_vbox.add_theme_constant_override("separation", 4)
-	bottom_hbox.add_child(stats_vbox)
-
-	var stats_title := Label.new()
-	stats_title.text = "-- Ship Stats --"
-	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Stats toggle button (inline, in the right column)
+	_stats_toggle_btn = Button.new()
+	_stats_toggle_btn.text = "Ship Stats  v"
+	_stats_toggle_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	_stats_toggle_btn.pressed.connect(_on_stats_toggle)
 	if font:
-		stats_title.add_theme_font_override("font", font)
-		stats_title.add_theme_font_size_override("font_size", 14)
-	stats_vbox.add_child(stats_title)
-
-	var stats_scroll := ScrollContainer.new()
-	stats_scroll.custom_minimum_size = Vector2(0.0, 80.0)
-	stats_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	stats_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	stats_vbox.add_child(stats_scroll)
-
-	_stats_container = VBoxContainer.new()
-	_stats_container.add_theme_constant_override("separation", 2)
-	stats_scroll.add_child(_stats_container)
+		_stats_toggle_btn.add_theme_font_override("font", font)
+		_stats_toggle_btn.add_theme_font_size_override("font_size", 13)
+	right_col.add_child(_stats_toggle_btn)
 
 	var skip_btn := Button.new()
 	skip_btn.text = "Continue"
@@ -184,7 +176,60 @@ func _ready() -> void:
 		skip_btn.add_theme_font_size_override("font_size", 16)
 	vbox.add_child(skip_btn)
 
-	# Popover - built last so it renders on top; parented to CanvasLayer directly
+	# Stats overlay and popover built last so they render on top of everything
+	_stats_overlay = PanelContainer.new()
+	_stats_overlay.visible = false
+	_stats_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_stats_overlay.z_index = 50
+	_stats_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	var stats_ov_style := StyleBoxFlat.new()
+	stats_ov_style.bg_color = Color(0.03, 0.03, 0.08, 0.95)
+	stats_ov_style.border_color = Color(0.4, 0.5, 0.8)
+	stats_ov_style.set_border_width_all(2)
+	stats_ov_style.content_margin_left = 40.0
+	stats_ov_style.content_margin_right = 40.0
+	stats_ov_style.content_margin_top = 30.0
+	stats_ov_style.content_margin_bottom = 30.0
+	_stats_overlay.add_theme_stylebox_override("panel", stats_ov_style)
+
+	var stats_ov_vbox := VBoxContainer.new()
+	stats_ov_vbox.add_theme_constant_override("separation", 8)
+	_stats_overlay.add_child(stats_ov_vbox)
+
+	var stats_ov_header := HBoxContainer.new()
+	stats_ov_header.add_theme_constant_override("separation", 12)
+	stats_ov_vbox.add_child(stats_ov_header)
+
+	var stats_ov_title := Label.new()
+	stats_ov_title.text = "-- Ship Stats --"
+	stats_ov_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stats_ov_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font:
+		stats_ov_title.add_theme_font_override("font", font)
+		stats_ov_title.add_theme_font_size_override("font_size", 22)
+	stats_ov_header.add_child(stats_ov_title)
+
+	var stats_ov_close := Button.new()
+	stats_ov_close.text = "X  Close"
+	stats_ov_close.process_mode = Node.PROCESS_MODE_ALWAYS
+	stats_ov_close.pressed.connect(_on_stats_toggle)
+	if font:
+		stats_ov_close.add_theme_font_override("font", font)
+		stats_ov_close.add_theme_font_size_override("font_size", 16)
+	stats_ov_header.add_child(stats_ov_close)
+
+	var stats_ov_scroll := ScrollContainer.new()
+	stats_ov_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stats_ov_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	stats_ov_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	stats_ov_vbox.add_child(stats_ov_scroll)
+
+	_stats_container = VBoxContainer.new()
+	_stats_container.add_theme_constant_override("separation", 4)
+	stats_ov_scroll.add_child(_stats_container)
+
+	add_child(_stats_overlay)
+
 	_popover = PanelContainer.new()
 	_popover.visible = false
 	_popover.z_index = 100
@@ -448,6 +493,17 @@ func _render_shop(player: Player) -> void:
 			class_label.add_theme_font_size_override("font_size", 13)
 		card_vbox.add_child(class_label)
 
+		var shop_icon_tex := _get_weapon_icon_texture(wdata)
+		if shop_icon_tex != null:
+			var shop_icon_rect := TextureRect.new()
+			shop_icon_rect.texture = shop_icon_tex
+			shop_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			shop_icon_rect.custom_minimum_size = Vector2(40.0, 40.0)
+			shop_icon_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			shop_icon_rect.modulate = rarity_col.lightened(0.15)
+			shop_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card_vbox.add_child(shop_icon_rect)
+
 		var name_label := Label.new()
 		name_label.text = wdata.display_name
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -546,10 +602,25 @@ func _get_all_weapon_paths() -> Array[String]:
 	return paths
 
 func _populate_loadout(player: Player) -> void:
-	for child in _loadout_container.get_children():
+	for child in _loadout_control.get_children():
 		child.queue_free()
 
 	var font := GameManager.kenney_font()
+
+	# Ship silhouette background (renders behind port cards)
+	var sil := TextureRect.new()
+	sil.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sil.size = Vector2(200.0, 200.0)
+	sil.custom_minimum_size = Vector2(200.0, 200.0)
+	var sil_path := "res://assets/sprites/playerShip1_blue.png"
+	if ResourceLoader.exists(sil_path):
+		sil.texture = load(sil_path)
+	var ship_col := player.character_data.ship_color if player.character_data else Color.WHITE
+	sil.modulate = Color(ship_col.r, ship_col.g, ship_col.b, 0.22)
+	sil.position = Vector2(175.0 - 100.0, 180.0 - 100.0)
+	sil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_loadout_control.add_child(sil)
+
 	# Build a lookup: port_index -> weapon_node
 	var port_to_weapon: Dictionary = {}
 	# Build weapon id count for forge detection
@@ -571,8 +642,19 @@ func _populate_loadout(player: Player) -> void:
 		var is_swap_target: bool = (_selected_weapon_node != null and weapon_node != null and weapon_node != _selected_weapon_node)
 		var is_empty_target: bool = (_selected_weapon_node != null and weapon_node == null)
 
+		# Map port position to screen coordinates (nose points up, +Y down, +X right)
+		# PORT_DATA: pos.x = forward axis, pos.y = starboard axis
+		# Screen: screen_x = starboard, screen_y = -forward
+		var port_pos: Vector2 = port["pos"]
+		var screen_x: float = port_pos.y * 3.5 + 175.0
+		var screen_y: float = -port_pos.x * 3.5 + 180.0
+		var card_pos := Vector2(screen_x - 40.0, screen_y - 40.0)
+		card_pos.x = clampf(card_pos.x, 0.0, 280.0)
+		card_pos.y = clampf(card_pos.y, 0.0, 252.0)
+
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(165.0, 115.0)
+		card.custom_minimum_size = Vector2(80.0, 80.0)
+		card.position = card_pos
 		card.focus_mode = Control.FOCUS_ALL
 		var card_style := StyleBoxFlat.new()
 		if weapon_node != null:
@@ -580,10 +662,10 @@ func _populate_loadout(player: Player) -> void:
 			var rarity_col := _rarity_color(int(wdata.rarity) if wdata else 0)
 			card_style.bg_color = rarity_col.darkened(0.65)
 			if is_selected:
-				card_style.border_color = Color(1.0, 0.85, 0.1)  # gold highlight
+				card_style.border_color = Color(1.0, 0.85, 0.1)
 				card_style.set_border_width_all(3)
 			elif is_swap_target:
-				card_style.border_color = Color(0.3, 0.8, 1.0)  # cyan = swap here
+				card_style.border_color = Color(0.3, 0.8, 1.0)
 				card_style.set_border_width_all(2)
 			else:
 				card_style.border_color = rarity_col
@@ -591,26 +673,26 @@ func _populate_loadout(player: Player) -> void:
 		else:
 			card_style.bg_color = Color(0.08, 0.08, 0.12)
 			if is_empty_target:
-				card_style.border_color = Color(0.3, 0.8, 1.0)  # cyan = move here
+				card_style.border_color = Color(0.3, 0.8, 1.0)
 				card_style.set_border_width_all(2)
 			else:
 				card_style.border_color = Color(0.3, 0.3, 0.35)
 				card_style.set_border_width_all(1)
-		card_style.set_corner_radius_all(6)
+		card_style.set_corner_radius_all(5)
 		card.add_theme_stylebox_override("panel", card_style)
 
 		var cvbox := VBoxContainer.new()
-		cvbox.add_theme_constant_override("separation", 3)
+		cvbox.add_theme_constant_override("separation", 2)
 		card.add_child(cvbox)
 
-		# Port label row
+		# Port label (always shown)
 		var port_lbl := Label.new()
-		port_lbl.text = "%s  [%s]" % [port_label_str, "REAR" if is_rear else "FWD"]
+		port_lbl.text = "%s [%s]" % [port_label_str, "R" if is_rear else "F"]
 		port_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		port_lbl.modulate = Color(0.6, 0.9, 1.0) if is_rear else Color(0.9, 0.9, 0.9)
 		if font:
 			port_lbl.add_theme_font_override("font", font)
-			port_lbl.add_theme_font_size_override("font_size", 10)
+			port_lbl.add_theme_font_size_override("font_size", 9)
 		cvbox.add_child(port_lbl)
 
 		if weapon_node != null:
@@ -620,27 +702,30 @@ func _populate_loadout(player: Player) -> void:
 			var class_idx: int = int(wdata.weapon_class) if wdata else 0
 			var class_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
 
+			# Weapon icon
+			var icon_tex := _get_weapon_icon_texture(wdata)
+			if icon_tex != null:
+				var icon_rect := TextureRect.new()
+				icon_rect.texture = icon_tex
+				icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				icon_rect.custom_minimum_size = Vector2(28.0, 28.0)
+				icon_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				icon_rect.modulate = rarity_col.lightened(0.2)
+				icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				cvbox.add_child(icon_rect)
+
 			var name_lbl := Label.new()
 			name_lbl.text = wdata.display_name if wdata else "?"
 			name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			if font:
 				name_lbl.add_theme_font_override("font", font)
-				name_lbl.add_theme_font_size_override("font_size", 13)
+				name_lbl.add_theme_font_size_override("font_size", 10)
 			cvbox.add_child(name_lbl)
-
-			var class_lbl := Label.new()
-			class_lbl.text = "[%s]" % class_str
-			class_lbl.modulate = Color(0.75, 0.75, 0.75)
-			class_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			if font:
-				class_lbl.add_theme_font_override("font", font)
-				class_lbl.add_theme_font_size_override("font_size", 10)
-			cvbox.add_child(class_lbl)
 
 			var btn_row := HBoxContainer.new()
 			btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-			btn_row.add_theme_constant_override("separation", 6)
+			btn_row.add_theme_constant_override("separation", 3)
 			cvbox.add_child(btn_row)
 
 			# Select/swap button
@@ -654,19 +739,21 @@ func _populate_loadout(player: Player) -> void:
 				move_btn.text = "Move"
 			if font:
 				move_btn.add_theme_font_override("font", font)
-				move_btn.add_theme_font_size_override("font_size", 11)
+				move_btn.add_theme_font_size_override("font_size", 10)
 			move_btn.pressed.connect(_on_port_select_pressed.bind(player, weapon_node, port_idx))
 			btn_row.add_child(move_btn)
 
 			# Sell button
 			var sell_btn := Button.new()
-			sell_btn.text = "Sell +%d" % sell_value
+			sell_btn.text = "Sell"
 			sell_btn.disabled = player.weapons.size() <= 1
 			sell_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 			if font:
 				sell_btn.add_theme_font_override("font", font)
-				sell_btn.add_theme_font_size_override("font_size", 11)
+				sell_btn.add_theme_font_size_override("font_size", 10)
 			sell_btn.pressed.connect(_on_sell_pressed.bind(player, weapon_node))
+			btn_row.add_child(sell_btn)
+
 			var effective_dmg: float = weapon_node.get("damage") * weapon_node.get("damage_multiplier") * weapon_node.get("passive_multiplier")
 			var pop_lines := "[%s] %s\n[%s]\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nSell: +%d scrap" % [
 				_rarity_name(int(wdata.rarity) if wdata else 0), wdata.display_name if wdata else "?",
@@ -676,11 +763,14 @@ func _populate_loadout(player: Player) -> void:
 				weapon_node.get("projectile_count"), weapon_node.get("piercing"),
 				sell_value,
 			]
+			move_btn.focus_entered.connect(_show_popover.bind(move_btn, pop_lines, rarity_col))
+			move_btn.focus_exited.connect(_hide_popover)
+			move_btn.mouse_entered.connect(_show_popover.bind(move_btn, pop_lines, rarity_col))
+			move_btn.mouse_exited.connect(_hide_popover)
 			sell_btn.focus_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
 			sell_btn.focus_exited.connect(_hide_popover)
 			sell_btn.mouse_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
 			sell_btn.mouse_exited.connect(_hide_popover)
-			btn_row.add_child(sell_btn)
 
 			# Forge button: visible when two copies of this weapon are equipped
 			if wdata != null and wdata.forged_weapon_id != &"" \
@@ -691,9 +781,9 @@ func _populate_loadout(player: Player) -> void:
 				forge_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
 				if font:
 					forge_btn.add_theme_font_override("font", font)
-					forge_btn.add_theme_font_size_override("font_size", 11)
+					forge_btn.add_theme_font_size_override("font_size", 10)
 				forge_btn.pressed.connect(_on_forge_pressed.bind(player, wdata.id, wdata.forged_weapon_id))
-				btn_row.add_child(forge_btn)
+				cvbox.add_child(forge_btn)
 		else:
 			# Empty port
 			var empty_lbl := Label.new()
@@ -702,7 +792,7 @@ func _populate_loadout(player: Player) -> void:
 			empty_lbl.modulate = Color(0.4, 0.4, 0.45)
 			if font:
 				empty_lbl.add_theme_font_override("font", font)
-				empty_lbl.add_theme_font_size_override("font_size", 12)
+				empty_lbl.add_theme_font_size_override("font_size", 10)
 			cvbox.add_child(empty_lbl)
 
 			if _selected_weapon_node != null:
@@ -711,11 +801,11 @@ func _populate_loadout(player: Player) -> void:
 				here_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 				if font:
 					here_btn.add_theme_font_override("font", font)
-					here_btn.add_theme_font_size_override("font_size", 11)
+					here_btn.add_theme_font_size_override("font_size", 10)
 				here_btn.pressed.connect(_on_port_move_here_pressed.bind(player, port_idx))
 				cvbox.add_child(here_btn)
 
-		_loadout_container.add_child(card)
+		_loadout_control.add_child(card)
 
 func _on_port_select_pressed(player: Player, weapon_node: Node, _port_idx: int) -> void:
 	AudioManager.play_ui_click()
@@ -1229,40 +1319,93 @@ func _populate_purchased(player: Player) -> void:
 		_purchased_container.add_child(empty_lbl)
 		return
 
+	# Deduplicate: count stacks per id, preserve first-seen order
+	var seen_order: Array[StringName] = []
+	var stack_map: Dictionary = {}  # StringName id -> int count
+	var item_map: Dictionary = {}   # StringName id -> UpgradeData
 	for item in player.acquired_upgrades:
+		if not stack_map.has(item.id):
+			seen_order.append(item.id)
+			item_map[item.id] = item
+			stack_map[item.id] = 1
+		else:
+			stack_map[item.id] += 1
+
+	var rarity_letters: Array[String] = ["C", "U", "R", "E", "L"]
+	for uid in seen_order:
+		var item: UpgradeData = item_map[uid]
+		var stack_count: int = stack_map[uid]
 		var rarity_col := _rarity_color(int(item.rarity))
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(140.0, 72.0)
+		card.custom_minimum_size = Vector2(64.0, 64.0)
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		var card_style := StyleBoxFlat.new()
 		card_style.bg_color = rarity_col.darkened(0.65)
 		card_style.border_color = rarity_col
 		card_style.set_border_width_all(2)
-		card_style.set_corner_radius_all(5)
+		card_style.set_corner_radius_all(4)
+		card_style.content_margin_left = 2.0
+		card_style.content_margin_right = 2.0
+		card_style.content_margin_top = 2.0
+		card_style.content_margin_bottom = 2.0
 		card.add_theme_stylebox_override("panel", card_style)
 
 		var card_vbox := VBoxContainer.new()
-		card_vbox.add_theme_constant_override("separation", 3)
+		card_vbox.add_theme_constant_override("separation", 1)
 		card.add_child(card_vbox)
 
-		var rarity_lbl := Label.new()
-		rarity_lbl.text = "[%s]" % _rarity_name(int(item.rarity))
-		rarity_lbl.modulate = rarity_col.lightened(0.2)
-		rarity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		if font:
-			rarity_lbl.add_theme_font_override("font", font)
-			rarity_lbl.add_theme_font_size_override("font_size", 10)
-		card_vbox.add_child(rarity_lbl)
+		# Top row: rarity letter + stack count (if > 1)
+		var top_row := HBoxContainer.new()
+		top_row.add_theme_constant_override("separation", 2)
+		card_vbox.add_child(top_row)
 
+		var rar_lbl := Label.new()
+		rar_lbl.text = rarity_letters[int(item.rarity)] if int(item.rarity) < rarity_letters.size() else "?"
+		rar_lbl.modulate = rarity_col.lightened(0.3)
+		rar_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if font:
+			rar_lbl.add_theme_font_override("font", font)
+			rar_lbl.add_theme_font_size_override("font_size", 9)
+		top_row.add_child(rar_lbl)
+
+		if stack_count > 1:
+			var count_lbl := Label.new()
+			count_lbl.text = "x%d" % stack_count
+			count_lbl.modulate = Color(1.0, 0.9, 0.3)
+			count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			if font:
+				count_lbl.add_theme_font_override("font", font)
+				count_lbl.add_theme_font_size_override("font_size", 9)
+			top_row.add_child(count_lbl)
+
+		# Icon or colored placeholder
+		if item.icon != null:
+			var icon_rect := TextureRect.new()
+			icon_rect.texture = item.icon
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.custom_minimum_size = Vector2(32.0, 32.0)
+			icon_rect.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card_vbox.add_child(icon_rect)
+		else:
+			var ph := ColorRect.new()
+			ph.custom_minimum_size = Vector2(32.0, 32.0)
+			ph.color = rarity_col.darkened(0.2)
+			ph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card_vbox.add_child(ph)
+
+		# Short name (clipped to card width)
 		var name_lbl := Label.new()
 		name_lbl.text = item.display_name
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_lbl.clip_text = true
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if font:
 			name_lbl.add_theme_font_override("font", font)
-			name_lbl.add_theme_font_size_override("font_size", 12)
+			name_lbl.add_theme_font_size_override("font_size", 8)
 		card_vbox.add_child(name_lbl)
 
-		# Focusable invisible button for popover trigger
+		# Invisible focus button for keyboard popover
 		var focus_btn := Button.new()
 		focus_btn.text = ""
 		focus_btn.flat = true
@@ -1273,15 +1416,16 @@ func _populate_purchased(player: Player) -> void:
 			focus_btn.add_theme_font_size_override("font_size", 1)
 		card_vbox.add_child(focus_btn)
 
-		var pop_lines := "[%s] %s\n\n%s\n\n%s" % [
-			_rarity_name(int(item.rarity)), item.display_name,
+		var stack_str := " (x%d)" % stack_count if stack_count > 1 else ""
+		var pop_lines := "[%s] %s%s\n\n%s\n\n%s" % [
+			_rarity_name(int(item.rarity)), item.display_name, stack_str,
 			item.description,
 			_upgrade_delta_summary(item),
 		]
+		card.mouse_entered.connect(_show_popover.bind(card, pop_lines, rarity_col))
+		card.mouse_exited.connect(_hide_popover)
 		focus_btn.focus_entered.connect(_show_popover.bind(focus_btn, pop_lines, rarity_col))
 		focus_btn.focus_exited.connect(_hide_popover)
-		focus_btn.mouse_entered.connect(_show_popover.bind(focus_btn, pop_lines, rarity_col))
-		focus_btn.mouse_exited.connect(_hide_popover)
 
 		_purchased_container.add_child(card)
 
@@ -1441,3 +1585,34 @@ func _populate_stats(player: Player) -> void:
 		w_add_row.call("Range",  wdata.range,           weapon_node.get("range"),           "%.0f")
 		w_add_row.call("Spread", wdata.spread,          weapon_node.get("spread"),          "%.2f")
 		w_add_row.call("Shots",  float(wdata.projectile_count), float(weapon_node.get("projectile_count")), "%.0f")
+
+# ---------------------------------------------------------------------------
+# Weapon icon helper
+# ---------------------------------------------------------------------------
+
+func _get_weapon_icon_texture(wdata: WeaponData) -> Texture2D:
+	if wdata == null:
+		return null
+	if wdata.icon != null:
+		return wdata.icon
+	var ammo_to_gun: Dictionary = {
+		WeaponData.AmmoType.BULLET:  "gun01.png",
+		WeaponData.AmmoType.LASER:   "gun05.png",
+		WeaponData.AmmoType.ROCKET:  "gun09.png",
+		WeaponData.AmmoType.MINE:    "gun07.png",
+		WeaponData.AmmoType.ORBITAL: "gun06.png",
+		WeaponData.AmmoType.BEAM:    "gun04.png",
+	}
+	var fname: String = ammo_to_gun.get(wdata.ammo_type, "gun01.png")
+	var path := "res://assets/sprites/" + fname
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+# ---------------------------------------------------------------------------
+# Stats panel toggle
+# ---------------------------------------------------------------------------
+
+func _on_stats_toggle() -> void:
+	_stats_overlay.visible = not _stats_overlay.visible
+	_stats_toggle_btn.text = "Ship Stats  ^" if _stats_overlay.visible else "Ship Stats  v"
