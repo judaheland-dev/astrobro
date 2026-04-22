@@ -79,6 +79,24 @@ func _ready() -> void:
 	_add_button(vbox, "Quit",          _on_quit_pressed, font)
 	first_btn.grab_focus()
 
+	# Version label — bottom-right corner
+	var version_str: String = ProjectSettings.get_setting("application/config/version", "")
+	if version_str != "":
+		var ver_label := Label.new()
+		ver_label.text = "v" + version_str
+		ver_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		ver_label.offset_left = -120.0
+		ver_label.offset_top = -36.0
+		ver_label.offset_right = -8.0
+		ver_label.offset_bottom = -8.0
+		ver_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		ver_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if font:
+			ver_label.add_theme_font_override("font", font)
+			ver_label.add_theme_font_size_override("font_size", 14)
+		ver_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.7, 0.8))
+		add_child(ver_label)
+
 
 func _spawn_stars(parent: Control) -> void:
 	var star_defs: Array[Dictionary] = [
