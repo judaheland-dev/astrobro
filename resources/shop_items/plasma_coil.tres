@@ -10,6 +10,6 @@ description = "Every 3 s, burns all enemies within 300 px for 12 total damage"
 scope = 2
 stat_deltas = {}
 shop_price = 175
-max_stacks = -1
+max_stacks = 2
 rarity = 2
 passive_script = "res://scenes/game/player/abilities/PlasmaCoilPassive.gd"

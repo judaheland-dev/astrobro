@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"emergency_repair"
-display_name = "Emergency Repair"
-description = "Instantly restore 40 HP"
+id = &"reckless_thrusters"
+display_name = "Reckless Thrusters"
+description = "+70 Move Speed, but -10 Armor. Fast but exposed."
 scope = 0
-stat_deltas = {13: 40.0}
-shop_price = 80
+stat_deltas = {1: 70.0, 2: -10.0}
+shop_price = 60
 max_stacks = 2
 rarity = 0

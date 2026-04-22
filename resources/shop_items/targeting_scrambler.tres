@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"emergency_repair"
-display_name = "Emergency Repair"
-description = "Instantly restore 40 HP"
-scope = 0
-stat_deltas = {13: 40.0}
+id = &"targeting_scrambler"
+display_name = "Targeting Scrambler"
+description = "+1.5 Fire Rate, but -150 Range. Spray and pray."
+scope = 1
+stat_deltas = {4: 1.5, 9: -150.0}
 shop_price = 80
 max_stacks = 2
-rarity = 0
+rarity = 1

@@ -63,3 +63,8 @@ enum WeaponClass {
 # Homing: when true this weapon's projectiles steer toward the nearest enemy.
 @export var is_homing: bool = false
 @export var homing_strength: float = 0.0   # turn rate in rad/s (0 = straight)
+
+# Forging: two copies of this weapon can be combined into a tier-2 variant.
+@export var tier: int = 1
+@export var forged_weapon_id: StringName = &""  # id of weapon produced by forging two copies
+@export var is_forge_only: bool = false          # if true, excluded from normal shop offers

@@ -477,7 +477,7 @@ func _load_all_weapons() -> Array[WeaponData]:
 	var result: Array[WeaponData] = []
 	for path in _get_all_weapon_paths():
 		var wd: WeaponData = ResourceLoader.load(path)
-		if wd != null:
+		if wd != null and not wd.is_forge_only:
 			result.append(wd)
 	return result
 
@@ -500,6 +500,13 @@ func _populate_loadout(player: Player) -> void:
 	var font := GameManager.kenney_font()
 	# Build a lookup: port_index -> weapon_node
 	var port_to_weapon: Dictionary = {}
+	# Build weapon id count for forge detection
+	var id_count: Dictionary = {}
+	for w in player.weapons:
+		var wd = w.get("weapon_data")
+		if wd != null:
+			var wid := str(wd.id)
+			id_count[wid] = id_count.get(wid, 0) + 1
 	for w in player.weapons:
 		port_to_weapon[w.get("port_index")] = w
 
@@ -622,6 +629,19 @@ func _populate_loadout(player: Player) -> void:
 			sell_btn.mouse_entered.connect(_show_popover.bind(sell_btn, pop_lines, rarity_col))
 			sell_btn.mouse_exited.connect(_hide_popover)
 			btn_row.add_child(sell_btn)
+
+			# Forge button: visible when two copies of this weapon are equipped
+			if wdata != null and wdata.forged_weapon_id != &"" \
+					and id_count.get(str(wdata.id), 0) >= 2:
+				var forge_btn := Button.new()
+				forge_btn.text = "FORGE"
+				forge_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+				forge_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
+				if font:
+					forge_btn.add_theme_font_override("font", font)
+					forge_btn.add_theme_font_size_override("font_size", 11)
+				forge_btn.pressed.connect(_on_forge_pressed.bind(player, wdata.id, wdata.forged_weapon_id))
+				btn_row.add_child(forge_btn)
 		else:
 			# Empty port
 			var empty_lbl := Label.new()
@@ -691,6 +711,45 @@ func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	_populate_stats(player)
 	_update_title(player)
 
+func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringName) -> void:
+	# Collect the first two weapons with the matching base id
+	var to_remove: Array[Node] = []
+	for w in player.weapons:
+		var wd: WeaponData = w.get("weapon_data")
+		if wd != null and wd.id == base_id:
+			to_remove.append(w)
+		if to_remove.size() >= 2:
+			break
+	if to_remove.size() < 2:
+		return
+	AudioManager.play_ui_click()
+	# Remove both source weapons
+	for w in to_remove:
+		if _selected_weapon_node == w:
+			_selected_weapon_node = null
+		player.weapons.erase(w)
+		w.queue_free()
+	# Load and equip the forged weapon
+	var forged_path := "res://resources/weapons/%s.tres" % forged_id
+	if not ResourceLoader.exists(forged_path):
+		push_error("Forge: missing resource %s" % forged_path)
+		return
+	var forged_data: WeaponData = ResourceLoader.load(forged_path)
+	var new_weapon := BaseWeapon.new()
+	new_weapon.weapon_data = forged_data
+	new_weapon._projectile_parent = _projectile_parent
+	player.add_weapon(new_weapon)
+	var sfx := "res://assets/audio/sfx_levelup.ogg"
+	if ResourceLoader.exists(sfx):
+		AudioManager.play_sfx(load(sfx), -3.0, 1.1)
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	_populate_loadout(player)
+	_populate_stats(player)
+	_update_title(player)
+
 func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	if slot_idx >= _offered_weapons.size():
 		return
@@ -725,11 +784,21 @@ func _on_skip_pressed() -> void:
 
 func _generate_module_offers(player: Player) -> void:
 	var all_modules := _load_all_modules()
+	var available := _filter_modules_for_player(all_modules, player)
 	var weights := _get_rarity_weights(_wave_number)
-	_offered_modules = _weighted_sample_modules(all_modules, weights, 3)
+	_offered_modules = _weighted_sample_modules(available, weights, 3)
 	_locked_modules.clear()
 	for i in range(_offered_modules.size()):
 		_locked_modules.append(false)
+
+func _filter_modules_for_player(pool: Array[UpgradeData], player: Player) -> Array[UpgradeData]:
+	var result: Array[UpgradeData] = []
+	for item in pool:
+		if item.max_stacks == -1 or player.count_upgrade(item.id) < item.max_stacks:
+			result.append(item)
+	if result.is_empty():
+		return pool
+	return result
 
 func _render_modules(player: Player) -> void:
 	for child in _module_container.get_children():
@@ -776,7 +845,9 @@ func _render_modules(player: Player) -> void:
 		card_vbox.add_child(rarity_label)
 
 		var name_label := Label.new()
-		name_label.text = item.display_name
+		var stack_count := player.count_upgrade(item.id)
+		var stack_str := " (%d/%d)" % [stack_count, item.max_stacks] if item.max_stacks != -1 else ""
+		name_label.text = item.display_name + stack_str
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if font:
@@ -802,9 +873,15 @@ func _render_modules(player: Player) -> void:
 			cost_label.add_theme_font_size_override("font_size", 13)
 		card_vbox.add_child(cost_label)
 
-		var can_buy := player.scrap >= item.shop_price
+		var at_cap := item.max_stacks != -1 and player.count_upgrade(item.id) >= item.max_stacks
+		var can_buy := player.scrap >= item.shop_price and not at_cap
 		var buy_btn := Button.new()
-		buy_btn.text = "Buy" if can_buy else "Need Scrap"
+		if at_cap:
+			buy_btn.text = "MAXED"
+		elif can_buy:
+			buy_btn.text = "Buy"
+		else:
+			buy_btn.text = "Need Scrap"
 		buy_btn.disabled = not can_buy
 		buy_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 		buy_btn.pressed.connect(_on_buy_module_pressed.bind(player, slot_idx))
@@ -866,7 +943,7 @@ func _on_buy_module_pressed(player: Player, slot_idx: int) -> void:
 	player.scrap_changed.emit(player.scrap)
 	player.apply_upgrade(item)
 	# Replace only the purchased module slot with a fresh item
-	_replace_module_offer(slot_idx)
+	_replace_module_offer(slot_idx, player)
 	_scrap_label.text = "Scrap: %d" % player.scrap
 	_update_reroll_btn(player)
 	_render_shop(player)
@@ -914,10 +991,10 @@ func _replace_weapon_offer(slot_idx: int) -> void:
 		_offered_weapons.insert(slot_idx, _offered_weapons[0] if _offered_weapons.size() > 0 else null)
 	_locked_weapons.insert(slot_idx, false)
 
-func _replace_module_offer(slot_idx: int) -> void:
+func _replace_module_offer(slot_idx: int, player: Player) -> void:
 	_offered_modules.remove_at(slot_idx)
 	_locked_modules.remove_at(slot_idx)
-	var pool := _load_all_modules()
+	var pool := _filter_modules_for_player(_load_all_modules(), player)
 	var exclude: Array[UpgradeData] = []
 	for m in _offered_modules:
 		exclude.append(m)
@@ -983,7 +1060,7 @@ func _on_reroll_pressed() -> void:
 			_offered_weapons[i] = rep[0]
 
 	# Re-sample all unlocked module slots
-	var pool_m := _load_all_modules()
+	var pool_m := _filter_modules_for_player(_load_all_modules(), player)
 	for i in range(_offered_modules.size()):
 		if _locked_modules[i]:
 			continue
@@ -1143,7 +1220,10 @@ func _upgrade_delta_summary(item: UpgradeData) -> String:
 		var delta: float = item.stat_deltas[key]
 		var label: String = stat_names.get(key, "Stat %d" % key)
 		var sign_str := "+" if delta >= 0.0 else ""
-		parts.append("%s: %s%.4g" % [label, sign_str, delta])
+		var entry := "%s: %s%.4g" % [label, sign_str, delta]
+		if delta < 0.0:
+			entry = "(-) " + entry
+		parts.append(entry)
 	return "\n".join(parts)
 
 # ---------------------------------------------------------------------------

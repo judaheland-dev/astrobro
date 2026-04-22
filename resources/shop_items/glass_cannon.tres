@@ -4,11 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = &"emergency_repair"
-display_name = "Emergency Repair"
-description = "Instantly restore 40 HP"
-scope = 0
-stat_deltas = {13: 40.0}
-shop_price = 80
+id = &"glass_cannon"
+display_name = "Glass Cannon Protocol"
+description = "+20 Weapon Damage, but -40 Max HP. Hit hard, die easy."
+scope = 1
+stat_deltas = {3: 20.0, 0: -40.0}
+shop_price = 100
 max_stacks = 2
-rarity = 0
+rarity = 1

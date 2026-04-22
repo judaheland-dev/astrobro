@@ -414,6 +414,14 @@ func apply_upgrade(data: UpgradeData) -> void:
 			if passive_node.has_method("setup"):
 				passive_node.call("setup", self)
 	acquired_upgrades.append(data)
+
+func count_upgrade(id: StringName) -> int:
+	var n := 0
+	for item in acquired_upgrades:
+		if item.id == id:
+			n += 1
+	return n
+
 # --- Weapons ---
 
 func add_weapon(weapon_node: Node) -> void:
@@ -425,9 +433,18 @@ func add_weapon(weapon_node: Node) -> void:
 		var bonus: float = character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0)
 		weapon_node.set("damage_multiplier", 1.0 + bonus)
 	weapons.append(weapon_node)
-	# Assign to the next port in the default order.
-	var slot_index := weapons.size() - 1
-	var port_idx: int = _DEFAULT_PORT_ORDER[min(slot_index, PORT_DATA.size() - 1)]
+	# Assign to the first unoccupied port in the default order.
+	# Do NOT use weapons.size()-1 as the index — the size reflects adds/removes
+	# and the slot at that index may already be taken after a sell/forge/move.
+	var occupied: Array = []
+	for w in weapons:
+		if w != weapon_node:
+			occupied.append(w.get("port_index"))
+	var port_idx: int = _DEFAULT_PORT_ORDER[PORT_DATA.size() - 1]  # fallback
+	for p in _DEFAULT_PORT_ORDER:
+		if p not in occupied:
+			port_idx = p
+			break
 	weapon_node.set("port_index", port_idx)
 	weapon_node.position = PORT_DATA[port_idx]["pos"]
 	add_child(weapon_node)

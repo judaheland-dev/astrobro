@@ -10,5 +10,5 @@ description = "+15 max HP (also heals)"
 scope = 0
 stat_deltas = {0: 15.0}
 shop_price = 15
-max_stacks = -1
+max_stacks = 3
 rarity = 0
