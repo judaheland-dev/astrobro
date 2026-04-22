@@ -22,6 +22,12 @@ var _locked_modules: Array[bool] = []
 var _reroll_count: int = 0
 var _selected_weapon_node: Node = null   # port-swap selection state
 
+# Per-player offer state saved across waves (keyed by player index)
+var _saved_weapon_offers: Dictionary = {}
+var _saved_weapon_locks: Dictionary = {}
+var _saved_module_offers: Dictionary = {}
+var _saved_module_locks: Dictionary = {}
+
 var _title_label: Label
 var _scrap_label: Label
 var _reroll_btn: Button
@@ -209,7 +215,8 @@ func show_for_players(players: Array, projectile_parent: Node2D, wave_number: in
 	_projectile_parent = projectile_parent
 	_wave_number = wave_number
 	_current_player_index = 0
-	_reset_offer_state()
+	_reroll_count = 0
+	_restore_player_state(0)
 	visible = true
 	_show_shop_for_player()
 
@@ -220,20 +227,40 @@ func _reset_offer_state() -> void:
 	_locked_modules.clear()
 	_reroll_count = 0
 
+func _save_player_state(idx: int) -> void:
+	_saved_weapon_offers[idx] = _offered_weapons.duplicate()
+	_saved_weapon_locks[idx] = _locked_weapons.duplicate()
+	_saved_module_offers[idx] = _offered_modules.duplicate()
+	_saved_module_locks[idx] = _locked_modules.duplicate()
+
+func _restore_player_state(idx: int) -> void:
+	_offered_weapons.clear()
+	_locked_weapons.clear()
+	_offered_modules.clear()
+	_locked_modules.clear()
+	if not _saved_weapon_offers.has(idx):
+		return
+	for v in _saved_weapon_offers[idx]:
+		_offered_weapons.append(v)
+	for v in _saved_weapon_locks[idx]:
+		_locked_weapons.append(v)
+	for v in _saved_module_offers[idx]:
+		_offered_modules.append(v)
+	for v in _saved_module_locks[idx]:
+		_locked_modules.append(v)
+
 func _show_shop_for_player() -> void:
 	var player := _players[_current_player_index]
-	var slots := player.character_data.weapon_slots if player.character_data else 2
+	var slots := player.character_data.weapon_slots if player.character_data else 6
 	_title_label.text = "Weapon Shop  -  Player %d  (Slots: %d / %d)" % [
 		_current_player_index + 1,
 		player.weapons.size(),
 		slots,
 	]
 	_scrap_label.text = "Scrap: %d" % player.scrap
-	# Only generate fresh offers when there are none (new player visit)
-	if _offered_weapons.is_empty():
-		_generate_weapon_offers(player)
-	if _offered_modules.is_empty():
-		_generate_module_offers(player)
+	# Refresh unlocked slots with new offers; locked slots are preserved.
+	_generate_weapon_offers(player)
+	_generate_module_offers(player)
 	_update_reroll_btn(player)
 	_render_shop(player)
 	_render_modules(player)
@@ -313,20 +340,45 @@ func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], c
 				break
 	return result
 
-func _generate_weapon_offers(player: Player) -> void:
+func _generate_weapon_offers(_player: Player) -> void:
+	# Pad arrays to full count
+	while _offered_weapons.size() < WEAPON_OFFER_COUNT:
+		_offered_weapons.append(null)
+	while _locked_weapons.size() < WEAPON_OFFER_COUNT:
+		_locked_weapons.append(false)
+	# Determine which slots need new weapons (unlocked or empty)
+	var slots_to_fill: Array[int] = []
+	var exclude: Array[WeaponData] = []
+	for i in range(WEAPON_OFFER_COUNT):
+		if _locked_weapons[i] and _offered_weapons[i] != null:
+			exclude.append(_offered_weapons[i])
+		else:
+			slots_to_fill.append(i)
+	if slots_to_fill.is_empty():
+		return
 	var all_weapons := _load_all_weapons()
 	var weights := _get_rarity_weights(_wave_number)
-	_offered_weapons = _weighted_sample_weapons(all_weapons, weights, WEAPON_OFFER_COUNT)
-	_locked_weapons.clear()
-	for i in range(_offered_weapons.size()):
-		_locked_weapons.append(false)
+	var pool: Array[WeaponData] = []
+	for w in all_weapons:
+		if not exclude.has(w):
+			pool.append(w)
+	if pool.is_empty():
+		pool = all_weapons
+	var new_weapons := _weighted_sample_weapons(pool, weights, slots_to_fill.size())
+	for i in range(slots_to_fill.size()):
+		var slot := slots_to_fill[i]
+		if i < new_weapons.size():
+			_offered_weapons[slot] = new_weapons[i]
+		elif all_weapons.size() > 0:
+			_offered_weapons[slot] = all_weapons[0]
+		_locked_weapons[slot] = false
 
 func _render_shop(player: Player) -> void:
 	for child in _shop_container.get_children():
 		child.queue_free()
 
 	var font := GameManager.kenney_font()
-	var slots := player.character_data.weapon_slots if player.character_data else 2
+	var slots := player.character_data.weapon_slots if player.character_data else 6
 	var is_full := player.weapons.size() >= slots
 
 	for slot_idx in range(_offered_weapons.size()):
@@ -754,6 +806,9 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	if slot_idx >= _offered_weapons.size():
 		return
 	var wdata := _offered_weapons[slot_idx]
+	var max_slots := player.character_data.weapon_slots if player.character_data else 6
+	if player.weapons.size() >= max_slots:
+		return
 	AudioManager.play_ui_click()
 	if player.scrap < wdata.shop_cost:
 		return
@@ -775,9 +830,11 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 
 func _on_skip_pressed() -> void:
 	AudioManager.play_ui_click()
+	_save_player_state(_current_player_index)
 	_current_player_index += 1
 	if _current_player_index < _players.size():
-		_reset_offer_state()
+		_reroll_count = 0
+		_restore_player_state(_current_player_index)
 		_show_shop_for_player()
 	else:
 		_close()
@@ -786,10 +843,35 @@ func _generate_module_offers(player: Player) -> void:
 	var all_modules := _load_all_modules()
 	var available := _filter_modules_for_player(all_modules, player)
 	var weights := _get_rarity_weights(_wave_number)
-	_offered_modules = _weighted_sample_modules(available, weights, 3)
-	_locked_modules.clear()
-	for i in range(_offered_modules.size()):
+	# Pad arrays to full count
+	while _offered_modules.size() < 3:
+		_offered_modules.append(null)
+	while _locked_modules.size() < 3:
 		_locked_modules.append(false)
+	# Determine which slots need new modules (unlocked or empty)
+	var slots_to_fill: Array[int] = []
+	var exclude: Array[UpgradeData] = []
+	for i in range(3):
+		if _locked_modules[i] and _offered_modules[i] != null:
+			exclude.append(_offered_modules[i])
+		else:
+			slots_to_fill.append(i)
+	if slots_to_fill.is_empty():
+		return
+	var pool: Array[UpgradeData] = []
+	for m in available:
+		if not exclude.has(m):
+			pool.append(m)
+	if pool.is_empty():
+		pool = available
+	var new_modules := _weighted_sample_modules(pool, weights, slots_to_fill.size())
+	for i in range(slots_to_fill.size()):
+		var slot := slots_to_fill[i]
+		if i < new_modules.size():
+			_offered_modules[slot] = new_modules[i]
+		elif available.size() > 0:
+			_offered_modules[slot] = available[0]
+		_locked_modules[slot] = false
 
 func _filter_modules_for_player(pool: Array[UpgradeData], player: Player) -> Array[UpgradeData]:
 	var result: Array[UpgradeData] = []
@@ -953,7 +1035,7 @@ func _on_buy_module_pressed(player: Player, slot_idx: int) -> void:
 	_update_title(player)
 
 func _update_title(player: Player) -> void:
-	var slots := player.character_data.weapon_slots if player.character_data else 2
+	var slots := player.character_data.weapon_slots if player.character_data else 6
 	_title_label.text = "Weapon Shop  -  Player %d  (Slots: %d / %d)" % [
 		_current_player_index + 1,
 		player.weapons.size(),

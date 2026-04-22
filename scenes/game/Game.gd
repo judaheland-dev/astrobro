@@ -96,6 +96,7 @@ func _build_arena() -> void:
 	for wd in walls_data:
 		var wall := StaticBody2D.new()
 		wall.position = Vector2(wd[0], wd[1])
+		wall.collision_layer = 4  # layer 3 - walls (distinct from player layer 1)
 		var col := CollisionShape2D.new()
 		var shape := RectangleShape2D.new()
 		shape.size = Vector2(wd[2], wd[3])

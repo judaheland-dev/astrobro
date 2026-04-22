@@ -112,7 +112,7 @@ var _damage_overlay: Sprite2D = null
 
 func _ready() -> void:
 	collision_layer = 1   # player on layer 1
-	collision_mask  = 10  # collide with layer 1 (walls), layer 2 (enemies), layer 4 (interceptable missiles)
+	collision_mask  = 14  # collide with layer 2 (enemies), layer 3 (walls), layer 4 (interceptable missiles)
 	if character_data:
 		_apply_character_data()
 	current_health = max_health
@@ -353,8 +353,8 @@ func revive() -> void:
 	t.tween_property(self, "scale", Vector2.ONE, 0.1)
 
 func _die() -> void:
-	died.emit()
 	set_physics_process(false)
+	died.emit()
 	var death_sfx := "res://assets/audio/sfx_player_death.ogg"
 	if ResourceLoader.exists(death_sfx):
 		AudioManager.play_sfx(load(death_sfx), 0.0, 0.9)
@@ -442,7 +442,7 @@ func count_upgrade(id: StringName) -> int:
 # --- Weapons ---
 
 func add_weapon(weapon_node: Node) -> void:
-	var slots := character_data.weapon_slots if character_data else 2
+	var slots := character_data.weapon_slots if character_data else 6
 	if weapons.size() >= slots:
 		return
 	var wdata = weapon_node.get("weapon_data")
