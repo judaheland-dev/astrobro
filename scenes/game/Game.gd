@@ -240,8 +240,8 @@ func _load_waves_from_dir(path: String) -> Array[WaveData]:
 	dir.list_dir_begin()
 	var fname := dir.get_next()
 	while fname != "":
-		if fname.ends_with(".tres"):
-			var res = ResourceLoader.load(path + "/" + fname)
+		if fname.ends_with(".tres") or fname.ends_with(".tres.remap"):
+			var res = ResourceLoader.load(path + "/" + fname.trim_suffix(".remap"))
 			if res is WaveData:
 				result.append(res)
 		fname = dir.get_next()
@@ -369,6 +369,9 @@ func _show_between_wave_ui(wave_number: int) -> void:
 	_current_wave_number = wave_number
 	GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
 	get_tree().paused = true
+	var bw_music := "res://assets/audio/music_betweenwaves.ogg"
+	if ResourceLoader.exists(bw_music):
+		AudioManager.play_music(load(bw_music))
 	if _between_wave_ui.has_method("show_for_players"):
 		_between_wave_ui.show_for_players(_players, wave_number, _wave_manager)
 
@@ -386,6 +389,9 @@ func _on_shop_closed() -> void:
 			if not p.is_physics_processing():
 				p.revive()
 				_spawn_floating_text("REVIVED  -%d Scrap" % Player.REVIVE_SCRAP_PENALTY, p.global_position, Color(0.4, 1.0, 0.6))
+	var game_music := "res://assets/audio/music_game.ogg"
+	if ResourceLoader.exists(game_music):
+		AudioManager.play_music(load(game_music))
 	get_tree().paused = false
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	_wave_manager.next_wave()

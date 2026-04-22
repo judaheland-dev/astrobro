@@ -208,8 +208,8 @@ func _load_all_upgrades() -> Array[UpgradeData]:
 		dir.list_dir_begin()
 		var fname := dir.get_next()
 		while fname != "":
-			if fname.ends_with(".tres"):
-				var res = ResourceLoader.load("res://resources/upgrades/" + fname)
+			if fname.ends_with(".tres") or fname.ends_with(".tres.remap"):
+				var res = ResourceLoader.load("res://resources/upgrades/" + fname.trim_suffix(".remap"))
 				if res is UpgradeData:
 					upgrades.append(res)
 			fname = dir.get_next()

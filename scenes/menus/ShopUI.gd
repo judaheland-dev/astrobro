@@ -488,8 +488,8 @@ func _get_all_weapon_paths() -> Array[String]:
 		dir.list_dir_begin()
 		var fname := dir.get_next()
 		while fname != "":
-			if fname.ends_with(".tres"):
-				paths.append("res://resources/weapons/" + fname)
+			if fname.ends_with(".tres") or fname.ends_with(".tres.remap"):
+				paths.append("res://resources/weapons/" + fname.trim_suffix(".remap"))
 			fname = dir.get_next()
 	return paths
 
@@ -850,8 +850,8 @@ func _get_all_module_paths() -> Array[String]:
 		dir.list_dir_begin()
 		var fname := dir.get_next()
 		while fname != "":
-			if fname.ends_with(".tres"):
-				paths.append("res://resources/shop_items/" + fname)
+			if fname.ends_with(".tres") or fname.ends_with(".tres.remap"):
+				paths.append("res://resources/shop_items/" + fname.trim_suffix(".remap"))
 			fname = dir.get_next()
 	return paths
 

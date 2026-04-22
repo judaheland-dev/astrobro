@@ -346,6 +346,99 @@ def make_game_music():
     return buf
 
 # ---------------------------------------------------------------------------
+# BETWEEN-WAVES MUSIC  -- warm/triumphant lounge, 90 BPM, 20 bars (~53 s)
+# ---------------------------------------------------------------------------
+
+def make_betweenwaves_music():
+    BPM    = 90
+    beat   = 60.0 / BPM
+    bar    = beat * 4
+    eighth = beat / 2.0
+    n_bars = 20
+
+    total_dur = bar * n_bars
+    buf = make_buf(total_dur)
+
+    # Walking bass line -- C major / A minor alternating
+    bass_pat = [
+        ('A2', 1.0), ('C3', 0.8), ('E2', 0.9), ('G2', 0.8),
+        ('A2', 1.0), ('C3', 0.8), ('G2', 0.9), ('E2', 0.8),
+        ('C3', 1.0), ('E2', 0.8), ('G2', 0.9), ('A2', 0.8),
+        ('A2', 1.0), ('E2', 0.8), ('C3', 0.9), ('G2', 0.8),
+    ]
+    total_8ths = int(total_dur / eighth)
+    for step in range(total_8ths):
+        t0 = step * eighth
+        if t0 + eighth > total_dur:
+            break
+        note, vel = bass_pat[step % len(bass_pat)]
+        mix_at(buf, synth_bass(NOTES[note], eighth * 0.78,
+                               attack=0.008, decay=0.07, sustain=0.60, release=0.10),
+               t0, vol=0.45 * vel)
+
+    # Slow pad chords -- warm major/minor voicings held for 2 bars each
+    chord_seq = [
+        ['A2', 'C3', 'E3', 'A3'],   # Am
+        ['G2', 'B3', 'D3', 'G3'],   # G
+        ['C3', 'E3', 'G3', 'C4'],   # C
+        ['E2', 'G3', 'B3', 'E3'],   # Em
+        ['A2', 'C3', 'E3', 'A3'],   # Am
+        ['G2', 'D3', 'G3', 'B3'],   # G
+        ['C3', 'E3', 'G3', 'C4'],   # C
+        ['A2', 'E3', 'A3', 'C4'],   # Am
+        ['A2', 'C3', 'E3', 'A3'],   # Am
+        ['G2', 'B3', 'D3', 'G3'],   # G
+    ]
+    for ci, chord in enumerate(chord_seq):
+        sb = ci * 2
+        if sb >= n_bars:
+            break
+        cdur = bar * 2 * 0.92
+        for note in chord:
+            if note not in NOTES:
+                continue
+            mix_at(buf, synth_pad(NOTES[note], cdur,
+                                  attack=0.4, decay=0.4, sustain=0.72, release=0.7),
+                   sb * bar, vol=0.24)
+
+    # Light arpeggio (organ, eighth notes) starting bar 1
+    arp_seq = ['A3', 'E4', 'C4', 'E4', 'A3', 'G4', 'E4', 'C4',
+               'C4', 'E4', 'G4', 'E4', 'C4', 'A3', 'E4', 'G4']
+    arp_start = bar
+    total_arp_8ths = int((total_dur - arp_start) / eighth)
+    for step in range(total_arp_8ths):
+        t0 = arp_start + step * eighth
+        if t0 + eighth > total_dur:
+            break
+        mix_at(buf, synth_organ(NOTES[arp_seq[step % len(arp_seq)]], eighth * 0.62,
+                                attack=0.005, decay=0.04, sustain=0.48, release=0.08),
+               t0, vol=0.18)
+
+    # Gentle lead melody entering at bar 4, repeating every 8 bars
+    melody = [
+        ('A4', 1.5), ('C5', 0.5), ('E5', 1.0), ('C5', 1.0),
+        ('A4', 1.0), ('G4', 0.5), ('E4', 0.5), ('A4', 2.0),
+        ('C5', 1.0), ('E5', 0.5), ('G5', 0.5), ('E5', 1.0), ('C5', 1.0),
+        ('A4', 0.5), ('G4', 0.5), ('A4', 2.0),
+    ]
+    for pb in [4, 12]:
+        if pb >= n_bars:
+            break
+        cursor = pb * bar
+        for note, dur_beats in melody:
+            if cursor + beat > total_dur:
+                break
+            mix_at(buf, synth_lead(NOTES[note], dur_beats * beat * 0.85,
+                                   attack=0.025, decay=0.08, sustain=0.62, release=0.30,
+                                   vibrato=0.005),
+                   cursor, vol=0.28)
+            cursor += dur_beats * beat
+
+    normalize_buf(buf)
+    fade_edges(buf)
+    return buf
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -359,6 +452,7 @@ if __name__ == '__main__':
     tracks = [
         ('music_menu', make_menu_music),
         ('music_game', make_game_music),
+        ('music_betweenwaves', make_betweenwaves_music),
     ]
 
     print(f'Generating {len(tracks)} music tracks -> {os.path.abspath(out_dir)}')

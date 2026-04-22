@@ -221,3 +221,25 @@ All animation is done with `Tween` — no `AnimationPlayer` nodes required.
 - Do not define two `func _process(...)` in the same file. **Before adding `_process`, `_physics_process`, or `_ready` to any file, grep for an existing definition and merge new logic into it.**
 - Do not add new lifecycle functions without first checking the file — Game.gd already has `_process` (camera tracking + shake) and `_physics_process` is used per-node.
 - **After any multi-line `replace_string_in_file` that appends new functions**, verify the boundary between the old and new code. A stray character from the last token of the replaced block (e.g. the `d` in `d.queue_free`) can be injected onto the start of the next line, producing a parser error like `Unexpected identifier "d" in class body`. Use `hexdump` or `sed -n 'Np'` to inspect the exact bytes if the error seems to point at a valid-looking line.
+
+## Exporting the Game
+
+To build a macOS release:
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --export-release "macOS"
+```
+The output path is set in `export_presets.cfg` (`export_path`). Current target: `~/Desktop/AstroBro.zip`.
+
+**`.tres.remap` in exported builds:** Godot's export process converts every `.tres` file to a `.tres.remap` stub inside the `.pck`. Any code that uses `DirAccess` to scan a directory for `.tres` files will find nothing in an exported build unless it also handles `.tres.remap`. Pattern to use everywhere:
+```gdscript
+if fname.ends_with(".tres") or fname.ends_with(".tres.remap"):
+    var res = ResourceLoader.load(base_path + "/" + fname.trim_suffix(".remap"))
+```
+Affected files (already fixed): `Game.gd` (`_load_waves_from_dir`), `ShopUI.gd` (`_get_all_weapon_paths`, `_get_all_module_paths`), `BetweenWaveUI.gd` (upgrade scan).
+
+**Gatekeeper (unsigned app):** Recipients must right-click → Open → Open on first launch, or run:
+```bash
+xattr -rd com.apple.quarantine /path/to/AstroBro.app
+```
+
+**ETC2 ASTC required:** The `universal`/`arm64` macOS preset requires `textures/vram_compression/import_etc2_astc=true` in `project.godot`. Already set.
