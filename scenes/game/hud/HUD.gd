@@ -53,6 +53,7 @@ func register_player(player: Player) -> void:
 	player.leveled_up.connect(func(lvl): _update_level(panel, lvl))
 	player.scrap_changed.connect(func(amount): _update_scrap(panel, amount))
 	player.died.connect(func(): _mark_dead(panel))
+	player.ability_cooldown_changed.connect(func(ratio): _update_ability(panel, ratio))
 
 func _create_player_panel(index: int) -> Control:
 	var vbox := VBoxContainer.new()
@@ -102,6 +103,15 @@ func _create_player_panel(index: int) -> Control:
 		scrap_label.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(scrap_label)
 
+	var ability_bar := ProgressBar.new()
+	ability_bar.name = "AbilityBar"
+	ability_bar.custom_minimum_size = Vector2(220, 8)
+	ability_bar.max_value = 1.0
+	ability_bar.value = 1.0
+	ability_bar.modulate = Color(0.2, 1.0, 0.4)
+	ability_bar.visible = false
+	vbox.add_child(ability_bar)
+
 	return vbox
 
 func _mark_dead(panel: Control) -> void:
@@ -138,6 +148,14 @@ func _update_scrap(panel: Control, amount: int) -> void:
 	var lbl := panel.get_node_or_null("ScrapLabel") as Label
 	if lbl:
 		lbl.text = "Scrap: %d" % amount
+
+func _update_ability(panel: Control, ratio: float) -> void:
+	var bar := panel.get_node_or_null("AbilityBar") as ProgressBar
+	if not bar:
+		return
+	bar.visible = true
+	bar.value = 1.0 - ratio
+	bar.modulate = Color(0.2, 1.0, 0.4) if ratio <= 0.0 else Color(1.0, 0.7, 0.1)
 
 func update_wave(current: int, total: int) -> void:
 	if _wave_label:

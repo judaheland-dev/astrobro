@@ -5,4 +5,4 @@ extends Node
 func setup(player: Player) -> void:
 	player.boost_factor   = 2.2
 	player.boost_duration = 0.7
-	player._boost_recharge = 6.0
+	player.boost_recharge = 6.0

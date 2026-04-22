@@ -42,6 +42,7 @@ On macOS, SDL2 remaps this controller as follows:
 |---|---|---|
 | `move_up/down/left/right` | WASD | Left stick (axis) |
 | `fire` | Mouse button 1 | R1 (button_index 10) |
+| `boost` | Mouse button 2 (right-click) | L1 (button_index 9) |
 | `interact` | E | Face 2 / A (button_index 0) |
 | `pause` | Escape | Start (button_index 6) |
 | `ui_accept` | Enter / Space | A (button_index 0, any device) |

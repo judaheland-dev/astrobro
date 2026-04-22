@@ -11,6 +11,7 @@ signal xp_gained(new_xp: int, threshold: int)
 signal leveled_up(new_level: int)
 signal weapon_fired()
 signal scrap_changed(amount: int)
+signal ability_cooldown_changed(ratio: float)
 
 @export var player_index: int = 0       # 0 = P1, 1 = P2
 @export var character_data: CharacterData = null
@@ -53,7 +54,7 @@ var boost_factor: float = 0.0         # speed multiplier while boosting (0 = no 
 var boost_duration: float = 0.7       # seconds per burst
 var _boost_timer: float = 0.0
 var _boost_cooldown: float = 0.0
-var _boost_recharge: float = 6.0
+var boost_recharge: float = 6.0
 
 # Reflective shield
 var reflective_shield: bool = false
@@ -117,6 +118,7 @@ func _ready() -> void:
 	current_health = max_health
 	health_changed.emit(current_health, max_health)
 	_spawn_passive()
+	_spawn_active()
 	sprite.rotation_degrees = 90.0
 	_setup_thruster()
 	_setup_damage_overlay()
@@ -146,6 +148,18 @@ func _spawn_passive() -> void:
 		var passive: Node = script.new()
 		add_child(passive)
 		passive.call("setup", self)
+
+func _spawn_active() -> void:
+	if not character_data:
+		return
+	var cid := str(character_data.id)
+	var cap := cid[0].to_upper() + cid.substr(1)
+	var path := "res://scenes/game/player/abilities/%sActive.gd" % cap
+	if ResourceLoader.exists(path):
+		var script: Script = load(path)
+		var active: Node = script.new()
+		add_child(active)
+		active.call("setup", self)
 
 func add_scrap(amount: int) -> void:
 	var actual := amount
@@ -253,12 +267,15 @@ func activate_boost() -> void:
 	if boost_factor <= 0.0 or _boost_cooldown > 0.0:
 		return
 	_boost_timer = boost_duration
-	_boost_cooldown = _boost_recharge
+	_boost_cooldown = boost_recharge
 	# Briefly brighten thruster
 	if _thruster:
 		_thruster.modulate = Color(2.0, 1.5, 0.5)
 		var t := create_tween()
 		t.tween_property(_thruster, "modulate", Color.WHITE, boost_duration)
+	var sfx := "res://assets/audio/sfx_rocket_fire.ogg"
+	if ResourceLoader.exists(sfx):
+		AudioManager.play_sfx(load(sfx), -3.0, 1.1)
 
 # --- Health ---
 
