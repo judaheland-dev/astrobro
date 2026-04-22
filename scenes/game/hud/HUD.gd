@@ -171,7 +171,7 @@ func update_timer(remaining: float) -> void:
 		_timer_label.visible = false
 	else:
 		_timer_label.visible = true
-		var secs := int(remaining) + 1
+		var secs := ceili(remaining)
 		_timer_label.text = "WAVE ENDS: %ds" % secs
 
 func show_event_banner(text: String, color: Color) -> void:

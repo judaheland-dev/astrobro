@@ -293,7 +293,7 @@ func _generate_procedural_wave(wave_idx: int) -> WaveData:
 			wave.enemy_pool.append(brute_data)
 			wave.enemy_counts.append(2 + (tier / 4))
 	else:
-		var total_enemies: int = 15 + tier * 3
+		var total_enemies: int = 25 + tier * 4
 		var grunt_count: int = (total_enemies * 4) / 10
 		var speeder_count: int = (total_enemies * 2) / 10
 		var exploder_count: int = (total_enemies * 2) / 10
