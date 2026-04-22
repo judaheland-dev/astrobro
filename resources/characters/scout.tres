@@ -16,4 +16,5 @@ starting_weapon = &"pistol"
 unlock_cost = 0
 weapon_slots = 4
 preferred_upgrades = [&"damage_boost", &"speed_boost"]
+ship_color = Color(0.4, 0.7, 1.0, 1.0)
 weapon_class_bonuses = {0: 0.15, 2: 0.1, 3: -0.15, 4: -0.1}

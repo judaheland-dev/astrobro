@@ -16,4 +16,5 @@ starting_weapon = &"gatling"
 unlock_cost = 50
 weapon_slots = 5
 preferred_upgrades = [&"fire_rate_boost", &"hp_boost"]
+ship_color = Color(1.0, 0.55, 0.1, 1.0)
 weapon_class_bonuses = {0: 0.2, 1: -0.2, 3: 0.1, 4: 0.1}

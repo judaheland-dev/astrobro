@@ -16,4 +16,5 @@ starting_weapon = &"twin_cannon"
 unlock_cost = 120
 weapon_slots = 5
 preferred_upgrades = [&"hp_boost", &"lifesteal"]
+ship_color = Color(1.0, 0.25, 0.25, 1.0)
 weapon_class_bonuses = {0: -0.2, 1: -0.25, 3: 0.3, 4: 0.2}

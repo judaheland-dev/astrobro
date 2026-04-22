@@ -2,15 +2,7 @@ extends CanvasLayer
 
 ## CharacterSelect - builds its own UI. No editor wiring needed.
 
-const SHIP_SPRITES: Dictionary = {
-	&"scout":       "res://assets/sprites/playerShip1_blue.png",
-	&"sniper":      "res://assets/sprites/playerShip2_orange.png",
-	&"gunship":     "res://assets/sprites/playerShip3_red.png",
-	&"rogue":       "res://assets/sprites/spaceShips_001.png",
-	&"runner":      "res://assets/sprites/spaceShips_002.png",
-	&"dreadnought": "res://assets/sprites/spaceShips_003.png",
-	&"tank":        "res://assets/sprites/spaceShips_004.png",
-}
+const SHIP_BASE_TEX := "res://assets/sprites/playerShip1_blue.png"
 
 var _selected: Array[StringName] = [&"scout", &"scout"]
 var _player_count: int = 1
@@ -144,11 +136,18 @@ func _process(delta: float) -> void:
 			(s as Sprite2D).position.x = randf_range(0.0, 1920.0)
 
 
-func _ship_tex_for(char_id: StringName) -> Texture2D:
-	var path: String = SHIP_SPRITES.get(char_id, "res://assets/sprites/playerShip1_blue.png")
-	if ResourceLoader.exists(path):
-		return load(path)
+func _ship_tex() -> Texture2D:
+	if ResourceLoader.exists(SHIP_BASE_TEX):
+		return load(SHIP_BASE_TEX)
 	return null
+
+func _ship_color_for(char_id: StringName) -> Color:
+	var path := "res://resources/characters/%s.tres" % char_id
+	if ResourceLoader.exists(path):
+		var data: Resource = ResourceLoader.load(path)
+		if data and data.get("ship_color") != null:
+			return data.ship_color
+	return Color.WHITE
 
 
 func _build_char_picker(player_idx: int, label_text: String, font: FontFile) -> Control:
@@ -169,7 +168,8 @@ func _build_char_picker(player_idx: int, label_text: String, font: FontFile) -> 
 	ship_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ship_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ship_preview.custom_minimum_size = Vector2(120, 120)
-	ship_preview.texture = _ship_tex_for(_selected[player_idx])
+	ship_preview.texture = _ship_tex()
+	ship_preview.modulate = _ship_color_for(_selected[player_idx])
 	vbox.add_child(ship_preview)
 	_ship_sprites[player_idx] = ship_preview
 
@@ -208,7 +208,7 @@ func _cycle_char(player_idx: int, dir: int, name_lbl: Label) -> void:
 	name_lbl.text = _selected[player_idx].capitalize()
 	var preview: TextureRect = _ship_sprites[player_idx]
 	if preview:
-		preview.texture = _ship_tex_for(_selected[player_idx])
+		preview.modulate = _ship_color_for(_selected[player_idx])
 		preview.scale = Vector2.ZERO
 		var tw := create_tween()
 		tw.tween_property(preview, "scale", Vector2(1.15, 1.15), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

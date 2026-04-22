@@ -119,19 +119,21 @@ func _spawn_stars(parent: Control) -> void:
 
 
 func _spawn_bg_ships(parent: Control) -> void:
+	var base_tex := "res://assets/sprites/playerShip1_blue.png"
+	if not ResourceLoader.exists(base_tex):
+		return
+	var ship_tex: Texture2D = load(base_tex)
 	var ship_defs: Array[Dictionary] = [
-		{"tex": "res://assets/sprites/playerShip1_blue.png",   "y": 200.0, "speed": 40.0, "x": -200.0},
-		{"tex": "res://assets/sprites/playerShip2_orange.png", "y": 540.0, "speed": 55.0, "x": -500.0},
-		{"tex": "res://assets/sprites/playerShip3_red.png",    "y": 860.0, "speed": 30.0, "x": -800.0},
+		{"color": Color(0.4, 0.7, 1.0,  0.18), "y": 200.0, "speed": 40.0, "x": -200.0},
+		{"color": Color(1.0, 0.55, 0.1, 0.18), "y": 540.0, "speed": 55.0, "x": -500.0},
+		{"color": Color(1.0, 0.25, 0.25, 0.18), "y": 860.0, "speed": 30.0, "x": -800.0},
 	]
 	for def in ship_defs:
-		if not ResourceLoader.exists(def["tex"]):
-			continue
 		var s := Sprite2D.new()
-		s.texture = load(def["tex"])
+		s.texture = ship_tex
 		s.rotation_degrees = 90.0
 		s.scale = Vector2(1.5, 1.5)
-		s.modulate = Color(1.0, 1.0, 1.0, 0.18)
+		s.modulate = def["color"]
 		s.position = Vector2(def["x"], def["y"])
 		parent.add_child(s)
 		_ship_nodes.append({"sprite": s, "speed": def["speed"]})

@@ -136,6 +136,7 @@ func _apply_character_data() -> void:
 	current_shield     = shield_max
 	if character_data.sprite:
 		sprite.texture = character_data.sprite
+	sprite.modulate = character_data.ship_color
 
 func _spawn_passive() -> void:
 	if not character_data:

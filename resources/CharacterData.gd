@@ -15,6 +15,9 @@ class_name CharacterData
 @export var xp_multiplier: float = 1.0
 @export var coin_multiplier: float = 1.0
 
+# Cosmetic ship color tint (applied to sprite.modulate in-game)
+@export var ship_color: Color = Color.WHITE
+
 # Starting weapon id (StringName matching WeaponData.id)
 @export var starting_weapon: StringName = &"pistol"
 

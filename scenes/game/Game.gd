@@ -176,20 +176,14 @@ func _spawn_players() -> void:
 		# Add required child nodes
 		var sprite := Sprite2D.new()
 		sprite.name = "Sprite2D"
-		var ship_textures := [
-			"res://assets/sprites/playerShip1_blue.png",
-			"res://assets/sprites/playerShip2_orange.png",
-			"res://assets/sprites/playerShip3_red.png",
-		]
-		var tex_path: String = ship_textures[i % ship_textures.size()]
-		var ship_tex: Texture2D = load(tex_path)
-		if ship_tex:
-			sprite.texture = ship_tex
+		var base_tex_path := "res://assets/sprites/playerShip1_blue.png"
+		if ResourceLoader.exists(base_tex_path):
+			sprite.texture = load(base_tex_path)
 			# Ships face up in the sheet; rotate so they face right to match rotation=0
 			sprite.rotation_degrees = 90.0
 		else:
 			var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
-			img.fill(Color(0.2, 0.6, 1.0) if i == 0 else Color(1.0, 0.4, 0.2))
+			img.fill(Color(0.2, 0.6, 1.0))
 			sprite.texture = ImageTexture.create_from_image(img)
 		p.add_child(sprite)
 
@@ -209,6 +203,17 @@ func _spawn_players() -> void:
 			p.character_data = ResourceLoader.load(data_path)
 
 		_players_container.add_child(p)
+		if GameManager.player_count > 1:
+			var indicator := Label.new()
+			indicator.text = "P%d" % (i + 1)
+			indicator.position = Vector2(-10.0, -38.0)
+			var p_colors: Array[Color] = [Color(0.5, 0.8, 1.0), Color(1.0, 0.65, 0.2)]
+			indicator.add_theme_color_override("font_color", p_colors[i % p_colors.size()])
+			var pfont := GameManager.kenney_font()
+			if pfont:
+				indicator.add_theme_font_override("font", pfont)
+				indicator.add_theme_font_size_override("font_size", 12)
+			p.add_child(indicator)
 		p.global_position = Vector2(i * 80.0 - 40.0, 0.0)
 		_players.append(p)
 		p.died.connect(_on_player_died)

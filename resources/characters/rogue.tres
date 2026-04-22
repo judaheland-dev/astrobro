@@ -16,4 +16,5 @@ starting_weapon = &"spread_laser"
 unlock_cost = 75
 weapon_slots = 5
 preferred_upgrades = [&"speed_boost", &"fire_rate_boost"]
+ship_color = Color(0.3, 1.0, 0.4, 1.0)
 weapon_class_bonuses = {0: 0.2, 1: -0.2, 2: 0.2, 3: -0.25, 4: -0.15}

@@ -16,4 +16,5 @@ starting_weapon = &"shotgun"
 unlock_cost = 150
 weapon_slots = 6
 preferred_upgrades = [&"hp_boost", &"lifesteal"]
+ship_color = Color(0.7, 0.3, 1.0, 1.0)
 weapon_class_bonuses = {0: -0.1, 1: -0.2, 2: 0.15, 3: 0.25, 4: 0.25}
