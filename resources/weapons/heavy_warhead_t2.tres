@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceRockets_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"heavy_warhead_t2"
+display_name = "Heavy Warhead Mk.II"
+description = "Reinforced warhead. Even wider blast, fires twice as fast."
+ammo_type = 2
+weapon_class = 3
+shop_cost = 280
+damage = 120.0
+fire_rate = 0.55
+projectile_speed = 230.0
+range = 650.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+aoe_radius = 240.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(1.1, 1.1)
+projectile_modulate = Color(1.0, 0.7, 0.2, 1.0)
+projectile_hitbox_size = Vector2(38, 14)
+emit_exhaust_trail = true
+tier = 2

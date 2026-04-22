@@ -229,10 +229,18 @@ func _equip_weapon(player: Player) -> void:
 	if weapon_data == null:
 		return
 	# Override projectile_scene to use the code-built projectile
-	var weapon := BaseWeapon.new()
-	weapon.weapon_data = weapon_data
+	var weapon := _make_weapon_node(weapon_data)
 	weapon._projectile_parent = _projectiles_container
 	player.add_weapon(weapon)
+
+func _make_weapon_node(wdata: WeaponData) -> BaseWeapon:
+	var weapon: BaseWeapon
+	if wdata.ammo_type == WeaponData.AmmoType.BEAM:
+		weapon = load("res://scenes/game/weapons/BeamWeapon.gd").new()
+	else:
+		weapon = BaseWeapon.new()
+	weapon.weapon_data = wdata
+	return weapon
 
 # ---------------------------------------------------------------------------
 # Wave data - loaded dynamically from res://resources/waves/

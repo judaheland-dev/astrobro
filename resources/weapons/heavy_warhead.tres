@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceRockets_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"heavy_warhead"
+display_name = "Heavy Warhead"
+description = "One devastating slow rocket. Catastrophic AoE on impact."
+ammo_type = 2
+weapon_class = 3
+shop_cost = 140
+damage = 80.0
+fire_rate = 0.35
+projectile_speed = 200.0
+range = 600.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+aoe_radius = 190.0
+projectile_scene = null
+unlock_cost = 130
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.9, 0.9)
+projectile_modulate = Color(1.0, 0.9, 0.6, 1.0)
+projectile_hitbox_size = Vector2(32, 12)
+emit_exhaust_trail = true
+forged_weapon_id = &"heavy_warhead_t2"

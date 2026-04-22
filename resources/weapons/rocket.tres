@@ -27,4 +27,5 @@ projectile_scale = Vector2(0.55, 0.55)
 projectile_modulate = Color(1, 1, 1, 1)
 projectile_hitbox_size = Vector2(30, 8)
 emit_exhaust_trail = true
+aoe_radius = 120.0
 forged_weapon_id = &"rocket_t2"

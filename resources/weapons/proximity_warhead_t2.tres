@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_006.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"proximity_warhead_t2"
+display_name = "Proximity Warhead Mk.II"
+description = "Enhanced warhead. Longer range and devastating blast radius."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 200
+damage = 15.0
+fire_rate = 1.0
+projectile_speed = 250.0
+range = 550.0
+spread = 0.0
+projectile_count = 1
+piercing = 999
+aoe_radius = 220.0
+explode_on_expiry = true
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.8, 0.8)
+projectile_modulate = Color(1.0, 0.5, 0.05, 1.0)
+projectile_hitbox_size = Vector2(24, 10)
+emit_exhaust_trail = true
+tier = 2

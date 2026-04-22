@@ -787,8 +787,7 @@ func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringNam
 		push_error("Forge: missing resource %s" % forged_path)
 		return
 	var forged_data: WeaponData = ResourceLoader.load(forged_path)
-	var new_weapon := BaseWeapon.new()
-	new_weapon.weapon_data = forged_data
+	var new_weapon := _make_weapon_node(forged_data)
 	new_weapon._projectile_parent = _projectile_parent
 	player.add_weapon(new_weapon)
 	var sfx := "res://assets/audio/sfx_levelup.ogg"
@@ -802,6 +801,15 @@ func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringNam
 	_populate_stats(player)
 	_update_title(player)
 
+func _make_weapon_node(wdata: WeaponData) -> BaseWeapon:
+	var weapon: BaseWeapon
+	if wdata.ammo_type == WeaponData.AmmoType.BEAM:
+		weapon = load("res://scenes/game/weapons/BeamWeapon.gd").new()
+	else:
+		weapon = BaseWeapon.new()
+	weapon.weapon_data = wdata
+	return weapon
+
 func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	if slot_idx >= _offered_weapons.size():
 		return
@@ -814,8 +822,7 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 		return
 	player.scrap -= wdata.shop_cost
 	player.scrap_changed.emit(player.scrap)
-	var weapon := BaseWeapon.new()
-	weapon.weapon_data = wdata
+	var weapon := _make_weapon_node(wdata)
 	weapon._projectile_parent = _projectile_parent
 	player.add_weapon(weapon)
 	# Replace only the purchased slot with a fresh item

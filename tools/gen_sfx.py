@@ -104,16 +104,25 @@ def make_shotgun(dur=0.25):
         samples.append(s * 0.95)
     return samples
 
-def make_sniper(dur=0.3):
-    """High-pitched thin ping, quick ascend then tail-off."""
+def make_sniper(dur=0.45):
+    """Punchy railgun crack: deep bass thump + sharp transient + decaying tail."""
     n = int(SAMPLE_RATE * dur)
     samples = []
     for i in range(n):
         t = i / SAMPLE_RATE
-        env = adsr(t, dur, 0.002, 0.05, 0.3, 0.20)
-        freq = 800.0 + 1200.0 * t / dur  # sweep up
-        s = (sine(t, freq) * 0.6 + sine(t, freq * 1.5) * 0.25 + noise() * 0.1) * env
-        samples.append(s * 0.8)
+        # Sharp crack transient (first 10ms)
+        crack_env = math.exp(-60.0 * t)
+        crack = (sine(t, 90.0) * 0.8 + sine(t, 180.0) * 0.4 + noise() * 0.5) * crack_env
+        # Body tone: low freq descending
+        body_env = math.exp(-12.0 * t)
+        freq = 120.0 * math.exp(-3.0 * t)
+        body = sine(t, freq) * 0.5 * body_env
+        # High-freq zip (quick ascending)
+        zip_env = math.exp(-30.0 * t)
+        zip_freq = 400.0 + 2000.0 * t / dur
+        zip_s = sine(t, zip_freq) * 0.25 * zip_env
+        s = crack + body + zip_s
+        samples.append(clamp(s * 0.9))
     return samples
 
 def make_levelup(dur=0.65):
@@ -210,6 +219,22 @@ def make_wave_clear(dur=0.7):
             samples.append(s * 0.85)
     return samples
 
+def make_beam_hum(dur=2.0):
+    """Continuous plasma beam hum: fundamental + AM modulation for pulsing feel."""
+    n = int(SAMPLE_RATE * dur)
+    samples = []
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        # AM modulation at 8 Hz to give a buzzing/pulsing character
+        am = 0.75 + 0.25 * sine(t, 8.0)
+        # Fundamental at 180 Hz with harmonics
+        base = (sine(t, 180.0) * 0.5 + sine(t, 360.0) * 0.25 + sine(t, 540.0) * 0.1) * am
+        # Slight noise overlay for texture
+        s = base + noise() * 0.04
+        samples.append(clamp(s * 0.45))
+    return samples
+
+
 def make_pause(dur=0.15):
     """Clean single click/blip."""
     n = int(SAMPLE_RATE * dur)
@@ -235,6 +260,7 @@ if __name__ == '__main__':
         ('sfx_rocket_fire',  make_rocket_fire()),
         ('sfx_shotgun',      make_shotgun()),
         ('sfx_sniper',       make_sniper()),
+        ('sfx_beam_hum',     make_beam_hum()),
         ('sfx_levelup',      make_levelup()),
         ('sfx_xp_pickup',    make_xp_pickup()),
         ('sfx_coin_pickup',  make_coin_pickup()),

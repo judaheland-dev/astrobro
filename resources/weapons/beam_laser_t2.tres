@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"beam_laser_t2"
+display_name = "Plasma Cutter Mk.II"
+description = "Extended-range plasma cutter. Burns deeper and wider."
+ammo_type = 5
+weapon_class = 1
+shop_cost = 190
+damage = 28.0
+fire_rate = 1.0
+projectile_speed = 0.0
+range = 360.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+aoe_radius = 0.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_scale = Vector2(1.0, 1.0)
+projectile_modulate = Color(0.05, 1.0, 0.55, 1.0)
+projectile_hitbox_size = Vector2(10.0, 4.0)
+emit_exhaust_trail = false
+tier = 2

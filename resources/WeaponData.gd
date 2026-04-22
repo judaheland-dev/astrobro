@@ -9,6 +9,7 @@ enum AmmoType {
 	ROCKET,
 	MINE,
 	ORBITAL,
+	BEAM,
 }
 
 enum WeaponClass {
@@ -59,6 +60,16 @@ enum WeaponClass {
 # Angle offset applied to the aim direction before firing (radians).
 # 0 = forward, PI = directly behind the player (rear weapon / mine drop).
 @export var fire_arc_offset: float = 0.0
+
+# AoE explosion radius (0 = no AoE). Used by rockets, missiles, and warheads.
+@export var aoe_radius: float = 0.0
+
+# If true, the projectile detonates its AoE at max range instead of quietly expiring.
+@export var explode_on_expiry: bool = false
+
+# Per-projectile DoT on hit (applied via apply_dot if target supports it).
+@export var on_hit_dot_dps: float = 0.0
+@export var on_hit_dot_ticks: int = 0
 
 # Homing: when true this weapon's projectiles steer toward the nearest enemy.
 @export var is_homing: bool = false

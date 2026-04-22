@@ -107,10 +107,13 @@ func _spawn_projectiles(base_dir: Vector2) -> void:
 
 		proj.shooter = get_parent()
 		if weapon_data != null:
-			if weapon_data.ammo_type == WeaponData.AmmoType.ROCKET:
-				proj.aoe_radius = 120.0
+			proj.aoe_radius = weapon_data.aoe_radius
+			proj.explode_on_expiry = weapon_data.explode_on_expiry
 			proj.emit_exhaust_trail = weapon_data.emit_exhaust_trail
 			proj.projectile_color = weapon_data.projectile_modulate
+			if weapon_data.on_hit_dot_dps > 0.0:
+				proj.on_hit_dot_dps = weapon_data.on_hit_dot_dps
+				proj.on_hit_dot_ticks = weapon_data.on_hit_dot_ticks if weapon_data.on_hit_dot_ticks > 0 else 6
 			# Homing toward enemies (player homing missiles)
 			if weapon_data.is_homing:
 				proj.enemy_homing_strength = weapon_data.homing_strength

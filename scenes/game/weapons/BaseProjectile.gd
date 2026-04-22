@@ -33,6 +33,8 @@ var on_hit_slow_duration: float = 2.0
 var on_hit_dot_dps: float = 0.0
 var on_hit_dot_ticks: int = 6
 
+var explode_on_expiry: bool = false    # detonate AoE at max range instead of quietly expiring
+var _exploded: bool = false
 var _distance_traveled: float = 0.0
 var _hit_entities: Array[Node] = []   # track already-hit to avoid double damage
 var _exhaust_timer: float = 0.0
@@ -119,6 +121,9 @@ func _physics_process(delta: float) -> void:
 			_exhaust_timer = 0.06
 			_spawn_exhaust_puff()
 	if _distance_traveled >= max_range:
+		if explode_on_expiry and aoe_radius > 0.0 and not _exploded:
+			_exploded = true
+			_explode_aoe()
 		queue_free()
 
 func _on_body_entered(body: Node) -> void:
@@ -147,6 +152,19 @@ func _on_body_entered(body: Node) -> void:
 			body.apply_slow(on_hit_slow_factor, on_hit_slow_duration)
 		if on_hit_dot_dps > 0.0 and body.has_method("apply_dot"):
 			body.apply_dot(on_hit_dot_dps, on_hit_dot_ticks)
+
+	# AoE explosion: trigger and destroy on first hit
+	if _exploded:
+		return
+	if aoe_radius > 0.0:
+		_exploded = true
+		_explode_aoe()
+		queue_free()
+		return
+	if piercing <= 0:
+		queue_free()
+	else:
+		piercing -= 1
 
 func _on_area_entered(area: Area2D) -> void:
 	## Intercept enemy missiles: destroy both this projectile and the incoming missile.

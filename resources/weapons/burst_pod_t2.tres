@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_015.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"burst_pod_t2"
+display_name = "Burst Pod Mk.II"
+description = "Eight-rocket salvo with wider spread and larger explosions."
+ammo_type = 2
+weapon_class = 2
+shop_cost = 210
+damage = 22.0
+fire_rate = 1.2
+projectile_speed = 360.0
+range = 500.0
+spread = 0.72
+projectile_count = 8
+piercing = 0
+aoe_radius = 70.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.5, 0.5)
+projectile_modulate = Color(1.0, 0.45, 0.05, 1.0)
+projectile_hitbox_size = Vector2(14, 6)
+emit_exhaust_trail = true
+tier = 2

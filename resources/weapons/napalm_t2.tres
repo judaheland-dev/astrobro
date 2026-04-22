@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"napalm_t2"
+display_name = "Napalm Projector Mk.II"
+description = "Superheated napalm. Larger blast, hotter burn."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 180
+damage = 12.0
+fire_rate = 2.0
+projectile_speed = 200.0
+range = 300.0
+spread = 0.05
+projectile_count = 1
+piercing = 0
+aoe_radius = 120.0
+on_hit_dot_dps = 16.0
+on_hit_dot_ticks = 15
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.45, 0.45)
+projectile_modulate = Color(1.0, 0.5, 0.0, 1.0)
+projectile_hitbox_size = Vector2(14, 14)
+emit_exhaust_trail = false
+tier = 2

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"napalm"
+display_name = "Napalm Projector"
+description = "Lobs slow fireballs that explode and coat enemies in burning napalm."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 90
+damage = 8.0
+fire_rate = 1.5
+projectile_speed = 180.0
+range = 260.0
+spread = 0.05
+projectile_count = 1
+piercing = 0
+aoe_radius = 90.0
+on_hit_dot_dps = 10.0
+on_hit_dot_ticks = 12
+projectile_scene = null
+unlock_cost = 85
+rarity = 2
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.35, 0.35)
+projectile_modulate = Color(1.0, 0.35, 0.05, 1.0)
+projectile_hitbox_size = Vector2(14, 14)
+emit_exhaust_trail = false
+forged_weapon_id = &"napalm_t2"
