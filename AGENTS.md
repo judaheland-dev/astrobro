@@ -104,24 +104,28 @@ else:
 
 Always guard asset loads with `ResourceLoader.exists(path)`. Available SFX files:
 
-| File | Used for |
-|------|----------|
-| `assets/audio/sfx_laser1.ogg` | Default weapon fire (fallback) |
-| `assets/audio/sfx_laser2.ogg` | Enemy hit (non-death), base hit |
-| `assets/audio/sfx_twoTone.ogg` | Enemy death, UI clicks, victory |
-| `assets/audio/sfx_lose.ogg` | Player hurt (pitch 0.7), game over |
-| `assets/audio/sfx_explosion.ogg` | Exploder enemy AoE death, base destroyed |
-| `assets/audio/sfx_rocket_fire.ogg` | Rocket weapon fire |
-| `assets/audio/sfx_shotgun.ogg` | Shotgun weapon fire |
-| `assets/audio/sfx_sniper.ogg` | Sniper rifle / spread laser fire |
-| `assets/audio/sfx_levelup.ogg` | Player level-up |
-| `assets/audio/sfx_xp_pickup.ogg` | XP orb collected |
-| `assets/audio/sfx_coin_pickup.ogg` | Coin collected |
-| `assets/audio/sfx_player_death.ogg` | Player death |
-| `assets/audio/sfx_heal.ogg` | Player healed (> 2 HP, to avoid lifesteal spam) |
-| `assets/audio/sfx_wave_start.ogg` | Wave begins |
-| `assets/audio/sfx_wave_clear.ogg` | Wave cleared |
-| `assets/audio/sfx_pause.ogg` | Game paused/unpaused |
+| File | Used for | Kenney source |
+|------|----------|---------------|
+| `assets/audio/sfx_laser1.ogg` | Default weapon fire (fallback) | kenney_sci-fi-sounds `laserSmall_000.ogg` |
+| `assets/audio/sfx_laser2.ogg` | Enemy hit (non-death), base hit | kenney_sci-fi-sounds `impactMetal_002.ogg` |
+| `assets/audio/sfx_twoTone.ogg` | UI button clicks | kenney_ui-audio `click2.ogg` |
+| `assets/audio/sfx_enemy_death.ogg` | Enemy death (all enemy .tres `death_sfx`) | kenney_sci-fi-sounds `laserRetro_000.ogg` |
+| `assets/audio/sfx_ability_activate.ogg` | Ability activation (all 7 character abilities) | kenney_interface-sounds `maximize_006.ogg` |
+| `assets/audio/sfx_victory.ogg` | Victory screen | kenney_interface-sounds `confirmation_002.ogg` |
+| `assets/audio/sfx_lose.ogg` | Player hurt (pitch 0.7), game over loss | kenney_sci-fi-sounds `lowFrequency_explosion_000.ogg` |
+| `assets/audio/sfx_explosion.ogg` | Exploder enemy AoE death, base destroyed | kenney_sci-fi-sounds `explosionCrunch_002.ogg` |
+| `assets/audio/sfx_rocket_fire.ogg` | Rocket weapon fire | kenney_sci-fi-sounds `thrusterFire_002.ogg` |
+| `assets/audio/sfx_shotgun.ogg` | Shotgun weapon fire | kenney_sci-fi-sounds `laserLarge_000.ogg` |
+| `assets/audio/sfx_sniper.ogg` | Sniper rifle / spread laser fire | kenney_sci-fi-sounds `laserLarge_002.ogg` |
+| `assets/audio/sfx_levelup.ogg` | Player level-up | kenney_interface-sounds `maximize_001.ogg` |
+| `assets/audio/sfx_xp_pickup.ogg` | XP orb collected | kenney_interface-sounds `pluck_001.ogg` |
+| `assets/audio/sfx_coin_pickup.ogg` | Coin collected | kenney_rpg-audio `handleCoins.ogg` |
+| `assets/audio/sfx_player_death.ogg` | Player death | kenney_sci-fi-sounds `lowFrequency_explosion_001.ogg` |
+| `assets/audio/sfx_heal.ogg` | Player healed (> 2 HP, to avoid lifesteal spam) | kenney_interface-sounds `select_002.ogg` |
+| `assets/audio/sfx_wave_start.ogg` | Wave begins | kenney_sci-fi-sounds `forceField_000.ogg` |
+| `assets/audio/sfx_wave_clear.ogg` | Wave cleared | kenney_interface-sounds `confirmation_001.ogg` |
+| `assets/audio/sfx_pause.ogg` | Game paused/unpaused | kenney_interface-sounds `switch_001.ogg` |
+| `assets/audio/sfx_beam_hum.ogg` | Beam weapon hum (looping) | kenney_sci-fi-sounds `engineCircular_002.ogg` |
 
 Available music files:
 
@@ -132,7 +136,7 @@ Available music files:
 
 When assigning `death_sfx` in an enemy `.tres`, or `fire_sfx` in a weapon `.tres`, add an `ext_resource` entry and increment `load_steps`:
 ```
-[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_enemy_death.ogg" id="2"]
 ...
 death_sfx = ExtResource("2")
 ```

@@ -57,6 +57,6 @@ func _set_multiplier(mult: float) -> void:
 			w.set("passive_multiplier", mult)
 
 func _play_ready_sfx() -> void:
-	var sfx := "res://assets/audio/sfx_twoTone.ogg"
+	var sfx := "res://assets/audio/sfx_ability_activate.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), -8.0, 0.9)

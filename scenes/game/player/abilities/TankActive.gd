@@ -53,6 +53,6 @@ func _activate() -> void:
 	_player.ability_cooldown_changed.emit(1.0)
 
 func _play_ready_sfx() -> void:
-	var sfx := "res://assets/audio/sfx_twoTone.ogg"
+	var sfx := "res://assets/audio/sfx_ability_activate.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), -8.0, 0.9)

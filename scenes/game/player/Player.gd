@@ -303,7 +303,7 @@ func take_damage(amount: float) -> void:
 	_flash_damage()
 	var hurt_sfx := "res://assets/audio/sfx_lose.ogg"
 	if ResourceLoader.exists(hurt_sfx):
-		AudioManager.play_sfx(load(hurt_sfx), -4.0, 0.7)
+		AudioManager.play_sfx(load(hurt_sfx), 0.0, 0.7)
 	health_changed.emit(current_health, max_health)
 	_update_damage_overlay(current_health / max_health)
 	if current_health <= 0.0:
@@ -360,7 +360,7 @@ func _die() -> void:
 	died.emit()
 	var death_sfx := "res://assets/audio/sfx_player_death.ogg"
 	if ResourceLoader.exists(death_sfx):
-		AudioManager.play_sfx(load(death_sfx), 0.0, 0.9)
+		AudioManager.play_sfx(load(death_sfx), 4.0, 0.9)
 	# Death: spin out and fade
 	var tween := create_tween()
 	tween.set_parallel(true)

@@ -24,7 +24,7 @@ func _process(_delta: float) -> void:
 	_player.ability_cooldown_changed.emit(ratio)
 	# Play a soft chime the moment the cooldown expires
 	if _was_on_cooldown and ratio <= 0.0:
-		var sfx := "res://assets/audio/sfx_twoTone.ogg"
+		var sfx := "res://assets/audio/sfx_ability_activate.ogg"
 		if ResourceLoader.exists(sfx):
 			AudioManager.play_sfx(load(sfx), -8.0, 0.9)
 	_was_on_cooldown = ratio > 0.0

@@ -306,7 +306,7 @@ func _die() -> void:
 		if randf() < enemy_data.coin_drop_chance:
 			coin_dropped.emit(enemy_data.coin_drop_amount, global_position)
 		if enemy_data.death_sfx:
-			AudioManager.play_sfx(enemy_data.death_sfx)
+			AudioManager.play_sfx(enemy_data.death_sfx, -6.0, randf_range(0.9, 1.1))
 
 	# Exploder: AoE damage on death before the visual
 	if enemy_data and enemy_data.ai_type == EnemyData.AIType.EXPLODER:

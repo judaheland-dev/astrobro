@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
 [ext_resource type="Script" path="res://resources/RangedAttackData.gd" id="2"]
-[ext_resource type="AudioStream" path="res://assets/audio/sfx_twoTone.ogg" id="3"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_enemy_death.ogg" id="3"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemyBlue3.png" id="4"]
 
 [sub_resource type="Resource" id="ra_1"]
