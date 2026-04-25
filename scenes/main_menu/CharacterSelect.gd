@@ -9,9 +9,12 @@ var _player_count: int = 1
 var _available: Array[StringName] = []
 var _p1_btn: Button
 var _p2_btn: Button
+var _pvp_btn: Button
 var _p2_panel: Control   # shown/hidden on 1P/2P toggle
+var _p2_overlord_label: Label = null  # shown in PVP mode instead of P2 picker
 var _ship_sprites: Array = [null, null]
 var _star_nodes: Array = []
+var _is_pvp: bool = false
 
 func _ready() -> void:
 	_available = MetaProgression._data.unlocked_characters.duplicate()
@@ -98,6 +101,13 @@ func _ready() -> void:
 	_p2_btn.pressed.connect(_on_players_2_pressed)
 	mode_hbox.add_child(_p2_btn)
 
+	_pvp_btn = Button.new()
+	_pvp_btn.text = "PVP - Overlord"
+	_pvp_btn.toggle_mode = true
+	_pvp_btn.custom_minimum_size = Vector2(180, 40)
+	_pvp_btn.pressed.connect(_on_pvp_pressed)
+	mode_hbox.add_child(_pvp_btn)
+
 	# Character picker row (P1 | P2)
 	var pickers_hbox := HBoxContainer.new()
 	pickers_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -109,6 +119,21 @@ func _ready() -> void:
 	_p2_panel = _build_char_picker(1, "Player 2 (IJKL / Gamepad)", font)
 	_p2_panel.visible = false
 	pickers_hbox.add_child(_p2_panel)
+
+	# Overlord label panel (shown in PVP mode instead of P2 picker)
+	_p2_overlord_label = Label.new()
+	_p2_overlord_label.text = "OVERLORD\n(Gamepad 2 / ZXCV)"
+	_p2_overlord_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_p2_overlord_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	if font:
+		_p2_overlord_label.add_theme_font_override("font", font)
+		_p2_overlord_label.add_theme_font_size_override("font_size", 22)
+	_p2_overlord_label.visible = false
+	pickers_hbox.add_child(_p2_overlord_label)
+
+	# Pre-select PVP if that's the current mode
+	if GameManager.current_mode == GameManager.RunMode.PVP_OVERLORD:
+		_on_pvp_pressed()
 
 	# Start / Back
 	var start_btn := Button.new()
@@ -217,24 +242,49 @@ func _cycle_char(player_idx: int, dir: int, name_lbl: Label) -> void:
 
 func _on_start_pressed() -> void:
 	AudioManager.play_ui_click()
-	GameManager.start_run(
-		GameManager.current_mode,
-		_selected.slice(0, _player_count),
-		_player_count
-	)
+	if _is_pvp:
+		GameManager.start_run(
+			GameManager.RunMode.PVP_OVERLORD,
+			_selected.slice(0, 1),
+			1
+		)
+	else:
+		GameManager.start_run(
+			GameManager.current_mode,
+			_selected.slice(0, _player_count),
+			_player_count
+		)
 
 func _on_back_pressed() -> void:
 	AudioManager.play_ui_click()
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
 
 func _on_players_1_pressed() -> void:
+	_is_pvp = false
 	_player_count = 1
 	_p1_btn.button_pressed = true
 	_p2_btn.button_pressed = false
+	_pvp_btn.button_pressed = false
 	_p2_panel.visible = false
+	if _p2_overlord_label:
+		_p2_overlord_label.visible = false
 
 func _on_players_2_pressed() -> void:
+	_is_pvp = false
 	_player_count = 2
 	_p1_btn.button_pressed = false
 	_p2_btn.button_pressed = true
+	_pvp_btn.button_pressed = false
 	_p2_panel.visible = true
+	if _p2_overlord_label:
+		_p2_overlord_label.visible = false
+
+func _on_pvp_pressed() -> void:
+	_is_pvp = true
+	_player_count = 1
+	_p1_btn.button_pressed = false
+	_p2_btn.button_pressed = false
+	_pvp_btn.button_pressed = true
+	_p2_panel.visible = false
+	if _p2_overlord_label:
+		_p2_overlord_label.visible = true

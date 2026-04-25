@@ -14,6 +14,7 @@ static func kenney_font() -> FontFile:
 enum RunMode {
 	WAVE_SURVIVAL,
 	HORDE_DEFENSE,
+	PVP_OVERLORD,
 }
 
 enum GameState {

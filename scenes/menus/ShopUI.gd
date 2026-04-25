@@ -1453,7 +1453,7 @@ func _upgrade_delta_summary(item: UpgradeData) -> String:
 		var delta: float = item.stat_deltas[key]
 		var label: String = stat_names.get(key, "Stat %d" % key)
 		var sign_str := "+" if delta >= 0.0 else ""
-		var entry := "%s: %s%.4g" % [label, sign_str, delta]
+		var entry := "%s: %s%s" % [label, sign_str, str(snappedf(delta, 0.0001)).rstrip("0").rstrip(".")]
 		if delta < 0.0:
 			entry = "(-) " + entry
 		parts.append(entry)

@@ -21,6 +21,11 @@ var _wave_manager: WaveManager = WaveManager.new()
 var _game_mode: GameMode = null
 var _current_wave_number: int = 1
 
+# PVP Overlord mode nodes
+var _overlord_controller: Node2D = null
+var _overlord_hud: CanvasLayer = null
+var _overlord_shop_ui: CanvasLayer = null
+
 # ---------------------------------------------------------------------------
 # Camera shake
 # ---------------------------------------------------------------------------
@@ -52,8 +57,20 @@ func _ready() -> void:
 	_between_wave_ui.connect("ui_closed", _on_between_wave_closed)
 	_shop_ui.connect("ui_closed", _on_shop_closed)
 	_wave_manager.enemy_spawned.connect(_on_enemy_spawned)
-	_wave_manager.start_waves()
-	GameManager.set_state(GameManager.GameState.PLAYING)
+
+	var is_pvp := GameManager.current_mode == GameManager.RunMode.PVP_OVERLORD
+	if is_pvp:
+		_build_overlord_ui()
+		# PVP: Overlord controls spawning. Start with Overlord's first shop phase.
+		_current_wave_number = 0
+		GameManager.run_wave = 1
+		GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
+		get_tree().paused = true
+		_overlord_shop_ui.call("show_shop", (_game_mode as OverlordMode).overlord_state, 0)
+	else:
+		_wave_manager.start_waves()
+
+	GameManager.set_state(GameManager.GameState.PLAYING if not is_pvp else GameManager.GameState.BETWEEN_WAVES)
 	var music_path := "res://assets/audio/music_game.ogg"
 	if ResourceLoader.exists(music_path):
 		AudioManager.play_music(load(music_path))
@@ -165,6 +182,38 @@ func _build_shop_ui() -> void:
 	_shop_ui.set_script(load("res://scenes/menus/ShopUI.gd"))
 	_shop_ui.visible = false
 	add_child(_shop_ui)
+
+func _build_overlord_ui() -> void:
+	## Build PVP Overlord nodes: controller, HUD overlay, and shop UI.
+	var mode: OverlordMode = _game_mode as OverlordMode
+
+	# Overlord Controller (cursor + deployment)
+	_overlord_controller = OverlordController.new()
+	_overlord_controller.name = "OverlordController"
+	_overlord_controller.overlord_mode = mode
+	_overlord_controller.overlord_state = mode.overlord_state
+	_overlord_controller.enemies_container = _enemies_container
+	var oc_targets: Array[Node] = []
+	for p in _players:
+		oc_targets.append(p)
+	_overlord_controller.targets = oc_targets
+	add_child(_overlord_controller)
+	_overlord_controller.enemy_spawned_by_overlord.connect(_on_enemy_spawned)
+
+	# Overlord HUD
+	_overlord_hud = CanvasLayer.new()
+	_overlord_hud.name = "OverlordHUD"
+	_overlord_hud.set_script(load("res://scenes/game/hud/OverlordHUD.gd"))
+	add_child(_overlord_hud)
+	_overlord_hud.call("setup", _overlord_controller, mode.overlord_state, mode)
+
+	# Overlord Shop UI
+	_overlord_shop_ui = CanvasLayer.new()
+	_overlord_shop_ui.name = "OverlordShopUI"
+	_overlord_shop_ui.set_script(load("res://scenes/menus/OverlordShopUI.gd"))
+	_overlord_shop_ui.visible = false
+	add_child(_overlord_shop_ui)
+	_overlord_shop_ui.connect("ui_closed", _on_overlord_shop_closed)
 
 # ---------------------------------------------------------------------------
 # Players
@@ -294,6 +343,21 @@ func _setup_game_mode() -> void:
 			mode.set_base(base)
 			mode.show_between_wave_ui.connect(_show_between_wave_ui)
 
+		GameManager.RunMode.PVP_OVERLORD:
+			var mode := OverlordMode.new()
+			_game_mode = mode
+			add_child(mode)
+			mode.setup(_wave_manager, _players)
+			mode.show_overlord_shop.connect(_show_overlord_shop)
+			mode.show_between_wave_ui.connect(_show_between_wave_ui)
+			# Disable WaveManager auto-spawning; Overlord handles spawning
+			_wave_manager.wave_data_list.clear()
+			_wave_manager.is_stopped = true
+			var pvp_targets: Array[Node] = []
+			for p in _players:
+				pvp_targets.append(p)
+			_wave_manager.register_targets(pvp_targets)
+
 	_game_mode.run_ended.connect(_on_run_ended)
 
 # ---------------------------------------------------------------------------
@@ -369,12 +433,20 @@ func _process(delta: float) -> void:
 		return
 	_camera.global_position = sum / count
 
-	# Dynamic zoom: zoom out when co-op players are far apart
+	# Dynamic zoom: zoom out when co-op players are far apart, or to include Overlord cursor
+	var _zoom_second_pos: Vector2 = _camera.global_position
+	var _has_second := false
 	if count >= 2:
 		var p0: Vector2 = _players[0].global_position if _players[0].is_physics_processing() else _camera.global_position
 		var p1: Vector2 = _players[1].global_position if _players[1].is_physics_processing() else _camera.global_position
-		var dist := p0.distance_to(p1)
-		# Map dist 0-800 to zoom 1.0-0.55 so both players stay in frame
+		_zoom_second_pos = p1 if _players[0].is_physics_processing() else p0
+		_has_second = true
+	elif _overlord_controller and is_instance_valid(_overlord_controller):
+		_zoom_second_pos = _overlord_controller._cursor_pos
+		_has_second = true
+	if _has_second:
+		var dist := _camera.global_position.distance_to(_zoom_second_pos)
+		# Map dist 0-800 to zoom 1.0-0.55 so both points stay in frame
 		var target_zoom := clampf(1.0 - (dist / 800.0) * 0.45, 0.55, 1.0)
 		_camera.zoom = _camera.zoom.lerp(Vector2(target_zoom, target_zoom), 0.05)
 	else:
@@ -413,10 +485,45 @@ func _on_shop_closed() -> void:
 		AudioManager.play_music(load(game_music))
 	get_tree().paused = false
 	GameManager.set_state(GameManager.GameState.PLAYING)
-	_wave_manager.next_wave()
+	if GameManager.current_mode == GameManager.RunMode.PVP_OVERLORD:
+		_start_pvp_wave()
+	else:
+		_wave_manager.next_wave()
 
 func _on_player_died() -> void:
 	pass  # GameMode handles multi-player death tracking
+
+# ---------------------------------------------------------------------------
+# PVP Overlord helpers
+# ---------------------------------------------------------------------------
+
+func _show_overlord_shop(wave_number: int) -> void:
+	## Called by OverlordMode when a wave ends. Show Overlord's shop first.
+	_current_wave_number = wave_number
+	GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
+	get_tree().paused = true
+	if _overlord_controller:
+		_overlord_controller.call("hide_cursor")
+	var bw_music := "res://assets/audio/music_betweenwaves.ogg"
+	if ResourceLoader.exists(bw_music):
+		AudioManager.play_music(load(bw_music))
+	if _overlord_shop_ui:
+		var mode: OverlordMode = _game_mode as OverlordMode
+		_overlord_shop_ui.call("show_shop", mode.overlord_state, wave_number)
+
+func _on_overlord_shop_closed() -> void:
+	## After Overlord finishes shopping, show ship player's between-wave UI.
+	if _between_wave_ui.has_method("show_for_players"):
+		_between_wave_ui.show_for_players(_players, _current_wave_number, _wave_manager)
+
+func _start_pvp_wave() -> void:
+	## Begin a new PVP wave. Overlord can now deploy enemies.
+	var mode: OverlordMode = _game_mode as OverlordMode
+	_current_wave_number += 1
+	GameManager.run_wave = _current_wave_number
+	mode.start_wave(_current_wave_number)
+	if _overlord_hud:
+		_overlord_hud.call("show_hud")
 
 func register_extra_target(node: Node) -> void:
 	## Add a decoy or other non-player node to the enemy target list.

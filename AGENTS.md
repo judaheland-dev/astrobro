@@ -4,6 +4,59 @@ This is a **Godot 4 / GDScript** project. Every scene node is built entirely in 
 
 See **[GAMEPAD.md](GAMEPAD.md)** for gamepad input architecture, SDL2 button remapping gotchas, and known controller mappings.
 
+## VS Code Development Environment
+
+### Godot Editor + Language Server
+The **godot-tools** VS Code extension connects to a running Godot editor instance for GDScript autocomplete, go-to-definition, and error diagnostics.
+
+- **Editor path** is set in `.vscode/settings.json`:
+  ```json
+  {
+    "godotTools.editorPath.godot4": "/Applications/Godot.app/Contents/MacOS/Godot",
+    "godotTools.lsp.serverPort": 6005
+  }
+  ```
+- **Launch the editor** (required for LSP and debugger):
+  ```bash
+  /Applications/Godot.app/Contents/MacOS/Godot --editor --path /Users/greg/Projects/game > /dev/null 2>&1 &
+  ```
+- **Verify it's running:** `lsof -iTCP -sTCP:LISTEN | grep -i godot` — should show ports 6005 and 6006.
+- The editor must stay open while developing. Running the game from inside Godot (`F5`) does **not** close the editor; launching via `--path` without `--editor` may close it.
+
+### Runtime Error Monitoring
+Launch Godot **with output visible** to stream errors to the terminal in real time:
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --editor --path /Users/greg/Projects/game &
+```
+This lets the agent see `ERROR:` and `WARNING:` lines as they happen and fix them immediately. Key things to watch for:
+- `String formatting error: unsupported format character` — GDScript `%` operator does not support `%g`, `%.4g`, etc. Use `str(value)` or `"%.2f" % value` (only `f`, `d`, `s`, `x` are supported).
+- `ext_resource, invalid UID` — stale UIDs in `.tres` files; Godot falls back to text path, harmless but worth fixing.
+- `Nil` method calls — usually a node reference that wasn't found (check `add_child` ordering).
+
+### Syntax Validation (Headless)
+Check a file for parse errors without running the full game:
+```bash
+/Applications/Godot.app/Contents/MacOS/Godot --headless --check-only --path /Users/greg/Projects/game 2>&1 | grep -E "ERROR|WARNING|Parse"
+```
+
+### Debugger
+Port 6006 is the remote debugger. To use breakpoints from VS Code, create `.vscode/launch.json`:
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "GDScript",
+      "type": "godot",
+      "request": "launch",
+      "project": "${workspaceFolder}",
+      "port": 6006
+    }
+  ]
+}
+```
+The debugger can pause on breakpoints, inspect local variables and `self`, and walk the call stack. It cannot query the live scene tree or profiler — use the Godot editor's built-in Remote tab for that.
+
 ## Project Structure
 
 ```

@@ -75,6 +75,7 @@ func _ready() -> void:
 
 	var first_btn := _add_button(vbox, "Wave Survival", _on_survival_pressed, font)
 	_add_button(vbox, "Horde Defense", _on_horde_defense_pressed, font)
+	_add_button(vbox, "PVP - Overlord", _on_pvp_pressed, font)
 	_add_button(vbox, "Upgrades",      _on_meta_menu_pressed, font)
 	_add_button(vbox, "Quit",          _on_quit_pressed, font)
 	first_btn.grab_focus()
@@ -173,6 +174,10 @@ func _on_survival_pressed() -> void:
 
 func _on_horde_defense_pressed() -> void:
 	GameManager.current_mode = GameManager.RunMode.HORDE_DEFENSE
+	get_tree().change_scene_to_file("res://scenes/main_menu/CharacterSelect.tscn")
+
+func _on_pvp_pressed() -> void:
+	GameManager.current_mode = GameManager.RunMode.PVP_OVERLORD
 	get_tree().change_scene_to_file("res://scenes/main_menu/CharacterSelect.tscn")
 
 func _on_meta_menu_pressed() -> void:
