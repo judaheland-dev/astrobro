@@ -57,6 +57,41 @@ Port 6006 is the remote debugger. To use breakpoints from VS Code, create `.vsco
 ```
 The debugger can pause on breakpoints, inspect local variables and `self`, and walk the call stack. It cannot query the live scene tree or profiler — use the Godot editor's built-in Remote tab for that.
 
+### godot-ai MCP Plugin
+The **godot-ai** plugin is installed at `addons/godot_ai/` and enabled in `project.godot`. It runs an MCP server at `http://127.0.0.1:8000/mcp` that gives the agent 120+ live editor tools.
+
+The MCP client is configured in `.vscode/mcp.json`. The agent can use these tools directly from Copilot agent mode without any extra steps — they are available as `mcp_godot-ai_*` tools.
+
+**Verify the MCP server is running:**
+```bash
+grep -E "Uvicorn running|MCP.*8000" /tmp/godot.log
+# or
+lsof -iTCP:8000 -sTCP:LISTEN
+```
+
+**If the MCP server is not running**, restart the editor:
+```bash
+pkill -x Godot; sleep 1
+/Applications/Godot.app/Contents/MacOS/Godot --editor --path /Users/greg/Projects/game > /tmp/godot.log 2>&1 &
+```
+Wait ~10 seconds then re-check. The server starts automatically when the plugin loads.
+
+**Most useful MCP tools for this project:**
+
+| Tool | Use case |
+|------|----------|
+| `mcp_godot-ai_logs_read` with `source="game"` | Read `print()`/`push_error()` from the running game |
+| `mcp_godot-ai_editor_state` | Check if the game is running, current scene |
+| `mcp_godot-ai_project_run` / `project_stop` | Start/stop the game without touching the editor |
+| `mcp_godot-ai_editor_screenshot` | Capture the game window to verify visual output |
+| `mcp_godot-ai_scene_get_hierarchy` | Inspect the live scene tree |
+| `mcp_godot-ai_node_get_properties` | Read node property values at runtime |
+| `mcp_godot-ai_performance_monitors_get` | FPS, memory, draw calls |
+| `mcp_godot-ai_filesystem_read_text` | Read any project file via the editor |
+| `mcp_godot-ai_script_patch` | Patch a GDScript file via the editor |
+
+**Always call `mcp_godot-ai_session_list` first** to confirm a session is active before using other tools. If no session is listed, the editor is not running or the plugin is not loaded.
+
 ## Project Structure
 
 ```
