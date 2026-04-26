@@ -6,7 +6,7 @@ class_name OverlordController
 
 const CURSOR_SPEED: float = 600.0
 const SAFE_ZONE_RADIUS: float = 200.0
-const BASE_COOLDOWN: float = 1.5
+const BASE_COOLDOWN: float = 0.8
 const ARENA_HW: float = 900.0  # safe spawn bounds (walls at 960)
 const ARENA_HH: float = 560.0
 
@@ -18,42 +18,30 @@ var targets: Array[Node] = []  # player targets for spawned enemies
 var _cursor_pos: Vector2 = Vector2(500.0, 0.0)
 var _cursor_sprite: Sprite2D = null
 var _cursor_safe_indicator: Node2D = null  # turns red when in safe zone
-var _cooldowns: Array[float] = [0.0, 0.0, 0.0, 0.0]  # per-slot cooldown timers
+var _cooldowns: Dictionary = {}  # {button_def_index: float}
 var _in_safe_zone: bool = false
 
-# Gamepad button mapping for the 4 deploy slots
-# A=0, B=1, X=2, Y=3 (standard SDL2 face buttons)
-const SLOT_BUTTONS: Array = [
-	JOY_BUTTON_A,
-	JOY_BUTTON_B,
-	JOY_BUTTON_X,
-	JOY_BUTTON_Y,
-]
-
-# Keyboard fallback for P2 deploy: Z, X, C, V
-const SLOT_ACTIONS: Array = [
-	"p2_deploy_0",
-	"p2_deploy_1",
-	"p2_deploy_2",
-	"p2_deploy_3",
+# Keyboard fallback keys for 10 deploy buttons (indices into BUTTON_DEFS)
+# Z=A, X=B, C=X, V=Y, I=Up, K=Down, J=Left, L=Right, Q=LB, E=RB
+const KB_DEPLOY_KEYS: Array = [
+	KEY_Z, KEY_X, KEY_C, KEY_V,
+	KEY_I, KEY_K, KEY_J, KEY_L,
+	KEY_Q, KEY_E,
 ]
 
 signal enemy_spawned_by_overlord(enemy: BaseEnemy)
 
 func _ready() -> void:
 	_build_cursor()
-	# Register keyboard deploy actions if they don't exist
 	_ensure_deploy_actions()
 
 func _ensure_deploy_actions() -> void:
-	# Add keyboard deploy actions for P2 (Z, X, C, V keys)
-	var keys: Array = [KEY_Z, KEY_X, KEY_C, KEY_V]
-	for i in 4:
+	for i in KB_DEPLOY_KEYS.size():
 		var action_name: String = "p2_deploy_%d" % i
 		if not InputMap.has_action(action_name):
 			InputMap.add_action(action_name)
 			var ev := InputEventKey.new()
-			ev.keycode = keys[i]
+			ev.keycode = KB_DEPLOY_KEYS[i]
 			InputMap.action_add_event(action_name, ev)
 
 func _build_cursor() -> void:
@@ -115,9 +103,9 @@ func _process(delta: float) -> void:
 	_cursor_sprite.modulate = Color(1.0, 0.3, 0.3) if _in_safe_zone else Color(0.2, 1.0, 0.4)
 
 	# Tick cooldowns
-	for i in 4:
-		if _cooldowns[i] > 0.0:
-			_cooldowns[i] -= delta
+	for btn_idx in _cooldowns.keys():
+		if _cooldowns[btn_idx] > 0.0:
+			_cooldowns[btn_idx] -= delta
 
 	# Check deploy inputs
 	_check_deploy_inputs()
@@ -125,20 +113,22 @@ func _process(delta: float) -> void:
 func _check_deploy_inputs() -> void:
 	var device: int = 1  # Overlord is always gamepad device 1
 
-	for i in 4:
+	for i in OverlordState.BUTTON_DEFS.size():
 		var pressed := false
-		# Gamepad face button
-		if Input.is_joy_button_pressed(device, SLOT_BUTTONS[i]):
+		# Gamepad button
+		var joy_id: int = OverlordState.BUTTON_DEFS[i][0]
+		if Input.is_joy_button_pressed(device, joy_id):
 			pressed = true
 		# Keyboard fallback
-		elif InputMap.has_action(SLOT_ACTIONS[i]) and Input.is_action_just_pressed(SLOT_ACTIONS[i]):
+		var kb_action: String = "p2_deploy_%d" % i
+		if not pressed and InputMap.has_action(kb_action) and Input.is_action_just_pressed(kb_action):
 			pressed = true
 
-		if pressed and _cooldowns[i] <= 0.0 and not _in_safe_zone:
+		if pressed and _cooldowns.get(i, 0.0) <= 0.0 and not _in_safe_zone:
 			_try_deploy(i)
 
-func _try_deploy(slot: int) -> void:
-	var enemy_id := overlord_state.deploy_enemy(slot)
+func _try_deploy(button_index: int) -> void:
+	var enemy_id := overlord_state.deploy_enemy(button_index)
 	if enemy_id == &"":
 		return
 
@@ -151,7 +141,7 @@ func _try_deploy(slot: int) -> void:
 
 	var enemy_node := _spawn_enemy(enemy_data)
 	if enemy_node:
-		_cooldowns[slot] = BASE_COOLDOWN * overlord_state.spawn_cooldown_mult
+		_cooldowns[button_index] = BASE_COOLDOWN * overlord_state.spawn_cooldown_mult
 		overlord_mode.active_overlord_enemies += 1
 
 func _spawn_enemy(data: EnemyData) -> BaseEnemy:
@@ -163,22 +153,7 @@ func _spawn_enemy(data: EnemyData) -> BaseEnemy:
 	# Sprite
 	var sprite := Sprite2D.new()
 	sprite.name = "Sprite2D"
-	var sprite_map: Dictionary = {
-		&"grunt":         "res://assets/sprites/enemyRed1.png",
-		&"speeder":       "res://assets/sprites/enemyBlue1.png",
-		&"brute":         "res://assets/sprites/enemyBlack1.png",
-		&"exploder":      "res://assets/sprites/enemyGreen1.png",
-		&"ranger":        "res://assets/sprites/enemyBlue2.png",
-		&"sniper":        "res://assets/sprites/enemyBlue3.png",
-		&"sentinel":      "res://assets/sprites/enemyBlack3.png",
-		&"acid_ranger":   "res://assets/sprites/enemyGreen2.png",
-		&"heavy_ranger":  "res://assets/sprites/enemyBlue4.png",
-		&"tracker":       "res://assets/sprites/enemyRed3.png",
-		&"corruptor":     "res://assets/sprites/enemyGreen4.png",
-		&"shielded":      "res://assets/sprites/enemyRed1.png",
-		&"tank":          "res://assets/sprites/enemyBlack1.png",
-	}
-	var sprite_path: String = sprite_map.get(data.id, "")
+	var sprite_path: String = OverlordState.ENEMY_SPRITES.get(data.id, "")
 	if sprite_path != "" and ResourceLoader.exists(sprite_path):
 		sprite.texture = load(sprite_path)
 	else:
@@ -254,12 +229,12 @@ func _spawn_enemy(data: EnemyData) -> BaseEnemy:
 func _on_overlord_enemy_died(enemy: BaseEnemy) -> void:
 	overlord_mode.on_overlord_enemy_died()
 
-func get_cooldown_ratio(slot: int) -> float:
+func get_cooldown_ratio(button_index: int) -> float:
 	## Returns 0.0 (ready) to 1.0 (full cooldown) for HUD display.
 	var max_cd := BASE_COOLDOWN * overlord_state.spawn_cooldown_mult
 	if max_cd <= 0.0:
 		return 0.0
-	return clampf(_cooldowns[slot] / max_cd, 0.0, 1.0)
+	return clampf(_cooldowns.get(button_index, 0.0) / max_cd, 0.0, 1.0)
 
 func hide_cursor() -> void:
 	_cursor_sprite.visible = false
