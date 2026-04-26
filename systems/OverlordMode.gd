@@ -13,6 +13,7 @@ var _wave_time_limit: float = 90.0
 var _wave_active: bool = false
 var _current_wave: int = 0
 var active_overlord_enemies: int = 0
+var _wave_grace_timer: float = 0.0  # prevents instant wave-end before Overlord deploys
 
 func setup(wm: WaveManager, player_list: Array[Player]) -> void:
 	wave_manager = wm
@@ -26,6 +27,7 @@ func start_wave(wave_number: int) -> void:
 	_current_wave = wave_number
 	_wave_active = true
 	_wave_timer = _wave_time_limit
+	_wave_grace_timer = 5.0  # 5s grace before wave can end from empty loadout
 	active_overlord_enemies = 0
 	overlord_state.start_wave()
 	var sfx := "res://assets/audio/sfx_wave_start.ogg"
@@ -41,6 +43,8 @@ func on_overlord_enemy_died() -> void:
 func _check_wave_complete() -> void:
 	if not _wave_active:
 		return
+	if _wave_grace_timer > 0.0:
+		return
 	# Wave ends when all deployed enemies are dead AND no more to deploy
 	if active_overlord_enemies <= 0 and overlord_state.get_total_remaining() <= 0:
 		_finish_wave()
@@ -50,8 +54,13 @@ func process_wave(delta: float) -> void:
 	if not _wave_active:
 		return
 	_wave_timer -= delta
+	if _wave_grace_timer > 0.0:
+		_wave_grace_timer -= delta
 	if _wave_timer <= 0.0:
 		_finish_wave()
+		return
+	# Also check if all enemies are dead and none left to deploy
+	_check_wave_complete()
 
 func get_wave_timer() -> float:
 	return maxf(0.0, _wave_timer)

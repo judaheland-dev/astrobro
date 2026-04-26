@@ -148,7 +148,7 @@ func _spawn_enemy(data: EnemyData) -> BaseEnemy:
 	## Builds an enemy node using the same pattern as WaveManager._spawn_next().
 	var enemy_node := BaseEnemy.new()
 	enemy_node.collision_layer = 2
-	enemy_node.collision_mask  = 3
+	enemy_node.collision_mask  = 5  # layer 1 (players) + layer 3 (walls); no enemy-enemy to avoid spawn overlap flinging
 
 	# Sprite
 	var sprite := Sprite2D.new()
@@ -217,11 +217,7 @@ func _spawn_enemy(data: EnemyData) -> BaseEnemy:
 	enemy_node.global_position = _cursor_pos
 	enemy_node.died.connect(_on_overlord_enemy_died)
 
-	# Spawn pop-in animation
-	enemy_node.scale = Vector2.ZERO
-	var tween := enemy_node.create_tween()
-	tween.tween_property(enemy_node, "scale", Vector2(1.2, 1.2), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(enemy_node, "scale", Vector2(1.0, 1.0), 0.08)
+	# BaseEnemy._ready() already does a spawn pop-in tween, don't duplicate it
 
 	enemy_spawned_by_overlord.emit(enemy_node)
 	return enemy_node

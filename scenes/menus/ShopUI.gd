@@ -125,7 +125,7 @@ func _ready() -> void:
 	left_col.add_child(loadout_title)
 
 	_loadout_control = Control.new()
-	_loadout_control.custom_minimum_size = Vector2(360.0, 332.0)
+	_loadout_control.custom_minimum_size = Vector2(480.0, 380.0)
 	_loadout_control.clip_contents = true
 	left_col.add_child(_loadout_control)
 
@@ -617,7 +617,7 @@ func _populate_loadout(player: Player) -> void:
 		sil.texture = load(sil_path)
 	var ship_col := player.character_data.ship_color if player.character_data else Color.WHITE
 	sil.modulate = Color(ship_col.r, ship_col.g, ship_col.b, 0.22)
-	sil.position = Vector2(175.0 - 100.0, 144.0 - 100.0)
+	sil.position = Vector2(240.0 - 100.0, 170.0 - 100.0)
 	sil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_loadout_control.add_child(sil)
 
@@ -646,11 +646,11 @@ func _populate_loadout(player: Player) -> void:
 		# PORT_DATA: pos.x = forward axis, pos.y = starboard axis
 		# Screen: screen_x = starboard, screen_y = -forward
 		var port_pos: Vector2 = port["pos"]
-		var screen_x: float = port_pos.y * 3.0 + 175.0
-		var screen_y: float = -port_pos.x * 3.0 + 144.0
+		var screen_x: float = port_pos.y * 4.5 + 240.0
+		var screen_y: float = -port_pos.x * 4.5 + 170.0
 		var card_pos := Vector2(screen_x - 40.0, screen_y - 40.0)
-		card_pos.x = clampf(card_pos.x, 0.0, 280.0)
-		card_pos.y = clampf(card_pos.y, 0.0, 200.0)
+		card_pos.x = clampf(card_pos.x, 0.0, 400.0)
+		card_pos.y = clampf(card_pos.y, 0.0, 290.0)
 
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(80.0, 80.0)
