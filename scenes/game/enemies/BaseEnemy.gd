@@ -527,7 +527,7 @@ func _summon_minions(use_basic: bool) -> void:
 	for i in count:
 		var minion := BaseEnemy.new()
 		minion.collision_layer = 2
-		minion.collision_mask  = 3
+		minion.collision_mask  = 6   # enemies + walls; player contact via Area2D
 		var mspr := Sprite2D.new()
 		mspr.name = "Sprite2D"
 		var stex_path := "res://assets/sprites/enemyRed1.png" if use_basic else "res://assets/sprites/enemyGreen1.png"

@@ -109,7 +109,7 @@ func _spawn_next() -> void:
 	# Build enemy entirely in code - no PackedScene required
 	var enemy_node := BaseEnemy.new()
 	enemy_node.collision_layer = 2   # enemies on layer 2
-	enemy_node.collision_mask  = 7   # collide with layer 1 (players) + layer 2 (enemies) + layer 3 (walls)
+	enemy_node.collision_mask  = 6   # collide with layer 2 (enemies) + layer 3 (walls); player contact via Area2D
 
 	# Sprite - pick based on enemy id, fall back to solid color
 	var sprite := Sprite2D.new()

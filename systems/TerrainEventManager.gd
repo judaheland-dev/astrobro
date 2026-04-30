@@ -129,6 +129,8 @@ func _process(delta: float) -> void:
 	if wave_manager == null or not wave_manager.is_running:
 		return
 
+	delta_cache = delta
+
 	if _active_event != null:
 		_tick_hazard_damage(delta)
 
@@ -137,6 +139,8 @@ func _process(delta: float) -> void:
 
 		if _gravity_active:
 			_process_gravity_pull(delta)
+			if is_instance_valid(_active_event) and _active_event.name == "BlackHole":
+				_process_black_hole_suction()
 
 		if _pulsar_active:
 			_pulsar_timer -= delta
@@ -542,14 +546,16 @@ func _process_gravity_pull(delta: float) -> void:
 	for body in all:
 		if not is_instance_valid(body):
 			continue
-		if not "velocity" in body:
+		var node2d := body as Node2D
+		if node2d == null:
 			continue
-		var dist: float = (body as Node2D).global_position.distance_to(_gravity_center)
-		if dist > _gravity_radius or dist < 5.0:
+		var dist: float = node2d.global_position.distance_to(_gravity_center)
+		if dist > _gravity_radius or dist < 30.0:
 			continue
-		var dir: Vector2 = (_gravity_center - (body as Node2D).global_position).normalized()
+		var dir: Vector2 = (_gravity_center - node2d.global_position).normalized()
 		var falloff: float = 1.0 - (dist / _gravity_radius)
-		body.velocity += dir * _gravity_strength * falloff * delta
+		# Direct position nudge so the force isn't overwritten by the body's own _physics_process
+		node2d.global_position += dir * _gravity_strength * falloff * delta
 
 func _begin_gravity_fadeout(root: Node2D) -> void:
 	_gravity_active = false
@@ -567,6 +573,36 @@ func _begin_gravity_fadeout(root: Node2D) -> void:
 			root.queue_free()
 		_on_event_finished(root)
 	)
+
+## Black hole: destroy any player projectiles that stray within the event horizon.
+## Projectiles are Area2D on collision_layer=0 so can't be detected by another Area2D;
+## we iterate the ProjectilesContainer directly instead.
+const BLACK_HOLE_SUCTION_RADIUS: float = 200.0
+
+func _process_black_hole_suction() -> void:
+	var scene_root := get_tree().current_scene
+	if not scene_root:
+		return
+	var proj_container := scene_root.get_node_or_null("ProjectilesContainer")
+	if not proj_container:
+		return
+	for proj in proj_container.get_children():
+		if not is_instance_valid(proj):
+			continue
+		var node2d := proj as Node2D
+		if node2d == null:
+			continue
+		var dist: float = node2d.global_position.distance_to(_gravity_center)
+		if dist <= BLACK_HOLE_SUCTION_RADIUS:
+			# Also pull in slightly before destruction for a nice spiral effect
+			if dist > 20.0:
+				var dir: Vector2 = (_gravity_center - node2d.global_position).normalized()
+				node2d.global_position += dir * 600.0 * delta_cache * (1.0 - dist / BLACK_HOLE_SUCTION_RADIUS)
+			else:
+				proj.queue_free()
+
+# cached delta so suction can use it (set at top of _process)
+var delta_cache: float = 0.016
 
 # ---------------------------------------------------------------------------
 # Event: Minefield

@@ -68,7 +68,7 @@ func _try_chain_jump() -> void:
 		return
 
 	var arc_start := global_position
-	var arc_end   := nearest.global_position
+	var arc_end: Vector2 = (nearest as Node2D).global_position
 
 	# Draw a jagged lightning arc between the two positions
 	var scene_root := get_tree().current_scene
@@ -108,7 +108,7 @@ func _try_chain_jump() -> void:
 	col.shape = shape
 	next_proj.add_child(col)
 
-	var dir := (arc_end - arc_start).normalized()
+	var dir: Vector2 = (arc_end - arc_start).normalized()
 	var jump_range := arc_start.distance_to(arc_end) + 60.0
 
 	scene_root.add_child(next_proj)

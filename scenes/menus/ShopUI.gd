@@ -40,6 +40,7 @@ var _stats_overlay: PanelContainer
 var _stats_toggle_btn: Button
 var _popover: PanelContainer
 var _popover_label: Label
+var _skip_btn: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -167,14 +168,14 @@ func _ready() -> void:
 		_stats_toggle_btn.add_theme_font_size_override("font_size", 13)
 	right_col.add_child(_stats_toggle_btn)
 
-	var skip_btn := Button.new()
-	skip_btn.text = "Continue"
-	skip_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	skip_btn.pressed.connect(_on_skip_pressed)
+	_skip_btn = Button.new()
+	_skip_btn.text = "Continue"
+	_skip_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	_skip_btn.pressed.connect(_on_skip_pressed)
 	if font:
-		skip_btn.add_theme_font_override("font", font)
-		skip_btn.add_theme_font_size_override("font_size", 16)
-	vbox.add_child(skip_btn)
+		_skip_btn.add_theme_font_override("font", font)
+		_skip_btn.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(_skip_btn)
 
 	# Stats overlay and popover built last so they render on top of everything
 	_stats_overlay = PanelContainer.new()
@@ -312,6 +313,7 @@ func _show_shop_for_player() -> void:
 	_populate_loadout(player)
 	_populate_purchased(player)
 	_populate_stats(player)
+	call_deferred("_restore_focus")
 
 # Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary, Mythic]
 func _get_rarity_weights(wave: int) -> Array[float]:
@@ -574,16 +576,6 @@ func _render_shop(player: Player) -> void:
 		buy_btn.mouse_exited.connect(_hide_popover)
 
 		_shop_container.add_child(card)
-
-	# Focus first available buy button for gamepad navigation
-	for card in _shop_container.get_children():
-		var vbox: VBoxContainer = card.get_child(0)
-		if vbox:
-			for i in range(vbox.get_child_count()):
-				var child := vbox.get_child(i)
-				if child is Button and not (child as Button).disabled and (child as Button).text == "Buy":
-					(child as Button).grab_focus()
-					break
 
 func _load_all_weapons() -> Array[WeaponData]:
 	var result: Array[WeaponData] = []
@@ -856,6 +848,7 @@ func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	call_deferred("_restore_focus")
 
 func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringName) -> void:
 	# Collect the first two weapons with the matching base id
@@ -894,6 +887,7 @@ func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringNam
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	call_deferred("_restore_focus")
 
 func _make_weapon_node(wdata: WeaponData) -> BaseWeapon:
 	var weapon: BaseWeapon
@@ -928,6 +922,7 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	call_deferred("_restore_focus")
 
 func _on_skip_pressed() -> void:
 	AudioManager.play_ui_click()
@@ -1134,6 +1129,7 @@ func _on_buy_module_pressed(player: Player, slot_idx: int) -> void:
 	_populate_purchased(player)
 	_populate_stats(player)
 	_update_title(player)
+	call_deferred("_restore_focus")
 
 func _update_title(player: Player) -> void:
 	var slots := player.character_data.weapon_slots if player.character_data else 6
@@ -1202,12 +1198,14 @@ func _on_toggle_weapon_lock(player: Player, slot_idx: int) -> void:
 	if slot_idx < _locked_weapons.size():
 		_locked_weapons[slot_idx] = not _locked_weapons[slot_idx]
 	_render_shop(player)
+	call_deferred("_restore_focus")
 
 func _on_toggle_module_lock(player: Player, slot_idx: int) -> void:
 	AudioManager.play_ui_click()
 	if slot_idx < _locked_modules.size():
 		_locked_modules[slot_idx] = not _locked_modules[slot_idx]
 	_render_modules(player)
+	call_deferred("_restore_focus")
 
 func _on_reroll_pressed() -> void:
 	if _players.is_empty() or _current_player_index >= _players.size():
@@ -1265,6 +1263,28 @@ func _on_reroll_pressed() -> void:
 	_update_reroll_btn(player)
 	_render_shop(player)
 	_render_modules(player)
+	call_deferred("_restore_focus")
+
+func _restore_focus() -> void:
+	## Re-establish gamepad focus after any UI rebuild.
+	## Tries the first enabled button in weapons, then modules, then reroll, then skip.
+	for container: Node in [_shop_container, _module_container]:
+		for card in container.get_children():
+			if not is_instance_valid(card):
+				continue
+			if card.get_child_count() == 0:
+				continue
+			var vbox := card.get_child(0)
+			for i in vbox.get_child_count():
+				var child := vbox.get_child(i)
+				if child is Button and not (child as Button).disabled:
+					(child as Button).grab_focus()
+					return
+	if is_instance_valid(_reroll_btn) and not _reroll_btn.disabled:
+		_reroll_btn.grab_focus()
+		return
+	if is_instance_valid(_skip_btn):
+		_skip_btn.grab_focus()
 
 func _close() -> void:
 	visible = false

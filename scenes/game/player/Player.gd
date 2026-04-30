@@ -116,7 +116,7 @@ var _damage_overlay: Sprite2D = null
 
 func _ready() -> void:
 	collision_layer = 1   # player on layer 1
-	collision_mask  = 14  # collide with layer 2 (enemies), layer 3 (walls), layer 4 (interceptable missiles)
+	collision_mask  = 12  # collide with layer 3 (walls) + layer 4 (interceptable missiles); enemies phase through via Area2D contact
 	if character_data:
 		_apply_character_data()
 	current_health = max_health
@@ -284,7 +284,7 @@ func activate_boost() -> void:
 
 # --- Health ---
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, _armor_penetration: float = 0.0) -> void:
 	if dodge_chance > 0.0 and randf() < dodge_chance:
 		_flash_dodge()
 		return

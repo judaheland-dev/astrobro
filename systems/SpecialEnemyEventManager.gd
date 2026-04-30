@@ -111,7 +111,7 @@ func _build_special_enemy(
 	) -> SpecialEnemyBody:
 	var body := SpecialEnemyBody.new()
 	body.collision_layer = 2
-	body.collision_mask  = 3
+	body.collision_mask  = 6   # enemies + walls; player contact via Area2D
 
 	var spr := Sprite2D.new()
 	spr.name = "Sprite2D"
@@ -330,7 +330,7 @@ func _carrier_tick(delta: float) -> void:
 func _carrier_spawn_minion() -> void:
 	var enemy_node := BaseEnemy.new()
 	enemy_node.collision_layer = 2
-	enemy_node.collision_mask  = 3
+	enemy_node.collision_mask  = 6   # enemies + walls; player contact via Area2D
 
 	var spr := Sprite2D.new()
 	spr.name = "Sprite2D"
@@ -623,7 +623,7 @@ func _do_ambush_spawn(center: Vector2) -> void:
 
 		var enemy_node := BaseEnemy.new()
 		enemy_node.collision_layer = 2
-		enemy_node.collision_mask  = 3
+		enemy_node.collision_mask  = 6   # enemies + walls; player contact via Area2D
 
 		var spr := Sprite2D.new()
 		spr.name = "Sprite2D"
@@ -751,7 +751,7 @@ func _spawn_distress_signal() -> void:
 func _spawn_distress_guard(pos: Vector2) -> void:
 	var enemy_node := BaseEnemy.new()
 	enemy_node.collision_layer = 2
-	enemy_node.collision_mask  = 3
+	enemy_node.collision_mask  = 6   # enemies + walls; player contact via Area2D
 
 	var spr := Sprite2D.new()
 	spr.name = "Sprite2D"
