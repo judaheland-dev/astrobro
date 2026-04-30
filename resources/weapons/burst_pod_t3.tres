@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_015.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"burst_pod_t3"
+display_name = "Burst Pod Mk.III"
+description = "Nine-rocket barrage with enhanced blast radius."
+ammo_type = 2
+weapon_class = 2
+shop_cost = 0
+damage = 28.0
+fire_rate = 1.5
+projectile_speed = 420.0
+range = 580.0
+spread = 0.74
+projectile_count = 9
+piercing = 0
+aoe_radius = 88.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.52, 0.52)
+projectile_modulate = Color(1.0, 0.55, 0.1, 1.0)
+projectile_hitbox_size = Vector2(14.0, 6.0)
+emit_exhaust_trail = true
+tier = 3
+forged_weapon_id = &""
+is_forge_only = true

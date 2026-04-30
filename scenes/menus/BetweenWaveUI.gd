@@ -149,12 +149,14 @@ func _populate_choices(player: Player) -> void:
 # linearly scaled by wave progress so higher rarities become more likely over time.
 func _get_rarity_weights(wave: int) -> Array[float]:
 	var t := clampf(float(wave - 1) / 9.0, 0.0, 1.0)
+	var t2 := clampf((float(wave) - 12.0) / 6.0, 0.0, 1.0)  # for mythic, starts wave 12
 	var weights: Array[float] = [
 		lerpf(60.0, 25.0, t),   # COMMON
 		lerpf(25.0, 28.0, t),   # UNCOMMON
 		lerpf(12.0, 25.0, t),   # RARE
 		lerpf(3.0,  15.0, t),   # EPIC
-		lerpf(0.0,  7.0,  t),   # LEGENDARY
+		lerpf(0.0,  5.0,  t),   # LEGENDARY
+		lerpf(0.0,  3.0,  t2),  # MYTHIC - only after wave 12
 	]
 	return weights
 
@@ -190,6 +192,7 @@ func _rarity_color(rarity: int) -> Color:
 		2: return Color(0.2,  0.45, 0.95)   # RARE - blue
 		3: return Color(0.65, 0.1,  0.95)   # EPIC - purple
 		4: return Color(0.95, 0.7,  0.0)    # LEGENDARY - gold
+		5: return Color(1.0,  0.1,  0.8)    # MYTHIC - hot magenta
 		_: return Color(0.55, 0.55, 0.55)
 
 func _rarity_name(rarity: int) -> String:
@@ -199,6 +202,7 @@ func _rarity_name(rarity: int) -> String:
 		2: return "RARE"
 		3: return "EPIC"
 		4: return "LEGENDARY"
+		5: return "MYTHIC"
 		_: return "COMMON"
 
 func _load_all_upgrades() -> Array[UpgradeData]:

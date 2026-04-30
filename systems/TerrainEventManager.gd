@@ -940,6 +940,30 @@ func _spawn_pulsar_burst() -> Node:
 	lifetime.tween_callback(_begin_pulsar_fadeout.bind(root))
 
 	_announce("PULSAR", Color(1.0, 0.6, 0.1))
+
+	# Show a "BRACE!" label that pulses during the charge window before the first ring fires
+	var brace_layer := CanvasLayer.new()
+	brace_layer.layer = 9
+	get_tree().current_scene.add_child(brace_layer)
+	var brace_label := Label.new()
+	brace_label.text = "BRACE!"
+	brace_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brace_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	brace_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	brace_label.add_theme_font_size_override("font_size", 48)
+	brace_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.1))
+	brace_label.modulate.a = 0.0
+	if is_instance_valid(hud):
+		var kfont := GameManager.kenney_font()
+		if kfont:
+			brace_label.add_theme_font_override("font", kfont)
+	brace_layer.add_child(brace_label)
+	var brace_tw := brace_label.create_tween()
+	brace_tw.tween_property(brace_label, "modulate:a", 1.0, 0.2)
+	brace_tw.tween_interval(_pulsar_interval - 0.5)
+	brace_tw.tween_property(brace_label, "modulate:a", 0.0, 0.3)
+	brace_tw.tween_callback(brace_layer.queue_free)
+
 	return root
 
 func _fire_pulsar_ring() -> void:

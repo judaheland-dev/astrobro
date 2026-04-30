@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceRockets_002.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"hellfire_spread"
+display_name = "Hellfire Spread"
+description = "Unleashes 8 rockets in a wide arc. Saturates an entire zone with explosions."
+ammo_type = 2
+weapon_class = 2
+shop_cost = 175
+damage = 65.0
+fire_rate = 0.45
+projectile_speed = 380.0
+range = 700.0
+spread = 1.1
+projectile_count = 8
+piercing = 0
+aoe_radius = 110.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.6, 0.6)
+projectile_modulate = Color(1.0, 0.4, 0.05, 1.0)
+projectile_hitbox_size = Vector2(20.0, 8.0)
+emit_exhaust_trail = true
+tier = 1
+forged_weapon_id = &"hellfire_spread_t2"

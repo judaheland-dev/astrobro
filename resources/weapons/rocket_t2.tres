@@ -29,5 +29,5 @@ projectile_hitbox_size = Vector2(30, 8)
 emit_exhaust_trail = true
 aoe_radius = 150.0
 tier = 2
-forged_weapon_id = &""
+forged_weapon_id = &"rocket_t3"
 is_forge_only = true

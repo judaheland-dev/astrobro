@@ -16,6 +16,7 @@ var piercing: int = 0
 var port_index: int = 0   # which hull port this weapon occupies (see Player.PORT_DATA)
 
 var _fire_cooldown: float = 0.0
+var _base_fire_rate: float = 2.0      # fire_rate at equip time, used for cap calculation
 var _projectile_parent: Node = null   # set by Game so projectiles don't rotate with player
 
 # Class bonus set at equip time (permanent this run)
@@ -27,6 +28,7 @@ func _ready() -> void:
 	if weapon_data:
 		damage           = weapon_data.damage
 		fire_rate        = weapon_data.fire_rate
+		_base_fire_rate  = weapon_data.fire_rate
 		projectile_speed = weapon_data.projectile_speed
 		range            = weapon_data.range
 		spread           = weapon_data.spread
@@ -61,15 +63,20 @@ func try_fire(aim_dir: Vector2) -> void:
 	if weapon_data.ammo_type == WeaponData.AmmoType.MINE:
 		_spawn_mine(fire_dir)
 		return
-	_spawn_projectiles(fire_dir)
+	_spawn_projectiles(fire_dir, weapon_data.ammo_type == WeaponData.AmmoType.CHAIN)
 
-func _spawn_projectiles(base_dir: Vector2) -> void:
+func _spawn_projectiles(base_dir: Vector2, is_chain: bool = false) -> void:
 	var parent := _projectile_parent if _projectile_parent else get_tree().current_scene
+	var chain_script: Script = null
+	if is_chain:
+		var cp := "res://scenes/game/weapons/ChainLightningProjectile.gd"
+		if ResourceLoader.exists(cp):
+			chain_script = load(cp)
 	for i in projectile_count:
 		var spread_angle := randf_range(-spread * 0.5, spread * 0.5)
 		var dir := base_dir.rotated(spread_angle).normalized()
 
-		var proj := BaseProjectile.new()
+		var proj: BaseProjectile = chain_script.new() if chain_script != null else BaseProjectile.new()
 		proj.collision_layer = 0   # projectiles have no layer of their own
 		proj.collision_mask  = 10  # enemies (layer 2) + interceptable missiles (layer 4)
 
@@ -137,9 +144,12 @@ func _spawn_mine(_fire_dir: Vector2) -> void:
 	mine.global_position = global_position
 	mine.call("setup", damage * damage_multiplier * passive_multiplier, 80.0, get_parent())
 
-func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:	match key:
+func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
+	match key:
 		UpgradeData.StatKey.DAMAGE:          damage           += delta
-		UpgradeData.StatKey.FIRE_RATE:       fire_rate        += delta
+		UpgradeData.StatKey.FIRE_RATE:
+			fire_rate += delta
+			fire_rate  = minf(fire_rate, _base_fire_rate * 3.0)
 		UpgradeData.StatKey.PROJECTILE_SPEED: projectile_speed += delta
 		UpgradeData.StatKey.RANGE:           range            += delta
 		UpgradeData.StatKey.SPREAD:          spread            = maxf(0.0, spread + delta)
@@ -151,6 +161,8 @@ func _sfx_for_weapon() -> String:
 		return "res://assets/audio/sfx_rocket_fire.ogg"
 	if weapon_data.weapon_class == WeaponData.WeaponClass.SPREAD:
 		return "res://assets/audio/sfx_shotgun.ogg"
+	if weapon_data.ammo_type == WeaponData.AmmoType.CHAIN:
+		return "res://assets/audio/sfx_sniper.ogg"
 	if weapon_data.weapon_class == WeaponData.WeaponClass.PRECISION \
 			or weapon_data.ammo_type == WeaponData.AmmoType.LASER:
 		return "res://assets/audio/sfx_sniper.ogg"

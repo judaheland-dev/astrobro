@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue16.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"penetrator_beam"
+display_name = "Penetrator Beam"
+description = "Fires a thick high-energy bolt that pierces every enemy in its path."
+ammo_type = 1
+weapon_class = 1
+shop_cost = 200
+damage = 190.0
+fire_rate = 0.33
+projectile_speed = 1800.0
+range = 1400.0
+spread = 0.0
+projectile_count = 1
+piercing = 999
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(2.0, 2.0)
+projectile_modulate = Color(0.2, 0.85, 1.0, 1.0)
+projectile_hitbox_size = Vector2(36.0, 36.0)
+emit_exhaust_trail = false
+tier = 1
+forged_weapon_id = &"penetrator_beam_t2"

@@ -10,6 +10,7 @@ enum AmmoType {
 	MINE,
 	ORBITAL,
 	BEAM,
+	CHAIN,
 }
 
 enum WeaponClass {

@@ -15,6 +15,7 @@ enum Rarity {
 	RARE,
 	EPIC,
 	LEGENDARY,
+	MYTHIC,
 }
 
 enum StatKey {

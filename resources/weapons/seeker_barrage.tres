@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_024.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"seeker_barrage"
+display_name = "Seeker Barrage"
+description = "Fires 5 homing micro-missiles simultaneously. Each locks on independently."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 180
+damage = 55.0
+fire_rate = 0.6
+projectile_speed = 340.0
+range = 850.0
+spread = 0.5
+projectile_count = 5
+piercing = 0
+aoe_radius = 90.0
+is_homing = true
+homing_strength = 2.5
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.55, 0.55)
+projectile_modulate = Color(1.0, 0.5, 0.9, 1.0)
+projectile_hitbox_size = Vector2(16.0, 6.0)
+emit_exhaust_trail = true
+tier = 1
+forged_weapon_id = &"seeker_barrage_t2"

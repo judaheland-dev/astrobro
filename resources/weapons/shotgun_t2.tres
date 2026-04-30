@@ -28,5 +28,5 @@ projectile_modulate = Color(1, 0.65, 0.1, 1)
 projectile_hitbox_size = Vector2(6, 6)
 emit_exhaust_trail = false
 tier = 2
-forged_weapon_id = &""
+forged_weapon_id = &"shotgun_t3"
 is_forge_only = true

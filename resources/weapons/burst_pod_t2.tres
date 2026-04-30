@@ -28,3 +28,5 @@ projectile_modulate = Color(1.0, 0.45, 0.05, 1.0)
 projectile_hitbox_size = Vector2(14, 6)
 emit_exhaust_trail = true
 tier = 2
+forged_weapon_id = &"burst_pod_t3"
+is_forge_only = true

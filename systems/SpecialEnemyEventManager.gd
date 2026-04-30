@@ -563,7 +563,8 @@ func _beacon_cleanup() -> void:
 
 const AMBUSH_COUNT_MIN: int = 6
 const AMBUSH_COUNT_MAX: int = 10
-const AMBUSH_RING_RADIUS: float = 130.0
+const AMBUSH_RING_RADIUS: float = 250.0
+const AMBUSH_WARN_DURATION: float = 1.5
 
 func _spawn_warp_ambush() -> void:
 	_show_banner("!! WARP AMBUSH !!", Color(1.0, 0.2, 0.2))
@@ -571,7 +572,7 @@ func _spawn_warp_ambush() -> void:
 	var nearest := _get_nearest_player()
 	var center := nearest.global_position if nearest else Vector2.ZERO
 
-	# Brief screen flash
+	# Pulsing red screen flash that lasts for the full warning window
 	var flash_layer := CanvasLayer.new()
 	flash_layer.layer = 8
 	get_tree().current_scene.add_child(flash_layer)
@@ -581,10 +582,40 @@ func _spawn_warp_ambush() -> void:
 	flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	flash_layer.add_child(flash_rect)
 	var flash_tw := flash_rect.create_tween()
-	flash_tw.tween_property(flash_rect, "color:a", 0.18, 0.1)
-	flash_tw.tween_property(flash_rect, "color:a", 0.0, 0.35)
-	flash_tw.tween_callback(flash_layer.queue_free)
+	flash_tw.set_loops(3)
+	flash_tw.tween_property(flash_rect, "color:a", 0.18, 0.25)
+	flash_tw.tween_property(flash_rect, "color:a", 0.04, 0.25)
+	flash_tw.chain().tween_callback(flash_layer.queue_free)
 
+	# Countdown label centred on screen
+	var count_layer := CanvasLayer.new()
+	count_layer.layer = 9
+	get_tree().current_scene.add_child(count_layer)
+	var count_label := Label.new()
+	count_label.text = "BRACE!"
+	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	count_label.add_theme_font_size_override("font_size", 52)
+	count_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+	var kfont := GameManager.kenney_font()
+	if kfont:
+		count_label.add_theme_font_override("font", kfont)
+	count_layer.add_child(count_label)
+	var lbl_tw := count_label.create_tween()
+	lbl_tw.tween_property(count_label, "modulate:a", 1.0, 0.1)
+	lbl_tw.tween_interval(AMBUSH_WARN_DURATION - 0.3)
+	lbl_tw.tween_property(count_label, "modulate:a", 0.0, 0.2)
+	lbl_tw.tween_callback(count_layer.queue_free)
+
+	# Delay the actual enemy spawn so the player can reposition
+	var delay_tw := create_tween()
+	delay_tw.tween_interval(AMBUSH_WARN_DURATION)
+	delay_tw.tween_callback(_do_ambush_spawn.bind(center))
+
+	_active_event = null
+
+func _do_ambush_spawn(center: Vector2) -> void:
 	var count := randi_range(AMBUSH_COUNT_MIN, AMBUSH_COUNT_MAX)
 	for i in count:
 		var angle := (TAU / count) * i + randf_range(-0.3, 0.3)

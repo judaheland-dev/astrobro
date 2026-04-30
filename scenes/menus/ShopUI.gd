@@ -313,15 +313,17 @@ func _show_shop_for_player() -> void:
 	_populate_purchased(player)
 	_populate_stats(player)
 
-# Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary]
+# Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary, Mythic]
 func _get_rarity_weights(wave: int) -> Array[float]:
 	var t := clampf(float(wave - 1) / 9.0, 0.0, 1.0)
+	var t2 := clampf((float(wave) - 12.0) / 6.0, 0.0, 1.0)
 	var weights: Array[float] = [
 		lerpf(60.0, 25.0, t),   # COMMON
 		lerpf(25.0, 28.0, t),   # UNCOMMON
 		lerpf(12.0, 25.0, t),   # RARE
 		lerpf(3.0,  15.0, t),   # EPIC
-		lerpf(0.0,  7.0,  t),   # LEGENDARY
+		lerpf(0.0,  5.0,  t),   # LEGENDARY
+		lerpf(0.0,  3.0,  t2),  # MYTHIC
 	]
 	return weights
 
@@ -332,6 +334,7 @@ func _rarity_color(rarity: int) -> Color:
 		2: return Color(0.2,  0.45, 0.95)   # RARE - blue
 		3: return Color(0.65, 0.1,  0.95)   # EPIC - purple
 		4: return Color(0.95, 0.7,  0.0)    # LEGENDARY - gold
+		5: return Color(1.0,  0.1,  0.8)    # MYTHIC - hot magenta
 		_: return Color(0.55, 0.55, 0.55)
 
 func _rarity_name(rarity: int) -> String:
@@ -341,6 +344,7 @@ func _rarity_name(rarity: int) -> String:
 		2: return "RARE"
 		3: return "EPIC"
 		4: return "LEGENDARY"
+		5: return "MYTHIC"
 		_: return "COMMON"
 
 func _weighted_sample_weapons(pool: Array[WeaponData], weights: Array[float], count: int) -> Array[WeaponData]:

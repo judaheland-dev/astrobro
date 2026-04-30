@@ -199,12 +199,29 @@ func _random_spawn_position() -> Vector2:
 	# Arena is 1920x1200 centered at origin; nav mesh covers ~±950 x ±590.
 	var hw := 900.0   # safe horizontal half-width (wall at 960)
 	var hh := 560.0   # safe vertical half-height (wall at 600)
+	const MIN_PLAYER_DIST: float = 200.0
+	for _attempt in 10:
+		var edge := randi() % 4
+		var pos: Vector2
+		match edge:
+			0: pos = Vector2(randf_range(-hw, hw), -hh)
+			1: pos = Vector2(randf_range(-hw, hw),  hh)
+			2: pos = Vector2(-hw, randf_range(-hh, hh))
+			_: pos = Vector2( hw, randf_range(-hh, hh))
+		var too_close := false
+		for p in _targets:
+			if is_instance_valid(p) and pos.distance_to(p.global_position) < MIN_PLAYER_DIST:
+				too_close = true
+				break
+		if not too_close:
+			return pos
+	# Fallback if all attempts were too close (shouldn't normally happen)
 	var edge := randi() % 4
 	match edge:
-		0: return Vector2(randf_range(-hw, hw), -hh)   # top edge
-		1: return Vector2(randf_range(-hw, hw),  hh)   # bottom edge
-		2: return Vector2(-hw, randf_range(-hh, hh))   # left edge
-		_: return Vector2( hw, randf_range(-hh, hh))   # right edge
+		0: return Vector2(randf_range(-hw, hw), -hh)
+		1: return Vector2(randf_range(-hw, hw),  hh)
+		2: return Vector2(-hw, randf_range(-hh, hh))
+		_: return Vector2( hw, randf_range(-hh, hh))
 
 func _on_enemy_died(enemy: BaseEnemy) -> void:
 	active_enemies -= 1

@@ -4,27 +4,27 @@
 
 [resource]
 script = ExtResource("1")
-id = &"beam_laser_t2"
-display_name = "Plasma Cutter Mk.II"
-description = "Extended-range plasma cutter. Burns deeper and wider."
+id = &"beam_laser_t3"
+display_name = "Plasma Cutter Mk.III"
+description = "Industrial-grade plasma torch. Extreme range and burn damage."
 ammo_type = 5
 weapon_class = 1
-shop_cost = 190
-damage = 28.0
+shop_cost = 0
+damage = 36.0
 fire_rate = 1.0
 projectile_speed = 0.0
-range = 360.0
+range = 460.0
 spread = 0.0
 projectile_count = 1
 piercing = 0
 aoe_radius = 0.0
 projectile_scene = null
 unlock_cost = 0
-rarity = 3
+rarity = 4
 projectile_scale = Vector2(1.0, 1.0)
-projectile_modulate = Color(0.05, 1.0, 0.55, 1.0)
+projectile_modulate = Color(0.0, 1.0, 0.7, 1.0)
 projectile_hitbox_size = Vector2(10.0, 4.0)
 emit_exhaust_trail = false
-tier = 2
-forged_weapon_id = &"beam_laser_t3"
+tier = 3
+forged_weapon_id = &""
 is_forge_only = true
