@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_005.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"armor_piercing"
+display_name = "AP Rounds"
+description = "+5 Armor Penetration (bypasses enemy armor)"
+scope = 1
+stat_deltas = {21: 5.0}
+shop_price = 50
+max_stacks = 5
+rarity = 0

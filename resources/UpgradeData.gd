@@ -36,6 +36,14 @@ enum StatKey {
 	SHIELD_MAX,            # increases max shield capacity
 	SHIELD_REGEN_RATE,     # increases shield regen speed (HP/s)
 	CRIT_CHANCE,           # additive crit probability (0..1)
+	CRIT_MULTIPLIER,       # additive crit damage multiplier (default 2.0, e.g. +0.5 → 2.5×)
+	BOUNCE_COUNT,          # weapon: projectiles ricochet to N additional enemies after first hit
+	CHAIN_COUNT,           # weapon: arcs to N nearby enemies on each hit
+	FORK_COUNT,            # weapon: spawns N fan-out sub-projectiles on projectile death
+	ARMOR_PEN,             # weapon: flat armor bypass (subtracted from target's armor)
+	KNOCKBACK_FORCE,       # weapon: impulse applied to enemy on hit (pixels/s)
+	DODGE_CHANCE,          # character: % chance to completely evade incoming hit (0..1)
+	ON_KILL_HEAL,          # character: HP healed on each kill
 }
 
 @export var id: StringName = &""

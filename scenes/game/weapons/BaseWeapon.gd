@@ -13,6 +13,12 @@ var range: float = 600.0
 var spread: float = 0.0
 var projectile_count: int = 1
 var piercing: int = 0
+var bounce_count: int = 0
+var chain_count: int = 0
+var chain_radius: float = 200.0
+var fork_count: int = 0
+var armor_pen: float = 0.0
+var knockback_force: float = 0.0
 var port_index: int = 0   # which hull port this weapon occupies (see Player.PORT_DATA)
 
 var _fire_cooldown: float = 0.0
@@ -34,6 +40,12 @@ func _ready() -> void:
 		spread           = weapon_data.spread
 		projectile_count = weapon_data.projectile_count
 		piercing         = weapon_data.piercing
+		bounce_count     = weapon_data.bounce_count
+		chain_count      = weapon_data.chain_count
+		chain_radius     = weapon_data.chain_radius
+		fork_count       = weapon_data.fork_count
+		armor_pen        = weapon_data.armor_pen
+		knockback_force  = weapon_data.knockback_force
 
 func _process(delta: float) -> void:
 	if _fire_cooldown > 0.0:
@@ -124,6 +136,13 @@ func _spawn_projectiles(base_dir: Vector2, is_chain: bool = false) -> void:
 			# Homing toward enemies (player homing missiles)
 			if weapon_data.is_homing:
 				proj.enemy_homing_strength = weapon_data.homing_strength
+			# New mechanics
+			proj.bounce_count    = bounce_count
+			proj.chain_count     = chain_count
+			proj.chain_radius    = chain_radius
+			proj.fork_count      = fork_count
+			proj.armor_pen       = armor_pen
+			proj.knockback_force = knockback_force
 		parent.add_child(proj)
 		# Tint the procedural trail to match the projectile colour
 		var trail := proj.get_node_or_null("Trail")
@@ -153,6 +172,11 @@ func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
 		UpgradeData.StatKey.PROJECTILE_SPEED: projectile_speed += delta
 		UpgradeData.StatKey.RANGE:           range            += delta
 		UpgradeData.StatKey.SPREAD:          spread            = maxf(0.0, spread + delta)
+		UpgradeData.StatKey.BOUNCE_COUNT:    bounce_count      = maxi(0, bounce_count + int(delta))
+		UpgradeData.StatKey.CHAIN_COUNT:     chain_count       = maxi(0, chain_count + int(delta))
+		UpgradeData.StatKey.FORK_COUNT:      fork_count        = maxi(0, fork_count + int(delta))
+		UpgradeData.StatKey.ARMOR_PEN:       armor_pen         += delta
+		UpgradeData.StatKey.KNOCKBACK_FORCE: knockback_force   += delta
 
 func _sfx_for_weapon() -> String:
 	if weapon_data == null:

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_003.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"chain_shot"
+display_name = "Chain Lightning"
+description = "Hits arc to +1 nearby enemy within 200 px"
+scope = 1
+stat_deltas = {19: 1.0}
+shop_price = 80
+max_stacks = 2
+rarity = 2

@@ -33,6 +33,12 @@ var _shield_ring: Sprite2D = null
 # Stun state
 var _stun_timer: float = 0.0
 
+# Knockback
+var _knockback_velocity: Vector2 = Vector2.ZERO
+
+func apply_knockback(impulse: Vector2) -> void:
+	_knockback_velocity += impulse
+
 var _state: State = State.CHASE
 var _contact_timer: float = 0.0
 var _ranged_timer: float = 0.0
@@ -132,6 +138,15 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
+	# Knockback: override AI movement briefly while impulse decays
+	if _knockback_velocity.length_squared() > 4.0:
+		velocity = _knockback_velocity
+		move_and_slide()
+		_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, delta * 10.0)
+		return
+	else:
+		_knockback_velocity = Vector2.ZERO
+
 	var target := _get_primary_target()
 	if target == null:
 		return
@@ -215,13 +230,13 @@ func _attack_contact(target: Node) -> void:
 		target.take_damage(contact_damage)
 		_contact_timer = contact_cooldown
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, armor_penetration: float = 0.0) -> void:
 	if _state == State.DEAD:
 		return
 	_shield_regen_timer = shield_regen_delay  # reset regen delay on any hit
 	if GameManager.ion_storm_active:
 		amount *= 1.5
-	var effective := maxf(0.0, amount - armor)
+	var effective := maxf(0.0, amount - maxf(0.0, armor - armor_penetration))
 	if current_shield > 0.0:
 		var absorbed := minf(current_shield, effective)
 		current_shield -= absorbed

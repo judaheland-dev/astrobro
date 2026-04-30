@@ -76,6 +76,22 @@ enum WeaponClass {
 @export var is_homing: bool = false
 @export var homing_strength: float = 0.0   # turn rate in rad/s (0 = straight)
 
+# Ricochet: after hitting an enemy, projectile bounces to N more targets.
+@export var bounce_count: int = 0
+
+# Chain: on any hit, arc electricity to N nearby enemies within chain_radius.
+@export var chain_count: int = 0
+@export var chain_radius: float = 200.0
+
+# Fork: on projectile death, spawn N sub-projectiles fanning out.
+@export var fork_count: int = 0
+
+# Armor penetration: flat armor value bypassed on each hit.
+@export var armor_pen: float = 0.0
+
+# Knockback: impulse (pixels/s) applied to enemy on hit.
+@export var knockback_force: float = 0.0
+
 # Forging: two copies of this weapon can be combined into a tier-2 variant.
 @export var tier: int = 1
 @export var forged_weapon_id: StringName = &""  # id of weapon produced by forging two copies

@@ -49,6 +49,10 @@ var crit_chance: float = 0.0
 var crit_multiplier: float = 2.0
 var emp_radius: float = 0.0
 
+# Dodge and on-kill healing
+var dodge_chance: float = 0.0
+var on_kill_heal: float = 0.0
+
 # Afterburner
 var boost_factor: float = 0.0         # speed multiplier while boosting (0 = no boost)
 var boost_duration: float = 0.7       # seconds per burst
@@ -281,6 +285,9 @@ func activate_boost() -> void:
 # --- Health ---
 
 func take_damage(amount: float) -> void:
+	if dodge_chance > 0.0 and randf() < dodge_chance:
+		_flash_dodge()
+		return
 	if damage_block_chance > 0.0 and _block_cooldown <= 0.0 and randf() < damage_block_chance:
 		_block_cooldown = 8.0
 		_flash_damage()
@@ -308,6 +315,12 @@ func take_damage(amount: float) -> void:
 	_update_damage_overlay(current_health / max_health)
 	if current_health <= 0.0:
 		_die()
+
+func _flash_dodge() -> void:
+	# Green flash indicating a successful dodge
+	sprite.modulate = Color(0.3, 2.5, 0.3, 1.0)
+	var tween := create_tween()
+	tween.tween_property(sprite, "modulate", Color.WHITE, 0.25)
 
 func _flash_damage() -> void:
 	# Red flash + scale punch + invincibility blink
@@ -420,9 +433,18 @@ func apply_upgrade(data: UpgradeData) -> void:
 				shield_regen_rate += delta
 			UpgradeData.StatKey.CRIT_CHANCE:
 				crit_chance += delta
+			UpgradeData.StatKey.CRIT_MULTIPLIER:
+				crit_multiplier += delta
+			UpgradeData.StatKey.DODGE_CHANCE:
+				dodge_chance = minf(dodge_chance + delta, 0.75)
+			UpgradeData.StatKey.ON_KILL_HEAL:
+				on_kill_heal += delta
 			UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
 			UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
-			UpgradeData.StatKey.SPREAD:
+			UpgradeData.StatKey.SPREAD, \
+			UpgradeData.StatKey.BOUNCE_COUNT, UpgradeData.StatKey.CHAIN_COUNT, \
+			UpgradeData.StatKey.FORK_COUNT, UpgradeData.StatKey.ARMOR_PEN, \
+			UpgradeData.StatKey.KNOCKBACK_FORCE:
 				for weapon in weapons:
 					if weapon.has_method("apply_stat_delta"):
 						weapon.apply_stat_delta(key, delta)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_006.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"kinetic_rounds"
+display_name = "Kinetic Payload"
+description = "Hits push enemies back (+200 knockback force)"
+scope = 1
+stat_deltas = {22: 200.0}
+shop_price = 50
+max_stacks = 4
+rarity = 0

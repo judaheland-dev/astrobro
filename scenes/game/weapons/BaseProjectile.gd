@@ -33,6 +33,14 @@ var on_hit_slow_duration: float = 2.0
 var on_hit_dot_dps: float = 0.0
 var on_hit_dot_ticks: int = 6
 
+# New projectile mechanics
+var bounce_count: int = 0         # remaining ricochet bounces
+var chain_count: int = 0          # arc to N nearby enemies on each hit
+var chain_radius: float = 200.0   # search radius for chain targets
+var fork_count: int = 0           # sub-projectiles spawned on death
+var armor_pen: float = 0.0        # flat armor bypass
+var knockback_force: float = 0.0  # impulse applied to enemy on hit
+
 var explode_on_expiry: bool = false    # detonate AoE at max range instead of quietly expiring
 var _exploded: bool = false
 var _distance_traveled: float = 0.0
@@ -139,7 +147,7 @@ func _on_body_entered(body: Node) -> void:
 			if randf() < shooter.crit_chance:
 				actual_damage *= shooter.crit_multiplier
 				is_crit = true
-		body.take_damage(actual_damage)
+		body.take_damage(actual_damage, armor_pen)
 		_spawn_impact_flash()
 		if shooter != null and "lifesteal" in shooter and shooter.lifesteal > 0.0:
 			if shooter.has_method("heal"):
@@ -147,11 +155,22 @@ func _on_body_entered(body: Node) -> void:
 		# EMP pulse on crit
 		if is_crit and shooter != null and "emp_radius" in shooter and shooter.emp_radius > 0.0:
 			_emp_pulse(shooter.emp_radius)
+		# Knockback
+		if knockback_force > 0.0 and body.has_method("apply_knockback"):
+			body.apply_knockback(direction * knockback_force)
 		# Status effects
 		if on_hit_slow_factor > 0.0 and body.has_method("apply_slow"):
 			body.apply_slow(on_hit_slow_factor, on_hit_slow_duration)
 		if on_hit_dot_dps > 0.0 and body.has_method("apply_dot"):
 			body.apply_dot(on_hit_dot_dps, on_hit_dot_ticks)
+		# On-kill heal
+		if "current_health" in body and body.current_health <= 0.0:
+			if shooter != null and "on_kill_heal" in shooter and shooter.on_kill_heal > 0.0:
+				if shooter.has_method("heal"):
+					shooter.heal(shooter.on_kill_heal)
+		# Chain arcs fire on every hit (even piercing)
+		if chain_count > 0:
+			_spawn_chain_projectiles(body)
 
 	# AoE explosion: trigger and destroy on first hit
 	if _exploded:
@@ -162,9 +181,90 @@ func _on_body_entered(body: Node) -> void:
 		queue_free()
 		return
 	if piercing <= 0:
-		queue_free()
+		if bounce_count > 0:
+			_try_bounce()
+		elif fork_count > 0:
+			_spawn_fork_projectiles()
+			queue_free()
+		else:
+			queue_free()
 	else:
 		piercing -= 1
+
+func _try_bounce() -> void:
+	## Ricochet to the nearest un-hit enemy within 350 px; expire if none found.
+	var best: Node = null
+	var best_d := 350.0 * 350.0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e) or e in _hit_entities:
+			continue
+		var d := global_position.distance_squared_to(e.global_position)
+		if d < best_d:
+			best_d = d
+			best = e
+	if best == null:
+		queue_free()
+		return
+	direction = (best.global_position - global_position).normalized()
+	rotation = direction.angle()
+	bounce_count -= 1
+
+func _spawn_chain_projectiles(origin: Node) -> void:
+	## Arc to up to chain_count nearby enemies not already hit.
+	var candidates: Array[Node] = []
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e) or e == origin or e in _hit_entities:
+			continue
+		if global_position.distance_squared_to(e.global_position) <= chain_radius * chain_radius:
+			candidates.append(e)
+	candidates.sort_custom(func(a, b):
+		return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position))
+	for i in mini(chain_count, candidates.size()):
+		var target: Node = candidates[i]
+		var arc_dir: Vector2 = (target.global_position - global_position).normalized()
+		_spawn_secondary_projectile(arc_dir, Color(0.3, 1.0, 0.5))
+
+func _spawn_fork_projectiles() -> void:
+	## Fan out fork_count sub-projectiles around the current travel direction.
+	if fork_count <= 0:
+		return
+	var angle_step := PI * 0.5 / maxf(1.0, float(fork_count))
+	var start_angle := -angle_step * (fork_count - 1) * 0.5
+	for i in fork_count:
+		var fork_dir := direction.rotated(start_angle + angle_step * i).normalized()
+		_spawn_secondary_projectile(fork_dir, Color(1.0, 0.8, 0.2))
+
+func _spawn_secondary_projectile(dir: Vector2, tint: Color) -> void:
+	## Shared helper: create a minimal child projectile that inherits key stats.
+	var proj := BaseProjectile.new()
+	proj.collision_layer = 0
+	proj.collision_mask = 2
+	var spr := Sprite2D.new()
+	var img := Image.create(10, 4, false, Image.FORMAT_RGBA8)
+	img.fill(tint)
+	spr.texture = ImageTexture.create_from_image(img)
+	spr.rotation_degrees = 90.0
+	proj.add_child(spr)
+	var col := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(10.0, 4.0)
+	col.shape = shape
+	proj.add_child(col)
+	proj.shooter = shooter
+	proj.armor_pen = armor_pen
+	proj.knockback_force = knockback_force
+	proj.on_hit_dot_dps = on_hit_dot_dps
+	proj.on_hit_dot_ticks = on_hit_dot_ticks
+	proj.on_hit_slow_factor = on_hit_slow_factor
+	proj.on_hit_slow_duration = on_hit_slow_duration
+	proj.projectile_color = tint
+	# Secondary projectiles do not chain/fork/bounce further
+	proj.chain_count = 0
+	proj.fork_count = 0
+	proj.bounce_count = 0
+	get_tree().current_scene.add_child(proj)
+	proj.global_position = global_position
+	proj.setup(dir, damage, speed, max_range * 0.6, 0)
 
 func _on_area_entered(area: Area2D) -> void:
 	## Intercept enemy missiles: destroy both this projectile and the incoming missile.
