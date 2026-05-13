@@ -563,7 +563,16 @@ func _on_xp_dropped(amount: int, world_pos: Vector2) -> void:
 		AudioManager.play_sfx(load(sfx), -8.0, randf_range(1.0, 1.2))
 
 func _on_coin_dropped(amount: int, world_pos: Vector2) -> void:
-	GameManager.run_coins_earned += amount
+	# Apply difficulty modifier to combat coin drops
+	var adj_amount := amount
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY:
+			adj_amount = 0  # No coins on Super Easy
+		GameManager.Difficulty.EASY:
+			adj_amount = maxi(1, int(amount * 0.5))
+		GameManager.Difficulty.SUPER_HARD:
+			adj_amount = amount
+	GameManager.run_coins_earned += adj_amount
 	# Award Scrap to nearest living player
 	var nearest: Player = null
 	var best_dist := INF
@@ -574,8 +583,9 @@ func _on_coin_dropped(amount: int, world_pos: Vector2) -> void:
 				best_dist = d
 				nearest = p
 	if nearest:
-		nearest.add_scrap(amount)
-	_spawn_floating_text("Scrap +%d" % amount, world_pos, Color(0.3, 0.9, 1.0))
+		nearest.add_scrap(adj_amount)
+	if adj_amount > 0:
+		_spawn_floating_text("Scrap +%d" % adj_amount, world_pos, Color(0.3, 0.9, 1.0))
 	var sfx := "res://assets/audio/sfx_coin_pickup.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), -6.0, randf_range(1.1, 1.3))

@@ -73,9 +73,33 @@ func _build_spawn_queue(wave: WaveData) -> void:
 	_spawn_queue.clear()
 	for i in wave.enemy_pool.size():
 		var data: EnemyData = wave.enemy_pool[i]
-		var count: int = wave.enemy_counts[i] if i < wave.enemy_counts.size() else 1
-		var wave_multiplier := 1.0 + (current_wave_index * 0.15)
-		var speed_mult := 1.0 + (current_wave_index * 0.02)
+		var base_count: int = wave.enemy_counts[i] if i < wave.enemy_counts.size() else 1
+		var base_multiplier := 1.0 + (current_wave_index * 0.15)
+		var base_speed := 1.0 + (current_wave_index * 0.02)
+		var wave_multiplier: float
+		var speed_mult: float
+		var count: int
+		match GameManager.current_difficulty:
+			GameManager.Difficulty.SUPER_EASY:
+				wave_multiplier = base_multiplier * 0.4
+				speed_mult = base_speed * 0.6
+				count = maxi(1, int(base_count * 0.5))
+			GameManager.Difficulty.EASY:
+				wave_multiplier = base_multiplier * 0.65
+				speed_mult = base_speed * 0.75
+				count = maxi(1, int(base_count * 0.75))
+			GameManager.Difficulty.HARD:
+				wave_multiplier = base_multiplier * 1.4
+				speed_mult = base_speed * 1.25
+				count = int(ceil(base_count * 1.2))
+			GameManager.Difficulty.SUPER_HARD:
+				wave_multiplier = base_multiplier * 2.0
+				speed_mult = base_speed * 1.6
+				count = int(ceil(base_count * 1.5))
+			_:
+				wave_multiplier = base_multiplier
+				speed_mult = base_speed
+				count = base_count
 		_spawn_queue.append({
 			"data": data,
 			"count": count,

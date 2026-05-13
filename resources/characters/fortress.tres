@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/CharacterData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fortress"
+display_name = "Fortress"
+description = "Planetary siege platform. Nigh-unkillable. Makes a fortune. Barely moves."
+max_health = 600.0
+move_speed = 75.0
+armor = 25.0
+xp_multiplier = 0.5
+coin_multiplier = 3.0
+starting_weapon = &"heavy_warhead"
+unlock_cost = 350000
+weapon_slots = 7
+preferred_upgrades = [&"hp_boost", &"lifesteal", &"armor_boost", &"heavy_plating", &"on_kill_heal"]
+excluded_upgrades = [&"speed_boost", &"afterburner", &"rapid_fire", &"fire_rate_boost", &"temporal_overdrive", &"xp_surge", &"singularity_core", &"warlord"]
+ship_color = Color(0.85, 0.35, 0.05, 1.0)
+weapon_class_bonuses = {0: -0.5, 1: -0.45, 2: -0.2, 3: 0.4, 4: 0.45}
+shield_max = 200.0
+shield_regen_rate = 50.0
+shield_regen_delay = 4.0

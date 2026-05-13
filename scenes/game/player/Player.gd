@@ -350,11 +350,13 @@ const REVIVE_SCRAP_PENALTY: int = 50
 func revive() -> void:
 	# Restore to half max health and re-enable physics
 	current_health = max_health * 0.5
+	if is_instance_valid(collision):
+		collision.disabled = false
 	set_physics_process(true)
 	show()
 	scale = Vector2.ONE
 	sprite.modulate = Color.WHITE
-	sprite.rotation = 0.0
+	sprite.rotation_degrees = 90.0
 	health_changed.emit(current_health, max_health)
 	_update_damage_overlay(current_health / max_health)
 	# Scrap penalty - take as much as the player has, up to the cap
@@ -370,6 +372,10 @@ func revive() -> void:
 
 func _die() -> void:
 	set_physics_process(false)
+	# Disable collision so enemy ContactAreas fire body_exited,
+	# preventing enemies stuck in ATTACK state from dealing damage to surviving players.
+	if is_instance_valid(collision):
+		collision.disabled = true
 	died.emit()
 	var death_sfx := "res://assets/audio/sfx_player_death.ogg"
 	if ResourceLoader.exists(death_sfx):
@@ -392,7 +398,7 @@ func gain_xp(amount: int) -> void:
 	while xp >= xp_threshold:
 		xp -= xp_threshold
 		level += 1
-		xp_threshold = int(xp_threshold * 1.4)
+		xp_threshold = int(xp_threshold * 1.2)
 		pending_upgrades += 1
 		leveled_up.emit(level)
 		var sfx := "res://assets/audio/sfx_levelup.ogg"

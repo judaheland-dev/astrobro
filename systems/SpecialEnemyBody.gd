@@ -13,7 +13,7 @@ var _dead: bool = false
 func _ready() -> void:
 	current_health = max_health
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, _armor_penetration: float = 0.0) -> void:
 	if _dead:
 		return
 	current_health -= amount

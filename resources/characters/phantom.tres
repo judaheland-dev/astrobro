@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/CharacterData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"phantom"
+display_name = "Phantom"
+description = "Wraith-class speedster. Near-invisible at max speed. Extreme XP, extreme fragility."
+max_health = 50.0
+move_speed = 380.0
+armor = 0.0
+xp_multiplier = 2.0
+coin_multiplier = 1.5
+starting_weapon = &"spread_laser"
+unlock_cost = 75000
+weapon_slots = 5
+preferred_upgrades = [&"speed_boost", &"xp_surge", &"damage_boost", &"fire_rate_boost", &"evasion_module"]
+excluded_upgrades = [&"heavy_plating", &"titan_plating", &"armor_boost", &"vitality_matrix", &"singularity_core", &"hp_boost"]
+ship_color = Color(0.85, 0.2, 1.0, 1.0)
+weapon_class_bonuses = {0: 0.3, 1: -0.3, 2: 0.3, 3: -0.5, 4: -0.45}

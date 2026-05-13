@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_008.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"overwatch_lens"
+display_name = "Overwatch Lens"
+description = "+80 Range, -1.5 Spread"
+scope = 1
+stat_deltas = {9: 80.0, 10: -1.5}
+shop_price = 55
+max_stacks = 3
+rarity = 1

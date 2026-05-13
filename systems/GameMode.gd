@@ -19,17 +19,32 @@ func setup(wm: WaveManager, player_list: Array[Player]) -> void:
 		p.died.connect(_on_player_died.bind(p))
 
 # Called when a wave finishes. Override to add mode-specific behaviour.
-func _on_wave_cleared(_wave_number: int) -> void:
+func _on_wave_cleared(wave_number: int) -> void:
 	var sfx := "res://assets/audio/sfx_wave_clear.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), 0.0, 1.0)
 	# Award the wave-clear bonus scrap to all players.
 	var idx := wave_manager.current_wave_index
-	if idx >= 0 and idx < wave_manager.wave_data_list.size():
-		var bonus: int = wave_manager.wave_data_list[idx].bonus_coins
-		if bonus > 0:
-			for p in players:
-				p.add_scrap(bonus)
+	var bonus: int = 0
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY:
+			bonus = 0  # No coins on Super Easy
+		GameManager.Difficulty.EASY:
+			if idx >= 0 and idx < wave_manager.wave_data_list.size():
+				bonus = maxi(0, int(wave_manager.wave_data_list[idx].bonus_coins * 0.5))
+		GameManager.Difficulty.NORMAL:
+			if idx >= 0 and idx < wave_manager.wave_data_list.size():
+				bonus = wave_manager.wave_data_list[idx].bonus_coins
+		GameManager.Difficulty.HARD:
+			# Escalating bonus: wave 1 = 10, wave 2 = 20, wave 3 = 30, etc.
+			bonus = wave_number * 10
+		GameManager.Difficulty.SUPER_HARD:
+			# Escalating bonus: wave 1 = 25, wave 2 = 50, wave 3 = 75, etc.
+			bonus = wave_number * 25
+	if bonus > 0:
+		for p in players:
+			p.add_scrap(bonus)
+		GameManager.run_coins_earned += bonus
 
 # Called when all waves in the list are done.
 func _on_all_waves_cleared() -> void:

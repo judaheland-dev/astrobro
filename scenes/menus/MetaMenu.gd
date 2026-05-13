@@ -4,12 +4,29 @@ extends CanvasLayer
 
 # Ships available to unlock; Scout and Sniper start unlocked (unlock_cost = 0).
 const SHIP_UNLOCKS: Array[Dictionary] = [
-	{"id": &"gunship",     "label": "Gunship",     "desc": "120 HP | 185 spd | Gatling",       "cost": 50},
-	{"id": &"rogue",       "label": "Rogue",       "desc": "80 HP | 260 spd | Spread Laser",   "cost": 75},
-	{"id": &"runner",      "label": "Runner",      "desc": "60 HP | 300 spd | Pistol",         "cost": 100},
-	{"id": &"dreadnought", "label": "Dreadnought", "desc": "250 HP | 100 spd | Twin Cannon",   "cost": 120},
-	{"id": &"tank",        "label": "Tank",        "desc": "180 HP | 130 spd | Shotgun",       "cost": 150},
+	{"id": &"gunship",     "label": "Gunship",     "desc": "120 HP | 185 spd | 1 armor | Gatling",              "cost": 300},
+	{"id": &"rogue",       "label": "Rogue",       "desc": "80 HP | 260 spd | 2x coins | Spread Laser",         "cost": 600},
+	{"id": &"runner",      "label": "Runner",      "desc": "60 HP | 300 spd | 1.5x XP | Pistol",               "cost": 1200},
+	{"id": &"dreadnought", "label": "Dreadnought", "desc": "250 HP | 100 spd | 8 armor | Twin Cannon",          "cost": 2500},
+	{"id": &"tank",        "label": "Tank",        "desc": "180 HP | 130 spd | 5 armor | 6 slots | Shotgun",    "cost": 5000},
+	{"id": &"vanguard",    "label": "Vanguard",    "desc": "200 HP | 220 spd | 3 armor | Shield | Beam Laser",  "cost": 15000},
+	{"id": &"phantom",     "label": "Phantom",     "desc": "50 HP | 380 spd | 2x XP | 1.5x coins | Spread",    "cost": 75000},
+	{"id": &"fortress",    "label": "Fortress",    "desc": "600 HP | 75 spd | 25 armor | Shield | 3x coins",    "cost": 350000},
+	{"id": &"nexus",       "label": "Nexus",       "desc": "350 HP | 270 spd | 12 armor | Shield | 8 slots",    "cost": 5000000},
+	{"id": &"singularity", "label": "Singularity", "desc": "1200 HP | 330 spd | 35 armor | Shield | 10 slots",  "cost": 1000000000},
 ]
+
+## Format large numbers with commas for readability (e.g. 1000000 -> "1,000,000").
+static func _format_credits(amount: int) -> String:
+	var s := str(amount)
+	var result := ""
+	var count := 0
+	for i in range(s.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			result = "," + result
+		result = s[i] + result
+		count += 1
+	return result
 
 var _credits_label: Label
 var _ships_container: VBoxContainer
@@ -52,7 +69,7 @@ func _ready() -> void:
 	_refresh()
 
 func _refresh() -> void:
-	_credits_label.text = "Credits: %d" % MetaProgression.get_coins()
+	_credits_label.text = "Credits: %s" % _format_credits(MetaProgression.get_coins())
 	for child in _ships_container.get_children():
 		child.queue_free()
 
@@ -66,7 +83,7 @@ func _refresh() -> void:
 			btn.text = "Owned"
 			btn.disabled = true
 		else:
-			btn.text = "Buy (%d Credits)" % entry["cost"]
+			btn.text = "Buy (%s Credits)" % _format_credits(entry["cost"])
 			btn.pressed.connect(_on_ship_unlock_pressed.bind(entry))
 		hbox.add_child(label)
 		hbox.add_child(btn)

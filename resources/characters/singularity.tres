@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/CharacterData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"singularity"
+display_name = "Singularity"
+description = "Reality-bending leviathan. 1200 HP, 35 armor, 10 slots, 6x coins. Worth every credit."
+max_health = 1200.0
+move_speed = 330.0
+armor = 35.0
+xp_multiplier = 3.0
+coin_multiplier = 6.0
+starting_weapon = &"penetrator_beam"
+unlock_cost = 1000000000
+weapon_slots = 10
+preferred_upgrades = [&"damage_boost", &"fire_rate_boost", &"hp_boost", &"speed_boost", &"lifesteal", &"xp_surge"]
+ship_color = Color(0.85, 0.75, 1.0, 1.0)
+weapon_class_bonuses = {0: 0.4, 1: 0.35, 2: 0.35, 3: 0.45, 4: 0.4}
+shield_max = 600.0
+shield_regen_rate = 120.0
+shield_regen_delay = 1.5

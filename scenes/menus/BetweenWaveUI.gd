@@ -95,8 +95,12 @@ func _populate_choices(player: Player) -> void:
 	var all_upgrades := _load_all_upgrades()
 	var weights := _get_rarity_weights(_wave_number)
 	var preferred: Array[StringName] = []
+	var excluded: Array[StringName] = []
 	if player.character_data:
 		preferred = player.character_data.preferred_upgrades
+		excluded = player.character_data.excluded_upgrades
+	if excluded.size() > 0:
+		all_upgrades = all_upgrades.filter(func(u: UpgradeData) -> bool: return u.id not in excluded)
 	var offered := _weighted_sample(all_upgrades, weights, CHOICES_COUNT, preferred)
 
 	var card_font := GameManager.kenney_font()

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/shield3.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"bulwark"
+display_name = "Bulwark Plating"
+description = "+6 Armor, +10% Damage Block Chance"
+scope = 0
+stat_deltas = {2: 6.0, 11: 0.1}
+shop_price = 90
+max_stacks = 3
+rarity = 2

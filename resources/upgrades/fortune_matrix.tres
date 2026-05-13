@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_010.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"fortune_matrix"
+display_name = "Fortune Matrix"
+description = "+15% XP Gain, +15% Coin Gain"
+scope = 0
+stat_deltas = {6: 0.15, 7: 0.15}
+shop_price = 60
+max_stacks = 3
+rarity = 1

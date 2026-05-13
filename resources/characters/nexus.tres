@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/CharacterData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"nexus"
+display_name = "Nexus"
+description = "Apex warship. Unmatched across every stat. 8 slots for extreme builds."
+max_health = 350.0
+move_speed = 270.0
+armor = 12.0
+xp_multiplier = 1.6
+coin_multiplier = 2.5
+starting_weapon = &"volley_missiles"
+unlock_cost = 5000000
+weapon_slots = 8
+preferred_upgrades = [&"damage_boost", &"fire_rate_boost", &"hp_boost", &"speed_boost", &"lifesteal"]
+ship_color = Color(1.0, 0.85, 0.1, 1.0)
+weapon_class_bonuses = {0: 0.2, 1: 0.15, 2: 0.2, 3: 0.25, 4: 0.3}
+shield_max = 250.0
+shield_regen_rate = 70.0
+shield_regen_delay = 2.0

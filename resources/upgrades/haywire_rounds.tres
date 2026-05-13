@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_005.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"haywire_rounds"
+display_name = "Haywire Rounds"
+description = "+8 Armor Pen, +300 Knockback"
+scope = 1
+stat_deltas = {21: 8.0, 22: 300.0}
+shop_price = 60
+max_stacks = 3
+rarity = 1

@@ -30,6 +30,9 @@ class_name CharacterData
 # UpgradeData ids that get 3x weight in between-wave offers
 @export var preferred_upgrades: Array[StringName] = []
 
+# UpgradeData ids that are never offered to this character (between-wave or shop)
+@export var excluded_upgrades: Array[StringName] = []
+
 # WeaponData.WeaponClass int -> damage multiplier delta (e.g. 0.2 = +20%, -0.15 = -15%)
 @export var weapon_class_bonuses: Dictionary = {}
 

@@ -17,6 +17,14 @@ enum RunMode {
 	PVP_OVERLORD,
 }
 
+enum Difficulty {
+	SUPER_EASY,
+	EASY,
+	NORMAL,
+	HARD,
+	SUPER_HARD,
+}
+
 enum GameState {
 	MENU,
 	PLAYING,
@@ -28,6 +36,7 @@ enum GameState {
 
 var current_mode: RunMode = RunMode.WAVE_SURVIVAL
 var current_state: GameState = GameState.MENU
+var current_difficulty: Difficulty = Difficulty.NORMAL
 var player_count: int = 1
 var selected_characters: Array[StringName] = []
 

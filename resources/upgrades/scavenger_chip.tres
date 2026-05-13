@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_040.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"scavenger_chip"
+display_name = "Scavenger Chip"
+description = "+20% Chance to Double Scrap Drops"
+scope = 0
+stat_deltas = {12: 0.2}
+shop_price = 55
+max_stacks = 4
+rarity = 1

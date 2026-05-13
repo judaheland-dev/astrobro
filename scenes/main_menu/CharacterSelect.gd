@@ -15,6 +15,8 @@ var _p2_overlord_label: Label = null  # shown in PVP mode instead of P2 picker
 var _ship_sprites: Array = [null, null]
 var _star_nodes: Array = []
 var _is_pvp: bool = false
+var _diff_btns: Array[Button] = []
+var _diff_hint: Label = null
 
 func _ready() -> void:
 	_available = MetaProgression._data.unlocked_characters.duplicate()
@@ -135,6 +137,64 @@ func _ready() -> void:
 	if GameManager.current_mode == GameManager.RunMode.PVP_OVERLORD:
 		_on_pvp_pressed()
 
+	# Difficulty selector
+	var diff_label := Label.new()
+	diff_label.text = "Difficulty"
+	diff_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if font:
+		diff_label.add_theme_font_override("font", font)
+		diff_label.add_theme_font_size_override("font_size", 18)
+	diff_label.add_theme_color_override("font_color", Color(0.8, 0.8, 1.0))
+	vbox.add_child(diff_label)
+
+	var diff_hbox := HBoxContainer.new()
+	diff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	diff_hbox.add_theme_constant_override("separation", 8)
+	vbox.add_child(diff_hbox)
+
+	var diff_defs: Array[Dictionary] = [
+		{"label": "Super Easy", "diff": GameManager.Difficulty.SUPER_EASY,  "color": Color(0.3, 0.9, 0.3)},
+		{"label": "Easy",       "diff": GameManager.Difficulty.EASY,       "color": Color(0.5, 0.95, 0.5)},
+		{"label": "Normal",     "diff": GameManager.Difficulty.NORMAL,     "color": Color(0.4, 0.8, 1.0)},
+		{"label": "Hard",       "diff": GameManager.Difficulty.HARD,       "color": Color(1.0, 0.6, 0.2)},
+		{"label": "Super Hard", "diff": GameManager.Difficulty.SUPER_HARD, "color": Color(1.0, 0.35, 0.35)},
+	]
+	for def in diff_defs:
+		var btn := Button.new()
+		btn.text = def["label"]
+		btn.toggle_mode = true
+		btn.custom_minimum_size = Vector2(120, 40)
+		if font:
+			btn.add_theme_font_override("font", font)
+			btn.add_theme_font_size_override("font_size", 18)
+		var col: Color = def["color"]
+		var pressed_style := StyleBoxFlat.new()
+		pressed_style.bg_color = col.darkened(0.3)
+		pressed_style.border_color = col
+		pressed_style.set_border_width_all(2)
+		btn.add_theme_stylebox_override("pressed", pressed_style)
+		var d: GameManager.Difficulty = def["diff"]
+		btn.pressed.connect(func(): _on_difficulty_pressed(d))
+		diff_hbox.add_child(btn)
+		_diff_btns.append(btn)
+
+	# Default to Normal
+	GameManager.current_difficulty = GameManager.Difficulty.NORMAL
+	_diff_btns[2].button_pressed = true
+
+	# Difficulty hints
+	_diff_hint = Label.new()
+	_diff_hint.name = "DiffHint"
+	_diff_hint.text = ""
+	_diff_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_diff_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diff_hint.custom_minimum_size = Vector2(580, 0)
+	if font:
+		_diff_hint.add_theme_font_override("font", font)
+		_diff_hint.add_theme_font_size_override("font_size", 13)
+	_diff_hint.add_theme_color_override("font_color", Color(0.75, 0.75, 0.9))
+	vbox.add_child(_diff_hint)
+
 	# Start / Back
 	var start_btn := Button.new()
 	start_btn.text = "Start"
@@ -254,6 +314,21 @@ func _on_start_pressed() -> void:
 			_selected.slice(0, _player_count),
 			_player_count
 		)
+
+func _on_difficulty_pressed(diff: GameManager.Difficulty) -> void:
+	AudioManager.play_ui_click()
+	GameManager.current_difficulty = diff
+	for i in _diff_btns.size():
+		_diff_btns[i].button_pressed = (i == int(diff))
+	var hint_texts: Array[String] = [
+		"Enemies are frail and slow. You earn zero coins.",
+		"Weaker enemies, half the wave-clear bonus, and reduced combat drops.",
+		"Standard experience.",
+		"Tougher enemies. Earn escalating wave bonuses: 10, 20, 30... coins per wave.",
+		"Enemies are twice as tough, faster, and more numerous. Earn escalating wave bonuses: 25, 50, 75... coins per wave.",
+	]
+	if _diff_hint:
+		_diff_hint.text = hint_texts[int(diff)]
 
 func _on_back_pressed() -> void:
 	AudioManager.play_ui_click()

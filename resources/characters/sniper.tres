@@ -16,5 +16,6 @@ starting_weapon = &"sniper_rifle"
 unlock_cost = 0
 weapon_slots = 4
 preferred_upgrades = [&"damage_boost", &"fire_rate_boost"]
+excluded_upgrades = [&"speed_boost", &"afterburner", &"heavy_plating", &"titan_plating", &"vitality_matrix", &"singularity_core"]
 ship_color = Color(0.4, 1.0, 0.9, 1.0)
-weapon_class_bonuses = {0: -0.15, 1: 0.3, 2: -0.1}
+weapon_class_bonuses = {0: -0.35, 1: 0.3, 2: -0.3}

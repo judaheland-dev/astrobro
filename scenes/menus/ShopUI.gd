@@ -536,10 +536,21 @@ func _render_shop(player: Player) -> void:
 			cost_label.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(cost_label)
 
+		# Check if this offer can be forge-combined: slots full + player has one matching weapon with a forge path
+		var can_shop_forge := false
+		if is_full and wdata.forged_weapon_id != &"":
+			for w in player.weapons:
+				var wd: WeaponData = w.get("weapon_data")
+				if wd != null and wd.id == wdata.id:
+					can_shop_forge = true
+					break
+
 		var can_buy := player.scrap >= wdata.shop_cost and not is_full
 		var buy_btn := Button.new()
 		if can_buy:
 			buy_btn.text = "Buy"
+		elif is_full and can_shop_forge:
+			buy_btn.text = "Slots full — Forge below"
 		elif is_full:
 			buy_btn.text = "Sell a weapon first"
 		else:
@@ -551,6 +562,19 @@ func _render_shop(player: Player) -> void:
 			buy_btn.add_theme_font_override("font", font)
 			buy_btn.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(buy_btn)
+
+		if can_shop_forge:
+			var can_forge_cost := player.scrap >= wdata.shop_cost
+			var shop_forge_btn := Button.new()
+			shop_forge_btn.text = "FORGE  (%d scrap)" % wdata.shop_cost
+			shop_forge_btn.disabled = not can_forge_cost
+			shop_forge_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+			shop_forge_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
+			if font:
+				shop_forge_btn.add_theme_font_override("font", font)
+				shop_forge_btn.add_theme_font_size_override("font_size", 13)
+			shop_forge_btn.pressed.connect(_on_shop_forge_pressed.bind(player, slot_idx))
+			card_vbox.add_child(shop_forge_btn)
 
 		var lock_btn := Button.new()
 		lock_btn.text = "Unlock" if is_locked else "Lock"
@@ -889,6 +913,53 @@ func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringNam
 	_update_title(player)
 	call_deferred("_restore_focus")
 
+func _on_shop_forge_pressed(player: Player, slot_idx: int) -> void:
+	if slot_idx >= _offered_weapons.size():
+		return
+	var wdata := _offered_weapons[slot_idx]
+	if wdata == null or wdata.forged_weapon_id == &"":
+		return
+	if player.scrap < wdata.shop_cost:
+		return
+	# Find the one existing weapon to combine with the shop offer
+	var to_remove: Node = null
+	for w in player.weapons:
+		var wd: WeaponData = w.get("weapon_data")
+		if wd != null and wd.id == wdata.id:
+			to_remove = w
+			break
+	if to_remove == null:
+		return
+	AudioManager.play_ui_click()
+	player.scrap -= wdata.shop_cost
+	player.scrap_changed.emit(player.scrap)
+	# Remove the existing weapon from the loadout
+	if _selected_weapon_node == to_remove:
+		_selected_weapon_node = null
+	player.weapons.erase(to_remove)
+	to_remove.queue_free()
+	# Load and equip the forged weapon
+	var forged_path := "res://resources/weapons/%s.tres" % wdata.forged_weapon_id
+	if not ResourceLoader.exists(forged_path):
+		push_error("ShopForge: missing resource %s" % forged_path)
+		return
+	var forged_data: WeaponData = ResourceLoader.load(forged_path)
+	var new_weapon := _make_weapon_node(forged_data)
+	new_weapon._projectile_parent = _projectile_parent
+	player.add_weapon(new_weapon)
+	var sfx := "res://assets/audio/sfx_levelup.ogg"
+	if ResourceLoader.exists(sfx):
+		AudioManager.play_sfx(load(sfx), -3.0, 1.1)
+	_replace_weapon_offer(slot_idx)
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	_populate_loadout(player)
+	_populate_stats(player)
+	_update_title(player)
+	call_deferred("_restore_focus")
+
 func _make_weapon_node(wdata: WeaponData) -> BaseWeapon:
 	var weapon: BaseWeapon
 	if wdata.ammo_type == WeaponData.AmmoType.BEAM:
@@ -970,8 +1041,11 @@ func _generate_module_offers(player: Player) -> void:
 		_locked_modules[slot] = false
 
 func _filter_modules_for_player(pool: Array[UpgradeData], player: Player) -> Array[UpgradeData]:
+	var excluded: Array[StringName] = player.character_data.excluded_upgrades if player.character_data else []
 	var result: Array[UpgradeData] = []
 	for item in pool:
+		if item.id in excluded:
+			continue
 		if item.max_stacks == -1 or player.count_upgrade(item.id) < item.max_stacks:
 			result.append(item)
 	if result.is_empty():
