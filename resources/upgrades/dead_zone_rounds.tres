@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_010.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"dead_zone_rounds"
+display_name = "Dead Zone Rounds"
+description = "+10 Armor Pen, -0.5 Fire Rate. Punches through armor but fires slower."
+scope = 1
+stat_deltas = {21: 10.0, 4: -0.5}
+shop_price = 75
+max_stacks = 3
+rarity = 1

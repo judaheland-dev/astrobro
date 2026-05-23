@@ -14,6 +14,8 @@ var _remaining_picks: int = 0
 var _total_picks: int = 0
 
 var _title_label: Label
+var _power_label: Label
+var _alert_label: Label
 var _choices_container: HBoxContainer
 var _continue_button: Button
 
@@ -43,16 +45,33 @@ func _ready() -> void:
 		_title_label.add_theme_font_size_override("font_size", 28)
 	vbox.add_child(_title_label)
 
-	_choices_container = HBoxContainer.new()
-	_choices_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	_choices_container.add_theme_constant_override("separation", 16)
-	vbox.add_child(_choices_container)
+	_power_label = Label.new()
+	_power_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_power_label.modulate = Color(1.0, 0.82, 0.2)
+	if title_font:
+		_power_label.add_theme_font_override("font", title_font)
+		_power_label.add_theme_font_size_override("font_size", 18)
+	vbox.add_child(_power_label)
+
+	_alert_label = Label.new()
+	_alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_alert_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if title_font:
+		_alert_label.add_theme_font_override("font", title_font)
+		_alert_label.add_theme_font_size_override("font_size", 16)
+	_alert_label.visible = false
+	vbox.add_child(_alert_label)
 
 	_continue_button = Button.new()
 	_continue_button.text = "Skip"
 	_continue_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	_continue_button.pressed.connect(_on_continue_pressed)
 	vbox.add_child(_continue_button)
+
+	_choices_container = HBoxContainer.new()
+	_choices_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_choices_container.add_theme_constant_override("separation", 16)
+	vbox.add_child(_choices_container)
 
 func show_for_players(players: Array[Player], wave_number: int, wave_manager: WaveManager) -> void:
 	_players = players
@@ -69,7 +88,24 @@ func show_for_players(players: Array[Player], wave_number: int, wave_manager: Wa
 		_close()
 		return
 	visible = true
+	_update_dominance_alert()
 	_show_level_up_for_player()
+
+func _update_dominance_alert() -> void:
+	if _wave_manager == null or _wave_manager.power_calculator == null:
+		_alert_label.visible = false
+		return
+	var dom := _wave_manager.power_calculator.dominance_score
+	if dom >= PlayerPowerCalculator.DOMINANCE_EXTREME:
+		_alert_label.text = "!! EXTREME POWER — enemy surge incoming next wave !!"
+		_alert_label.modulate = Color(1.0, 0.2, 0.2)
+		_alert_label.visible = true
+	elif dom >= PlayerPowerCalculator.DOMINANCE_STRONG:
+		_alert_label.text = "WARNING: High power detected — counter-enemies incoming"
+		_alert_label.modulate = Color(1.0, 0.55, 0.05)
+		_alert_label.visible = true
+	else:
+		_alert_label.visible = false
 
 func _show_level_up_for_player() -> void:
 	# Advance past any players who earned zero level-ups this wave.
@@ -86,6 +122,10 @@ func _show_level_up_for_player() -> void:
 	if _total_picks > 1:
 		pick_text = " (Pick 1 of %d)" % _total_picks
 	_title_label.text = "Wave %d cleared!\nPlayer %d - Choose an upgrade:%s" % [_wave_number, _current_player_index + 1, pick_text]
+	var pw_score := PlayerPowerCalculator.calc_display_power(player)
+	var pw_lv    := PlayerPowerCalculator.power_to_level(pw_score)
+	var pw_prog  := PlayerPowerCalculator.power_level_progress(pw_score)
+	_power_label.text = "Power Level %d  (%.0f%% to Lv %d)" % [pw_lv, pw_prog * 100.0, pw_lv + 1]
 	_populate_choices(player)
 
 func _populate_choices(player: Player) -> void:
@@ -105,8 +145,10 @@ func _populate_choices(player: Player) -> void:
 
 	var card_font := GameManager.kenney_font()
 	for data in offered:
+		var pw_d := PlayerPowerCalculator.module_power_delta(data, player)
+		var pw_suffix := ("\n+%.2f power" % pw_d) if pw_d >= 0.01 else ""
 		var btn := Button.new()
-		btn.text = "[%s]\n%s\n%s" % [_rarity_name(data.rarity), data.display_name, data.description]
+		btn.text = "[%s]\n%s\n%s%s" % [_rarity_name(data.rarity), data.display_name, data.description, pw_suffix]
 		btn.custom_minimum_size = Vector2(180.0, 110.0)
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if card_font:
@@ -236,6 +278,13 @@ func _on_upgrade_chosen(player: Player, data: UpgradeData) -> void:
 	else:
 		_current_player_index += 1
 		_show_level_up_for_player()
+
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_accept"):
+		get_viewport().set_input_as_handled()
+		_on_continue_pressed()
 
 func _on_continue_pressed() -> void:
 	AudioManager.play_ui_click()

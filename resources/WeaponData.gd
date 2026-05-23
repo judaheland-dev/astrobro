@@ -18,7 +18,9 @@ enum WeaponClass {
 	PRECISION,   # slow, high damage, long range
 	SPREAD,      # wide-angle burst or multi-shot
 	HEAVY,       # high damage, slow, tankier projectiles
-	EXPLOSIVE,  # AoE / piercing, slow fire rate
+	EXPLOSIVE,   # AoE / piercing, slow fire rate
+	SUPPORT,     # utility / debuff: knockback, DoT, crowd control
+	TRAP,        # deployable mines and area-denial
 }
 
 @export var id: StringName = &""
@@ -42,6 +44,8 @@ enum WeaponClass {
 
 # Optional custom fire sound; if null BaseWeapon falls back to sfx_laser1.ogg
 @export var fire_sfx: AudioStream = null
+# Volume adjustment for the fire sound in dB (0 = no change, negative = quieter)
+@export var fire_sfx_volume_db: float = 0.0
 
 # Unlock cost in meta coins (0 = free/default)
 @export var unlock_cost: int = 0

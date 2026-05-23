@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="Script" path="res://resources/RangedAttackData.gd" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_enemy_death.ogg" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemyBlack2.png" id="4"]
+
+[sub_resource type="Resource" id="ra_1"]
+script = ExtResource("2")
+fire_mode = 3
+fire_cooldown = 4.5
+projectile_count = 1
+spread_angle_deg = 0.0
+burst_interval = 0.18
+projectile_speed = 200.0
+damage_multiplier = 2.4
+homing_strength = 0.0
+homing_lifetime = 0.0
+on_hit_slow_factor = 0.0
+on_hit_slow_duration = 2.0
+on_hit_dot_dps = 0.0
+on_hit_dot_ticks = 6
+
+[resource]
+script = ExtResource("1")
+id = &"bomber"
+display_name = "Bomber"
+ai_type = 1
+max_health = 50.0
+move_speed = 65.0
+contact_damage = 16.0
+contact_damage_cooldown = 1.0
+armor = 0.0
+xp_drop = 24
+coin_drop_chance = 0.65
+coin_drop_amount = 11
+sprite = ExtResource("4")
+death_sfx = ExtResource("3")
+ranged_attack = SubResource("ra_1")
+fires_interceptable_missiles = true

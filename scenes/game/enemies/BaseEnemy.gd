@@ -97,6 +97,20 @@ func _apply_data() -> void:
 	shield_regen_rate  = enemy_data.shield_regen_rate
 	shield_regen_delay = enemy_data.shield_regen_delay
 	current_shield     = shield_max
+	# Scale contact frequency and shield recovery speed by difficulty
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY:
+			contact_cooldown   *= 1.50
+			shield_regen_delay *= 1.50
+		GameManager.Difficulty.EASY:
+			contact_cooldown   *= 1.25
+			shield_regen_delay *= 1.25
+		GameManager.Difficulty.HARD:
+			contact_cooldown   *= 0.80
+			shield_regen_delay *= 0.80
+		GameManager.Difficulty.SUPER_HARD:
+			contact_cooldown   *= 0.55
+			shield_regen_delay *= 0.55
 	if enemy_data.sprite:
 		sprite.texture = enemy_data.sprite
 		sprite.scale   = enemy_data.sprite_scale
@@ -116,6 +130,43 @@ func scale_with_wave(wave_multiplier: float, speed_mult: float = 1.0) -> void:
 	current_health = max_health
 	contact_damage = contact_damage * wave_multiplier
 	move_speed     = move_speed * speed_mult
+	armor          = armor * wave_multiplier
+	if shield_max > 0.0:
+		shield_max        = shield_max * wave_multiplier
+		current_shield    = shield_max
+		shield_regen_rate = shield_regen_rate * wave_multiplier
+
+func copier_sync_to_player(player: Player) -> void:
+	## Copy 1/5 of the living player's current stats onto this enemy.
+	## Called by WaveManager after scale_with_wave so wave multipliers don't override us.
+	const COPY_SCALE := 0.2
+	max_health         = player.max_health * COPY_SCALE
+	current_health     = max_health
+	move_speed         = player.move_speed * COPY_SCALE
+	contact_damage     = player.max_health * 0.05  # ~5% of player HP per hit
+	armor              = player.armor * COPY_SCALE
+	shield_max         = player.shield_max * COPY_SCALE
+	current_shield     = shield_max
+	shield_regen_rate  = player.shield_regen_rate * COPY_SCALE
+	shield_regen_delay = player.shield_regen_delay
+	if shield_max > 0.0 and _shield_ring == null:
+		_setup_shield_ring()
+	elif shield_max <= 0.0 and _shield_ring != null:
+		_shield_ring.queue_free()
+		_shield_ring = null
+	# Mirror the player's ship appearance
+	if player.character_data and player.character_data.sprite:
+		sprite.texture = player.character_data.sprite
+	if player.character_data:
+		sprite.modulate = player.character_data.ship_color.lerp(Color.WHITE, 0.35)
+
+func _diff_fire_cooldown_mult() -> float:
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY: return 1.60
+		GameManager.Difficulty.EASY:       return 1.30
+		GameManager.Difficulty.HARD:       return 0.80
+		GameManager.Difficulty.SUPER_HARD: return 0.60
+	return 1.0
 
 func _physics_process(delta: float) -> void:
 	if _state == State.DEAD:
@@ -318,7 +369,14 @@ func _die() -> void:
 
 	if enemy_data:
 		xp_dropped.emit(enemy_data.xp_drop, global_position)
-		if randf() < enemy_data.coin_drop_chance:
+		# Scale drop chance by difficulty: easier = more drops, harder = fewer.
+		var drop_chance := enemy_data.coin_drop_chance
+		match GameManager.current_difficulty:
+			GameManager.Difficulty.SUPER_EASY: drop_chance = minf(drop_chance * 1.5, 1.0)
+			GameManager.Difficulty.EASY:       drop_chance = minf(drop_chance * 1.25, 1.0)
+			GameManager.Difficulty.HARD:       drop_chance *= 0.65
+			GameManager.Difficulty.SUPER_HARD: drop_chance *= 0.45
+		if randf() < drop_chance:
 			coin_dropped.emit(enemy_data.coin_drop_amount, global_position)
 		if enemy_data.death_sfx:
 			AudioManager.play_sfx(enemy_data.death_sfx, -6.0, randf_range(0.9, 1.1))
@@ -327,7 +385,7 @@ func _die() -> void:
 	if enemy_data and enemy_data.ai_type == EnemyData.AIType.EXPLODER:
 		var expl_sfx := "res://assets/audio/sfx_explosion.ogg"
 		if ResourceLoader.exists(expl_sfx):
-			AudioManager.play_sfx(load(expl_sfx), 0.0, randf_range(0.9, 1.1))
+			AudioManager.play_sfx(load(expl_sfx), -10.0, randf_range(0.9, 1.1))
 		_explode_aoe()
 
 	died.emit(self)
@@ -428,6 +486,7 @@ func _ranged_update(target: Node, delta: float) -> void:
 	var cooldown := RANGED_COOLDOWN
 	if enemy_data and enemy_data.ranged_attack:
 		cooldown = enemy_data.ranged_attack.fire_cooldown
+	cooldown *= _diff_fire_cooldown_mult()
 	if _ranged_timer <= 0.0:
 		_fire_at_target(target)
 		_ranged_timer = cooldown
@@ -440,6 +499,7 @@ func _sentinel_update(delta: float) -> void:
 	var cooldown := RANGED_COOLDOWN
 	if enemy_data and enemy_data.ranged_attack:
 		cooldown = enemy_data.ranged_attack.fire_cooldown
+	cooldown *= _diff_fire_cooldown_mult()
 	if _sentinel_timer <= 0.0:
 		_sentinel_timer = cooldown
 		_fire_rotating_volley()
@@ -455,7 +515,7 @@ func _boss_update(target: Node, delta: float) -> void:
 			# Phase 1: chase + fire single shots every 3s
 			# Phase 2 (speed already boosted in _trigger_phase_2): fire burst-3
 			_chase(target, delta)
-			var fire_cd := 3.0 if _boss_phase == 1 else 2.0
+			var fire_cd := (3.0 if _boss_phase == 1 else 2.0) * _diff_fire_cooldown_mult()
 			if _ranged_timer <= 0.0:
 				_ranged_timer = fire_cd
 				if _boss_phase == 1:
@@ -473,14 +533,14 @@ func _boss_update(target: Node, delta: float) -> void:
 				_summon_timer = 8.0 if _boss_phase == 1 else 5.0
 				_summon_minions(_boss_phase == 1)
 			if _boss_phase == 2 and _ranged_timer <= 0.0:
-				_ranged_timer = 2.5
+				_ranged_timer = 2.5 * _diff_fire_cooldown_mult()
 				_fire_rotating_volley()
 		EnemyData.AIType.ELITE_PHASE:
 			# Phase 1: very slow chase, big contact damage
 			# Phase 2: fast + fire homing darts
 			_chase(target, delta)
 			if _boss_phase == 2 and _ranged_timer <= 0.0:
-				_ranged_timer = 1.8
+				_ranged_timer = 1.8 * _diff_fire_cooldown_mult()
 				_fire_homing_dart(target)
 
 func _trigger_phase_2() -> void:

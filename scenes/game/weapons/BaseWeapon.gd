@@ -22,7 +22,10 @@ var knockback_force: float = 0.0
 var port_index: int = 0   # which hull port this weapon occupies (see Player.PORT_DATA)
 
 var _fire_cooldown: float = 0.0
-var _base_fire_rate: float = 2.0      # fire_rate at equip time, used for cap calculation
+var _base_fire_rate: float = 2.0         # fire_rate at equip time, used for cap calculation
+var _base_damage: float = 10.0           # damage at equip time
+var _base_projectile_speed: float = 400.0
+var _base_range: float = 600.0
 var _projectile_parent: Node = null   # set by Game so projectiles don't rotate with player
 
 # Class bonus set at equip time (permanent this run)
@@ -34,7 +37,6 @@ func _ready() -> void:
 	if weapon_data:
 		damage           = weapon_data.damage
 		fire_rate        = weapon_data.fire_rate
-		_base_fire_rate  = weapon_data.fire_rate
 		projectile_speed = weapon_data.projectile_speed
 		range            = weapon_data.range
 		spread           = weapon_data.spread
@@ -46,6 +48,46 @@ func _ready() -> void:
 		fork_count       = weapon_data.fork_count
 		armor_pen        = weapon_data.armor_pen
 		knockback_force  = weapon_data.knockback_force
+		# Scale weapon output based on difficulty
+		var _dmg_mult  := 1.0   # damage, armor_pen, knockback
+		var _rate_mult := 1.0   # fire rate
+		var _proj_mult := 1.0   # projectile speed, range
+		var _spread_mult := 1.0 # spread (>1 = worse accuracy on harder)
+		match GameManager.current_difficulty:
+			GameManager.Difficulty.SUPER_EASY:
+				_dmg_mult    = 1.30
+				_rate_mult   = 1.20
+				_proj_mult   = 1.20
+				_spread_mult = 0.75
+			GameManager.Difficulty.EASY:
+				_dmg_mult    = 1.15
+				_rate_mult   = 1.10
+				_proj_mult   = 1.10
+				_spread_mult = 0.88
+			GameManager.Difficulty.HARD:
+				_dmg_mult    = 0.88
+				_rate_mult   = 0.90
+				_proj_mult   = 0.90
+				_spread_mult = 1.15
+			GameManager.Difficulty.SUPER_HARD:
+				_dmg_mult    = 0.72
+				_rate_mult   = 0.80
+				_proj_mult   = 0.80
+				_spread_mult = 1.35
+		damage           = damage           * _dmg_mult
+		fire_rate        = fire_rate        * _rate_mult
+		projectile_speed = projectile_speed * _proj_mult
+		range            = range            * _proj_mult
+		if armor_pen > 0.0:
+			armor_pen = armor_pen * _dmg_mult
+		if knockback_force > 0.0:
+			knockback_force = knockback_force * _dmg_mult
+		if spread > 0.0:
+			spread = spread * _spread_mult
+		_base_fire_rate        = fire_rate
+		_base_damage           = damage
+		_base_projectile_speed = projectile_speed
+		_base_range            = range
 
 func _process(delta: float) -> void:
 	if _fire_cooldown > 0.0:
@@ -61,12 +103,13 @@ func try_fire(aim_dir: Vector2) -> void:
 		return
 
 	_fire_cooldown = 1.0 / fire_rate
+	var _sfx_vol := -12.0 + weapon_data.fire_sfx_volume_db
 	if weapon_data.fire_sfx:
-		AudioManager.play_sfx(weapon_data.fire_sfx, -6.0, randf_range(0.9, 1.1))
+		AudioManager.play_sfx(weapon_data.fire_sfx, _sfx_vol, randf_range(0.9, 1.1))
 	else:
 		var sfx_path := _sfx_for_weapon()
 		if ResourceLoader.exists(sfx_path):
-			AudioManager.play_sfx(load(sfx_path), -6.0, randf_range(0.9, 1.1))
+			AudioManager.play_sfx(load(sfx_path), _sfx_vol, randf_range(0.9, 1.1))
 	# Apply fire arc offset (e.g. PI = rear-facing weapon / mine)
 	var fire_dir := aim_dir
 	if weapon_data.fire_arc_offset != 0.0:
@@ -161,22 +204,24 @@ func _spawn_mine(_fire_dir: Vector2) -> void:
 	var mine: Node = mine_script.new()
 	parent.add_child(mine)
 	mine.global_position = global_position
-	mine.call("setup", damage * damage_multiplier * passive_multiplier, 80.0, get_parent())
+	mine.call("setup", damage * damage_multiplier * passive_multiplier, weapon_data.aoe_radius if weapon_data != null and weapon_data.aoe_radius > 0.0 else 80.0, get_parent())
 
 func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
 	match key:
-		UpgradeData.StatKey.DAMAGE:          damage           += delta
+		UpgradeData.StatKey.DAMAGE:
+			damage = minf(damage + delta, _base_damage * 5.0)
 		UpgradeData.StatKey.FIRE_RATE:
-			fire_rate += delta
-			fire_rate  = minf(fire_rate, _base_fire_rate * 3.0)
-		UpgradeData.StatKey.PROJECTILE_SPEED: projectile_speed += delta
-		UpgradeData.StatKey.RANGE:           range            += delta
-		UpgradeData.StatKey.SPREAD:          spread            = maxf(0.0, spread + delta)
-		UpgradeData.StatKey.BOUNCE_COUNT:    bounce_count      = maxi(0, bounce_count + int(delta))
-		UpgradeData.StatKey.CHAIN_COUNT:     chain_count       = maxi(0, chain_count + int(delta))
-		UpgradeData.StatKey.FORK_COUNT:      fork_count        = maxi(0, fork_count + int(delta))
-		UpgradeData.StatKey.ARMOR_PEN:       armor_pen         += delta
-		UpgradeData.StatKey.KNOCKBACK_FORCE: knockback_force   += delta
+			fire_rate = clampf(fire_rate + delta, 0.1, _base_fire_rate * 3.0)
+		UpgradeData.StatKey.PROJECTILE_SPEED:
+			projectile_speed = minf(projectile_speed + delta, _base_projectile_speed * 3.0)
+		UpgradeData.StatKey.RANGE:
+			range = minf(range + delta, _base_range * 2.5)
+		UpgradeData.StatKey.SPREAD:          spread        = maxf(0.0, spread + delta)
+		UpgradeData.StatKey.BOUNCE_COUNT:    bounce_count  = maxi(0, bounce_count + int(delta))
+		UpgradeData.StatKey.CHAIN_COUNT:     chain_count   = maxi(0, chain_count + int(delta))
+		UpgradeData.StatKey.FORK_COUNT:      fork_count    = maxi(0, fork_count + int(delta))
+		UpgradeData.StatKey.ARMOR_PEN:       armor_pen     = minf(armor_pen + delta, 1.0)
+		UpgradeData.StatKey.KNOCKBACK_FORCE: knockback_force = minf(knockback_force + delta, 600.0)
 
 func _sfx_for_weapon() -> String:
 	if weapon_data == null:

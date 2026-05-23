@@ -362,7 +362,7 @@ func _spawn_intercept_flash(pos: Vector2) -> void:
 	t.chain().tween_callback(flash.queue_free)
 	var sfx_path := "res://assets/audio/sfx_laser2.ogg"
 	if ResourceLoader.exists(sfx_path):
-		AudioManager.play_sfx(load(sfx_path), -6.0, 1.4)
+		AudioManager.play_sfx(load(sfx_path), -12.0, 1.4)
 
 	if aoe_radius > 0.0:
 		_explode_aoe()

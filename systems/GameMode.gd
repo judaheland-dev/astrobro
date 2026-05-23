@@ -36,11 +36,11 @@ func _on_wave_cleared(wave_number: int) -> void:
 			if idx >= 0 and idx < wave_manager.wave_data_list.size():
 				bonus = wave_manager.wave_data_list[idx].bonus_coins
 		GameManager.Difficulty.HARD:
-			# Escalating bonus: wave 1 = 10, wave 2 = 20, wave 3 = 30, etc.
-			bonus = wave_number * 10
+			if idx >= 0 and idx < wave_manager.wave_data_list.size():
+				bonus = wave_manager.wave_data_list[idx].bonus_coins
 		GameManager.Difficulty.SUPER_HARD:
-			# Escalating bonus: wave 1 = 25, wave 2 = 50, wave 3 = 75, etc.
-			bonus = wave_number * 25
+			if idx >= 0 and idx < wave_manager.wave_data_list.size():
+				bonus = maxi(0, int(wave_manager.wave_data_list[idx].bonus_coins * 0.75))
 	if bonus > 0:
 		for p in players:
 			p.add_scrap(bonus)

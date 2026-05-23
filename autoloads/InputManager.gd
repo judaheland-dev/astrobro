@@ -85,7 +85,7 @@ func is_interact_pressed(player_index: int) -> bool:
 	if player_index == 0:
 		return Input.is_action_just_pressed("interact")
 	else:
-		return Input.is_joy_button_pressed(_device_map[player_index], JOY_BUTTON_A)
+		return Input.is_joy_button_pressed(_device_map[player_index], JOY_BUTTON_B)
 
 # Returns true if the boost (afterburner) button was just pressed this frame.
 func is_boosting(player_index: int) -> bool:

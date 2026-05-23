@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_045.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"hardened_carapace"
+display_name = "Hardened Carapace"
+description = "+8 Armor, +15% Block Chance, -30 Max HP. Your shell is tough, but smaller."
+scope = 0
+stat_deltas = {2: 8.0, 11: 0.15, 0: -30.0}
+shop_price = 95
+max_stacks = 2
+rarity = 2

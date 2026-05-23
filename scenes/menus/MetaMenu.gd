@@ -11,9 +11,9 @@ const SHIP_UNLOCKS: Array[Dictionary] = [
 	{"id": &"tank",        "label": "Tank",        "desc": "180 HP | 130 spd | 5 armor | 6 slots | Shotgun",    "cost": 5000},
 	{"id": &"vanguard",    "label": "Vanguard",    "desc": "200 HP | 220 spd | 3 armor | Shield | Beam Laser",  "cost": 15000},
 	{"id": &"phantom",     "label": "Phantom",     "desc": "50 HP | 380 spd | 2x XP | 1.5x coins | Spread",    "cost": 75000},
-	{"id": &"fortress",    "label": "Fortress",    "desc": "600 HP | 75 spd | 25 armor | Shield | 3x coins",    "cost": 350000},
-	{"id": &"nexus",       "label": "Nexus",       "desc": "350 HP | 270 spd | 12 armor | Shield | 8 slots",    "cost": 5000000},
-	{"id": &"singularity", "label": "Singularity", "desc": "1200 HP | 330 spd | 35 armor | Shield | 10 slots",  "cost": 1000000000},
+	{"id": &"fortress",    "label": "Fortress",    "desc": "600 HP | 75 spd | 25 armor | Shield | 3x coins",    "cost": 150000},
+	{"id": &"nexus",       "label": "Nexus",       "desc": "350 HP | 270 spd | 12 armor | Shield | 8 slots",    "cost": 350000},
+	{"id": &"singularity", "label": "Singularity", "desc": "1200 HP | 330 spd | 35 armor | Shield | 10 slots",  "cost": 750000},
 ]
 
 ## Format large numbers with commas for readability (e.g. 1000000 -> "1,000,000").

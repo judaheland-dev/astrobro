@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue13.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"cryo_blaster_t2"
+display_name = "Cryo Blaster Mk.II"
+description = "Forged upgrade. The freeze field intensifies—enemies are flung back and burn with cold."
+ammo_type = 1
+weapon_class = 5
+shop_cost = 0
+damage = 7.0
+fire_rate = 4.0
+projectile_speed = 420.0
+range = 600.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+knockback_force = 320.0
+on_hit_dot_dps = 18.0
+on_hit_dot_ticks = 10
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.75, 0.75)
+projectile_modulate = Color(0.6, 0.92, 1.0, 1.0)
+projectile_hitbox_size = Vector2(12.0, 5.0)
+emit_exhaust_trail = false
+tier = 2
+is_forge_only = true

@@ -6,9 +6,9 @@
 script = ExtResource("1")
 id = &"titan_plating"
 display_name = "Titan Plating"
-description = "+80 HP and +20 armor. Your hull becomes near-impervious."
+description = "+60 HP and +15 armor. Your hull becomes near-impervious."
 scope = 0
-stat_deltas = {0: 80.0, 2: 20.0}
+stat_deltas = {0: 60.0, 2: 15.0}
 shop_price = 220
 max_stacks = 2
 rarity = 4

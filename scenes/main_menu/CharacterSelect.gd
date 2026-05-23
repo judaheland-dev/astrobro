@@ -178,9 +178,8 @@ func _ready() -> void:
 		diff_hbox.add_child(btn)
 		_diff_btns.append(btn)
 
-	# Default to Normal
-	GameManager.current_difficulty = GameManager.Difficulty.NORMAL
-	_diff_btns[2].button_pressed = true
+	# Pre-select whatever difficulty is currently active (defaults to Normal on first launch)
+	_diff_btns[int(GameManager.current_difficulty)].button_pressed = true
 
 	# Difficulty hints
 	_diff_hint = Label.new()

@@ -9,8 +9,7 @@ func _ready() -> void:
 	GameManager.set_state(GameManager.GameState.MENU)
 	get_tree().paused = false
 	var music_path := "res://assets/audio/music_menu.ogg"
-	if ResourceLoader.exists(music_path):
-		AudioManager.play_music(load(music_path))
+	AudioManager.play_music_from_path(music_path)
 
 	# Root control fills the viewport
 	var root := Control.new()

@@ -62,7 +62,7 @@ func _update_beam(delta: float) -> void:
 	# Find nearest valid enemy within weapon range
 	var nearest: Node = null
 	var nearest_d := INF
-	var beam_range := range if weapon_data == null else weapon_data.range
+	var beam_range := range
 
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e) or not e.is_physics_processing():
@@ -96,8 +96,8 @@ func _update_beam(delta: float) -> void:
 	if not _sfx_player.playing and _sfx_player.stream != null:
 		_sfx_player.play()
 
-	# Damage accumulation
-	var dmg_per_sec := damage * damage_multiplier * passive_multiplier
+	# Damage accumulation — fire_rate acts as a DPS multiplier for beams
+	var dmg_per_sec := damage * fire_rate * damage_multiplier * passive_multiplier
 	_damage_accum += dmg_per_sec * delta
 	if _damage_accum >= dmg_per_sec * _DAMAGE_TICK:
 		if is_instance_valid(_target) and _target.has_method("take_damage"):

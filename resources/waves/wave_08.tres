@@ -1,17 +1,19 @@
-[gd_resource type="Resource" script_class="WaveData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="WaveData" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://resources/WaveData.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/enemies/brute.tres" id="2"]
 [ext_resource type="Resource" path="res://resources/enemies/speeder.tres" id="3"]
 [ext_resource type="Resource" path="res://resources/enemies/ranger.tres" id="4"]
 [ext_resource type="Resource" path="res://resources/enemies/acid_ranger.tres" id="5"]
+[ext_resource type="Resource" path="res://resources/enemies/life_stealer.tres" id="6"]
+[ext_resource type="Resource" path="res://resources/enemies/bomber.tres" id="7"]
 
 [resource]
 script = ExtResource("1")
 wave_number = 8
 is_boss_wave = false
-enemy_pool = [ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5")]
-enemy_counts = [10, 32, 10, 6]
+enemy_pool = [ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7")]
+enemy_counts = [10, 32, 10, 6, 5, 4]
 spawn_interval = 0.30
 initial_delay = 0.6
 time_limit = 70.0

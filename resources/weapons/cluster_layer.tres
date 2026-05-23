@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"cluster_layer"
+display_name = "Cluster Layer"
+description = "Drops a high-yield cluster mine. Slower drop rate but massively wider detonation field."
+ammo_type = 3
+weapon_class = 6
+shop_cost = 160
+damage = 110.0
+fire_rate = 0.35
+aoe_radius = 140.0
+unlock_cost = 0
+rarity = 2
+tier = 1
+forged_weapon_id = &"cluster_layer_t2"

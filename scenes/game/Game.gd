@@ -18,6 +18,7 @@ var _camera: Camera2D
 var _players: Array[Player] = []
 var _extra_targets: Array[Node] = []   # decoys and other non-player targets
 var _wave_manager: WaveManager = WaveManager.new()
+var _power_calculator: PlayerPowerCalculator = PlayerPowerCalculator.new()
 var _game_mode: GameMode = null
 var _current_wave_number: int = 1
 
@@ -48,6 +49,9 @@ func _ready() -> void:
 	add_child(_wave_manager)
 	_wave_manager.spawn_container = _enemies_container
 
+	add_child(_power_calculator)
+	_wave_manager.register_power_calculator(_power_calculator)
+
 	_spawn_players()
 	_setup_wave_data()
 	_setup_game_mode()
@@ -71,9 +75,8 @@ func _ready() -> void:
 		_wave_manager.start_waves()
 
 	GameManager.set_state(GameManager.GameState.PLAYING if not is_pvp else GameManager.GameState.BETWEEN_WAVES)
-	var music_path := "res://assets/audio/music_game.ogg"
-	if ResourceLoader.exists(music_path):
-		AudioManager.play_music(load(music_path))
+	var music_path := _game_music_path()
+	AudioManager.play_music_from_path(music_path)
 
 # ---------------------------------------------------------------------------
 # Scene construction
@@ -267,7 +270,18 @@ func _spawn_players() -> void:
 		_players.append(p)
 		p.died.connect(_on_player_died)
 		p.took_damage.connect(func(): _add_trauma(0.35))
+		# Track damage taken via health_changed: store previous health to compute delta
+		var prev_hp: Array[float] = [100.0]
+		p.health_changed.connect(func(cur: float, _max: float):
+			var delta := prev_hp[0] - cur
+			if delta > 0.0:
+				_power_calculator.record_damage_taken(delta)
+			prev_hp[0] = cur
+		)
 		_equip_weapon(p)
+
+	# Register all players with the power calculator
+	_power_calculator.register_players(_players)
 
 func _equip_weapon(player: Player) -> void:
 	var weapon_id: StringName = player.character_data.starting_weapon if player.character_data else &"pistol"
@@ -460,9 +474,6 @@ func _show_between_wave_ui(wave_number: int) -> void:
 	_current_wave_number = wave_number
 	GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
 	get_tree().paused = true
-	var bw_music := "res://assets/audio/music_betweenwaves.ogg"
-	if ResourceLoader.exists(bw_music):
-		AudioManager.play_music(load(bw_music))
 	if _between_wave_ui.has_method("show_for_players"):
 		_between_wave_ui.show_for_players(_players, wave_number, _wave_manager)
 
@@ -480,15 +491,27 @@ func _on_shop_closed() -> void:
 			if not p.is_physics_processing():
 				p.revive()
 				_spawn_floating_text("REVIVED  -%d Scrap" % Player.REVIVE_SCRAP_PENALTY, p.global_position, Color(0.4, 1.0, 0.6))
-	var game_music := "res://assets/audio/music_game.ogg"
-	if ResourceLoader.exists(game_music):
-		AudioManager.play_music(load(game_music))
+	AudioManager.play_music_from_path(_game_music_path())
 	get_tree().paused = false
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	if GameManager.current_mode == GameManager.RunMode.PVP_OVERLORD:
 		_start_pvp_wave()
 	else:
 		_wave_manager.next_wave()
+
+func _game_music_path() -> String:
+	var preferred: String
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY, GameManager.Difficulty.EASY:
+			preferred = "res://assets/audio/music_game_easy.ogg"
+		GameManager.Difficulty.HARD, GameManager.Difficulty.SUPER_HARD:
+			preferred = "res://assets/audio/music_game_hard.ogg"
+		_:
+			return "res://assets/audio/music_game.ogg"
+	# Fall back to normal game music if the variant isn't in the exported PCK
+	if ResourceLoader.exists(preferred):
+		return preferred
+	return "res://assets/audio/music_game.ogg"
 
 func _on_player_died() -> void:
 	pass  # GameMode handles multi-player death tracking
@@ -504,9 +527,6 @@ func _show_overlord_shop(wave_number: int) -> void:
 	get_tree().paused = true
 	if _overlord_controller:
 		_overlord_controller.call("hide_cursor")
-	var bw_music := "res://assets/audio/music_betweenwaves.ogg"
-	if ResourceLoader.exists(bw_music):
-		AudioManager.play_music(load(bw_music))
 	if _overlord_shop_ui:
 		var mode: OverlordMode = _game_mode as OverlordMode
 		_overlord_shop_ui.call("show_shop", mode.overlord_state, wave_number)
@@ -553,25 +573,40 @@ func _on_enemy_spawned(enemy: BaseEnemy) -> void:
 	enemy.coin_dropped.connect(_on_coin_dropped)
 
 func _on_xp_dropped(amount: int, world_pos: Vector2) -> void:
+	# Apply difficulty modifier to XP drops.
+	# Overall XP is reduced so leveling up takes longer; easier modes ease up slightly.
+	var adj_xp := amount
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY: adj_xp = maxi(1, int(amount * 0.85))
+		GameManager.Difficulty.EASY:       adj_xp = maxi(1, int(amount * 0.75))
+		GameManager.Difficulty.NORMAL:     adj_xp = maxi(1, int(amount * 0.60))
+		GameManager.Difficulty.HARD:       adj_xp = maxi(1, int(amount * 0.50))
+		GameManager.Difficulty.SUPER_HARD: adj_xp = maxi(1, int(amount * 0.40))
 	# Distribute XP to all living players
 	for p in _players:
 		if p.is_physics_processing():
-			p.gain_xp(amount)
-	_spawn_floating_text("+%d XP" % amount, world_pos, Color(0.5, 1.0, 0.5))
+			p.gain_xp(adj_xp)
+	_spawn_floating_text("+%d XP" % adj_xp, world_pos, Color(0.5, 1.0, 0.5))
 	var sfx := "res://assets/audio/sfx_xp_pickup.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), -8.0, randf_range(1.0, 1.2))
 
 func _on_coin_dropped(amount: int, world_pos: Vector2) -> void:
-	# Apply difficulty modifier to combat coin drops
+	# Apply difficulty modifier to combat coin drops.
+	# Easier modes reward more scrap; harder modes reward less.
+	# Anchor: grunt (base 5) gives 3 scrap on Super Hard.
 	var adj_amount := amount
 	match GameManager.current_difficulty:
 		GameManager.Difficulty.SUPER_EASY:
-			adj_amount = 0  # No coins on Super Easy
+			adj_amount = maxi(1, int(amount * 1.4))  # ~7 for grunt
 		GameManager.Difficulty.EASY:
-			adj_amount = maxi(1, int(amount * 0.5))
+			adj_amount = maxi(1, int(amount * 1.2))  # ~6 for grunt
+		GameManager.Difficulty.NORMAL:
+			adj_amount = amount                       # 5 for grunt (baseline)
+		GameManager.Difficulty.HARD:
+			adj_amount = maxi(1, int(amount * 0.9))  # ~4-5 for grunt
 		GameManager.Difficulty.SUPER_HARD:
-			adj_amount = amount
+			adj_amount = maxi(1, int(amount * 0.75))  # ~3-4 for grunt
 	GameManager.run_coins_earned += adj_amount
 	# Award Scrap to nearest living player
 	var nearest: Player = null

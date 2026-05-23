@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_014.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"phase_boots"
+display_name = "Phase Boots"
+description = "+40 Move Speed, +10% Dodge. The best defense is not being there."
+scope = 0
+stat_deltas = {1: 40.0, 23: 0.1}
+shop_price = 85
+max_stacks = 2
+rarity = 2

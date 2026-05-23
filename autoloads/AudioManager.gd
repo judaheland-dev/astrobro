@@ -7,12 +7,15 @@ const SFX_BUS: StringName = &"Master"
 
 var _music_player: AudioStreamPlayer = null
 var _music_loop: bool = false
+var _stream_cache: Dictionary = {}     # path:String -> AudioStream
 var _sfx_pool: Array[AudioStreamPlayer] = []
 const SFX_POOL_SIZE: int = 16
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = MUSIC_BUS
+	_music_player.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_music_player)
 	_music_player.finished.connect(_on_music_finished)
 
@@ -23,19 +26,40 @@ func _ready() -> void:
 		_sfx_pool.append(p)
 
 func play_music(stream: AudioStream, loop: bool = true) -> void:
+	if stream == null:
+		return
 	if _music_player.stream == stream and _music_player.playing:
 		return
 	_music_loop = loop
+	_music_player.stream_paused = false
 	_music_player.stream = stream
-	_music_player.play()
+	_music_player.play(0.0)
 
 func _on_music_finished() -> void:
 	if _music_loop and _music_player.stream != null:
-		_music_player.play()
+		_music_player.play(0.0)
+
+func pause_music() -> void:
+	if _music_player != null:
+		_music_player.stream_paused = true
+
+func resume_music() -> void:
+	if _music_player != null:
+		_music_player.stream_paused = false
 
 func stop_music() -> void:
 	_music_loop = false
+	_music_player.stream_paused = false
 	_music_player.stop()
+
+func play_music_from_path(path: String, loop: bool = true) -> void:
+	if path.is_empty():
+		return
+	if not _stream_cache.has(path):
+		if not ResourceLoader.exists(path):
+			return
+		_stream_cache[path] = load(path)
+	play_music(_stream_cache[path], loop)
 
 func play_sfx(stream: AudioStream, volume_db: float = 0.0, pitch_scale: float = 1.0) -> void:
 	if stream == null:

@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://resources/EnemyData.gd" id="1"]
+[ext_resource type="Script" path="res://resources/RangedAttackData.gd" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx_enemy_death.ogg" id="3"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemyBlack3.png" id="4"]
+
+[sub_resource type="Resource" id="ra_1"]
+script = ExtResource("2")
+fire_mode = 0
+fire_cooldown = 6.5
+projectile_count = 1
+spread_angle_deg = 0.0
+burst_interval = 0.12
+projectile_speed = 1100.0
+damage_multiplier = 4.0
+homing_strength = 0.0
+homing_lifetime = 0.0
+on_hit_slow_factor = 0.0
+on_hit_slow_duration = 2.0
+on_hit_dot_dps = 0.0
+on_hit_dot_ticks = 6
+
+[resource]
+script = ExtResource("1")
+id = &"extreme_sniper"
+display_name = "Extreme Sniper"
+ai_type = 1
+max_health = 22.0
+move_speed = 90.0
+contact_damage = 10.0
+contact_damage_cooldown = 1.2
+armor = 0.0
+xp_drop = 22
+coin_drop_chance = 0.60
+coin_drop_amount = 10
+sprite = ExtResource("4")
+death_sfx = ExtResource("3")
+ranged_attack = SubResource("ra_1")

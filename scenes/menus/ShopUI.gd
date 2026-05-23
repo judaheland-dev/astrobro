@@ -7,7 +7,7 @@ extends CanvasLayer
 signal ui_closed()
 
 const WEAPON_OFFER_COUNT: int = 3
-const WEAPON_CLASS_NAMES: Array[String] = ["RAPID", "PRECISION", "SPREAD", "HEAVY", "EXPLOSIVE"]
+const WEAPON_CLASS_NAMES: Array[String] = ["RAPID", "PRECISION", "SPREAD", "HEAVY", "EXPLOSIVE", "SUPPORT", "TRAP"]
 
 var _players: Array[Player] = []
 var _current_player_index: int = 0
@@ -30,6 +30,8 @@ var _saved_module_locks: Dictionary = {}
 
 var _title_label: Label
 var _scrap_label: Label
+var _power_level_label: Label
+var _power_bar: ProgressBar
 var _reroll_btn: Button
 var _shop_container: HBoxContainer
 var _module_container: HBoxContainer
@@ -77,6 +79,65 @@ func _ready() -> void:
 		_scrap_label.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(_scrap_label)
 
+	# Power level row
+	var power_hbox := HBoxContainer.new()
+	power_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	power_hbox.add_theme_constant_override("separation", 8)
+	vbox.add_child(power_hbox)
+
+	_power_level_label = Label.new()
+	_power_level_label.text = "Power: 0.00"
+	_power_level_label.modulate = Color(1.0, 0.82, 0.2)
+	if font:
+		_power_level_label.add_theme_font_override("font", font)
+		_power_level_label.add_theme_font_size_override("font_size", 16)
+	power_hbox.add_child(_power_level_label)
+
+	var bar_wrapper := Control.new()
+	bar_wrapper.custom_minimum_size = Vector2(240.0, 16.0)
+	bar_wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_hbox.add_child(bar_wrapper)
+
+	_power_bar = ProgressBar.new()
+	_power_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_power_bar.max_value = 8.0
+	_power_bar.value = 0.0
+	_power_bar.show_percentage = false
+
+	var bar_bg := StyleBoxFlat.new()
+	bar_bg.bg_color = Color(0.08, 0.08, 0.15)
+	bar_bg.border_width_left = 1
+	bar_bg.border_width_right = 1
+	bar_bg.border_width_top = 1
+	bar_bg.border_width_bottom = 1
+	bar_bg.border_color = Color(0.3, 0.3, 0.5)
+	bar_bg.corner_radius_top_left = 4
+	bar_bg.corner_radius_top_right = 4
+	bar_bg.corner_radius_bottom_left = 4
+	bar_bg.corner_radius_bottom_right = 4
+	_power_bar.add_theme_stylebox_override("background", bar_bg)
+
+	var bar_fill := StyleBoxFlat.new()
+	bar_fill.bg_color = Color(0.25, 0.55, 1.0)
+	bar_fill.corner_radius_top_left = 3
+	bar_fill.corner_radius_top_right = 3
+	bar_fill.corner_radius_bottom_left = 3
+	bar_fill.corner_radius_bottom_right = 3
+	_power_bar.add_theme_stylebox_override("fill", bar_fill)
+
+	bar_wrapper.add_child(_power_bar)
+
+	# Tick marks at whole-number power thresholds (1.0, 2.0 … 7.0 out of 8.0 max)
+	for _ti in range(1, 8):
+		var tick := ColorRect.new()
+		tick.color = Color(0.0, 0.0, 0.0, 0.5)
+		tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tick.set_anchor_and_offset(SIDE_LEFT,   float(_ti) / 8.0, 0.0)
+		tick.set_anchor_and_offset(SIDE_RIGHT,  float(_ti) / 8.0, 1.5)
+		tick.set_anchor_and_offset(SIDE_TOP,    0.0,  3.0)
+		tick.set_anchor_and_offset(SIDE_BOTTOM, 1.0, -3.0)
+		bar_wrapper.add_child(tick)
+
 	_reroll_btn = Button.new()
 	_reroll_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	_reroll_btn.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -113,20 +174,20 @@ func _ready() -> void:
 
 	# ---- LEFT COLUMN: Ship diagram ----
 	var left_col := VBoxContainer.new()
-	left_col.custom_minimum_size = Vector2(370.0, 0.0)
+	left_col.custom_minimum_size = Vector2(300.0, 0.0)
 	left_col.add_theme_constant_override("separation", 4)
 	bottom_hbox.add_child(left_col)
 
 	var loadout_title := Label.new()
-	loadout_title.text = "Current Loadout  (sell for 50% scrap refund)"
+	loadout_title.text = "Loadout  (sell = 50% refund)"
 	loadout_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if font:
 		loadout_title.add_theme_font_override("font", font)
-		loadout_title.add_theme_font_size_override("font_size", 14)
+		loadout_title.add_theme_font_size_override("font_size", 13)
 	left_col.add_child(loadout_title)
 
 	_loadout_control = Control.new()
-	_loadout_control.custom_minimum_size = Vector2(480.0, 380.0)
+	_loadout_control.custom_minimum_size = Vector2(300.0, 320.0)
 	_loadout_control.clip_contents = true
 	left_col.add_child(_loadout_control)
 
@@ -136,6 +197,16 @@ func _ready() -> void:
 	right_col.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right_col.add_theme_constant_override("separation", 6)
 	bottom_hbox.add_child(right_col)
+
+	# Stats toggle button at the top of the right column
+	_stats_toggle_btn = Button.new()
+	_stats_toggle_btn.text = "Ship Stats  v"
+	_stats_toggle_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	_stats_toggle_btn.pressed.connect(_on_stats_toggle)
+	if font:
+		_stats_toggle_btn.add_theme_font_override("font", font)
+		_stats_toggle_btn.add_theme_font_size_override("font_size", 13)
+	right_col.add_child(_stats_toggle_btn)
 
 	var acquired_title := Label.new()
 	acquired_title.text = "-- Acquired Upgrades --"
@@ -157,16 +228,6 @@ func _ready() -> void:
 	_purchased_container.add_theme_constant_override("v_separation", 6)
 	_purchased_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	purchased_scroll.add_child(_purchased_container)
-
-	# Stats toggle button (inline, in the right column)
-	_stats_toggle_btn = Button.new()
-	_stats_toggle_btn.text = "Ship Stats  v"
-	_stats_toggle_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	_stats_toggle_btn.pressed.connect(_on_stats_toggle)
-	if font:
-		_stats_toggle_btn.add_theme_font_override("font", font)
-		_stats_toggle_btn.add_theme_font_size_override("font_size", 13)
-	right_col.add_child(_stats_toggle_btn)
 
 	_skip_btn = Button.new()
 	_skip_btn.text = "Continue"
@@ -313,6 +374,7 @@ func _show_shop_for_player() -> void:
 	_populate_loadout(player)
 	_populate_purchased(player)
 	_populate_stats(player)
+	_update_power_display(player)
 	call_deferred("_restore_focus")
 
 # Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary, Mythic]
@@ -391,7 +453,48 @@ func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], c
 				break
 	return result
 
-func _generate_weapon_offers(_player: Player) -> void:
+# Returns per-item weights for a weapon pool, boosting allowed weapons and
+# reducing others when the character has an allowed_weapon_ids restriction.
+func _get_weapon_item_weights(pool: Array[WeaponData], rarity_weights: Array[float], player: Player) -> Array[float]:
+	var result: Array[float] = []
+	var allowed: Array[StringName] = []
+	if player and player.character_data:
+		allowed = player.character_data.allowed_weapon_ids
+	for w in pool:
+		var base := rarity_weights[int(w.rarity)]
+		if allowed.size() > 0:
+			if allowed.has(w.id):
+				base *= 8.0   # preferred weapons appear much more often
+			else:
+				base *= 0.15  # other weapons are hard to come by
+		result.append(base)
+	return result
+
+# Weighted sample where each pool item has its own explicit weight.
+func _weighted_sample_by_item_weight(pool: Array[WeaponData], item_weights: Array[float], count: int) -> Array[WeaponData]:
+	var result: Array[WeaponData] = []
+	var remaining_pool := pool.duplicate()
+	var remaining_weights := item_weights.duplicate()
+	var attempts := 0
+	while result.size() < count and remaining_pool.size() > 0 and attempts < 1000:
+		attempts += 1
+		var total := 0.0
+		for w in remaining_weights:
+			total += w
+		if total <= 0.0:
+			break
+		var roll := randf() * total
+		var acc := 0.0
+		for i in range(remaining_pool.size()):
+			acc += remaining_weights[i]
+			if roll <= acc:
+				result.append(remaining_pool[i])
+				remaining_pool.remove_at(i)
+				remaining_weights.remove_at(i)
+				break
+	return result
+
+func _generate_weapon_offers(player: Player) -> void:
 	# Pad arrays to full count
 	while _offered_weapons.size() < WEAPON_OFFER_COUNT:
 		_offered_weapons.append(null)
@@ -415,7 +518,8 @@ func _generate_weapon_offers(_player: Player) -> void:
 			pool.append(w)
 	if pool.is_empty():
 		pool = all_weapons
-	var new_weapons := _weighted_sample_weapons(pool, weights, slots_to_fill.size())
+	var item_weights := _get_weapon_item_weights(pool, weights, player)
+	var new_weapons := _weighted_sample_by_item_weight(pool, item_weights, slots_to_fill.size())
 	for i in range(slots_to_fill.size()):
 		var slot := slots_to_fill[i]
 		if i < new_weapons.size():
@@ -481,6 +585,22 @@ func _render_shop(player: Player) -> void:
 				lock_badge.add_theme_font_size_override("font_size", 11)
 			card_vbox.add_child(lock_badge)
 
+		var is_restricted := false
+		if player.character_data:
+			var allowed := player.character_data.allowed_weapon_ids
+			if allowed.size() > 0 and not allowed.has(wdata.id):
+				is_restricted = true
+
+		if is_restricted:
+			var restrict_badge := Label.new()
+			restrict_badge.text = "[INCOMPATIBLE]"
+			restrict_badge.modulate = Color(1.0, 0.35, 0.35)
+			restrict_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if font:
+				restrict_badge.add_theme_font_override("font", font)
+				restrict_badge.add_theme_font_size_override("font_size", 11)
+			card_vbox.add_child(restrict_badge)
+
 		var rarity_label := Label.new()
 		rarity_label.text = "[%s]" % _rarity_name(int(wdata.rarity))
 		rarity_label.modulate = rarity_col.lightened(0.2)
@@ -529,12 +649,29 @@ func _render_shop(player: Player) -> void:
 		card_vbox.add_child(desc_label)
 
 		var cost_label := Label.new()
-		cost_label.text = "%d Scrap" % wdata.shop_cost
+		cost_label.text = "%d Scrap" % _weapon_shop_cost(wdata)
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if font:
 			cost_label.add_theme_font_override("font", font)
 			cost_label.add_theme_font_size_override("font_size", 14)
 		card_vbox.add_child(cost_label)
+
+		var pw_delta := PlayerPowerCalculator.weapon_power_delta(wdata, player)
+		var pw_delta_label := Label.new()
+		if pw_delta >= 0.01:
+			pw_delta_label.text = "+%.2f power" % pw_delta
+			pw_delta_label.modulate = Color(1.0, 0.55, 0.55)
+		elif pw_delta <= -0.01:
+			pw_delta_label.text = "%.2f power" % pw_delta
+			pw_delta_label.modulate = Color(0.3, 1.0, 0.45)
+		else:
+			pw_delta_label.text = "no power gain"
+			pw_delta_label.modulate = Color(0.5, 0.5, 0.5)
+		pw_delta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			pw_delta_label.add_theme_font_override("font", font)
+			pw_delta_label.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(pw_delta_label)
 
 		# Check if this offer can be forge-combined: slots full + player has one matching weapon with a forge path
 		var can_shop_forge := false
@@ -545,9 +682,11 @@ func _render_shop(player: Player) -> void:
 					can_shop_forge = true
 					break
 
-		var can_buy := player.scrap >= wdata.shop_cost and not is_full
+		var can_buy := player.scrap >= _weapon_shop_cost(wdata) and not is_full and not is_restricted
 		var buy_btn := Button.new()
-		if can_buy:
+		if is_restricted:
+			buy_btn.text = "Not compatible"
+		elif can_buy:
 			buy_btn.text = "Buy"
 		elif is_full and can_shop_forge:
 			buy_btn.text = "Slots full — Forge below"
@@ -564,9 +703,9 @@ func _render_shop(player: Player) -> void:
 		card_vbox.add_child(buy_btn)
 
 		if can_shop_forge:
-			var can_forge_cost := player.scrap >= wdata.shop_cost
+			var can_forge_cost := player.scrap >= _weapon_shop_cost(wdata)
 			var shop_forge_btn := Button.new()
-			shop_forge_btn.text = "FORGE  (%d scrap)" % wdata.shop_cost
+			shop_forge_btn.text = "FORGE  (%d scrap)" % _weapon_shop_cost(wdata)
 			shop_forge_btn.disabled = not can_forge_cost
 			shop_forge_btn.process_mode = Node.PROCESS_MODE_ALWAYS
 			shop_forge_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
@@ -592,7 +731,7 @@ func _render_shop(player: Player) -> void:
 			wdata.damage, wdata.fire_rate,
 			wdata.range, wdata.spread,
 			wdata.projectile_count, wdata.piercing,
-			wdata.shop_cost,
+			_weapon_shop_cost(wdata),
 		]
 		buy_btn.focus_entered.connect(_show_popover.bind(buy_btn, shop_pop, rarity_col))
 		buy_btn.focus_exited.connect(_hide_popover)
@@ -605,9 +744,24 @@ func _load_all_weapons() -> Array[WeaponData]:
 	var result: Array[WeaponData] = []
 	for path in _get_all_weapon_paths():
 		var wd: WeaponData = ResourceLoader.load(path)
-		if wd != null and not wd.is_forge_only:
+		# Include all tier-1 non-forge-only weapons, plus any tier 2+ weapon
+		# (they are gated naturally by rarity weights scaling with wave number)
+		if wd != null and (not wd.is_forge_only or wd.tier > 1):
 			result.append(wd)
 	return result
+
+## Returns the effective scrap cost for a weapon, applying a tier-based
+## fallback when the data resource has shop_cost = 0 (common for forged variants).
+func _weapon_shop_cost(wdata: WeaponData) -> int:
+	if wdata == null:
+		return 0
+	if wdata.shop_cost > 0:
+		return wdata.shop_cost
+	# Derive a sensible cost from tier for weapons that were previously forge-only
+	match wdata.tier:
+		2: return 175
+		3: return 300
+		_: return 50
 
 func _get_all_weapon_paths() -> Array[String]:
 	var paths: Array[String] = []
@@ -637,7 +791,7 @@ func _populate_loadout(player: Player) -> void:
 		sil.texture = load(sil_path)
 	var ship_col := player.character_data.ship_color if player.character_data else Color.WHITE
 	sil.modulate = Color(ship_col.r, ship_col.g, ship_col.b, 0.22)
-	sil.position = Vector2(240.0 - 100.0, 170.0 - 100.0)
+	sil.position = Vector2(150.0 - 100.0, 155.0 - 100.0)
 	sil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_loadout_control.add_child(sil)
 
@@ -662,15 +816,16 @@ func _populate_loadout(player: Player) -> void:
 		var is_swap_target: bool = (_selected_weapon_node != null and weapon_node != null and weapon_node != _selected_weapon_node)
 		var is_empty_target: bool = (_selected_weapon_node != null and weapon_node == null)
 
-		# Map port position to screen coordinates (nose points up, +Y down, +X right)
+	# Map port position to screen coordinates (nose points up, +Y down, +X right)
 		# PORT_DATA: pos.x = forward axis, pos.y = starboard axis
 		# Screen: screen_x = starboard, screen_y = -forward
+		# Scale 3.0, center (150, 155) fits all 6 ports inside 300×320
 		var port_pos: Vector2 = port["pos"]
-		var screen_x: float = port_pos.y * 4.5 + 240.0
-		var screen_y: float = -port_pos.x * 4.5 + 170.0
+		var screen_x: float = port_pos.y * 3.0 + 150.0
+		var screen_y: float = -port_pos.x * 3.0 + 155.0
 		var card_pos := Vector2(screen_x - 40.0, screen_y - 40.0)
-		card_pos.x = clampf(card_pos.x, 0.0, 400.0)
-		card_pos.y = clampf(card_pos.y, 0.0, 290.0)
+		card_pos.x = clampf(card_pos.x, 0.0, 220.0)
+		card_pos.y = clampf(card_pos.y, 0.0, 240.0)
 
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(80.0, 80.0)
@@ -717,7 +872,7 @@ func _populate_loadout(player: Player) -> void:
 
 		if weapon_node != null:
 			var wdata: WeaponData = weapon_node.get("weapon_data")
-			var sell_value: int = max(1, wdata.shop_cost / 2) if wdata else 1
+			var sell_value: int = max(1, _weapon_shop_cost(wdata) / 2) if wdata else 1
 			var rarity_col := _rarity_color(int(wdata.rarity) if wdata else 0)
 			var class_idx: int = int(wdata.weapon_class) if wdata else 0
 			var class_str: String = WEAPON_CLASS_NAMES[class_idx] if class_idx < WEAPON_CLASS_NAMES.size() else "?"
@@ -856,7 +1011,7 @@ func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	var wdata: WeaponData = weapon_node.get("weapon_data")
 	var sell_value: int = 1
 	if wdata != null:
-		sell_value = max(1, wdata.shop_cost / 2)
+		sell_value = max(1, _weapon_shop_cost(wdata) / 2)
 	if _selected_weapon_node == weapon_node:
 		_selected_weapon_node = null
 	player.weapons.erase(weapon_node)
@@ -872,6 +1027,7 @@ func _on_sell_pressed(player: Player, weapon_node: Node) -> void:
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	_update_power_display(player)
 	call_deferred("_restore_focus")
 
 func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringName) -> void:
@@ -911,6 +1067,7 @@ func _on_forge_pressed(player: Player, base_id: StringName, forged_id: StringNam
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	_update_power_display(player)
 	call_deferred("_restore_focus")
 
 func _on_shop_forge_pressed(player: Player, slot_idx: int) -> void:
@@ -919,7 +1076,7 @@ func _on_shop_forge_pressed(player: Player, slot_idx: int) -> void:
 	var wdata := _offered_weapons[slot_idx]
 	if wdata == null or wdata.forged_weapon_id == &"":
 		return
-	if player.scrap < wdata.shop_cost:
+	if player.scrap < _weapon_shop_cost(wdata):
 		return
 	# Find the one existing weapon to combine with the shop offer
 	var to_remove: Node = null
@@ -931,7 +1088,7 @@ func _on_shop_forge_pressed(player: Player, slot_idx: int) -> void:
 	if to_remove == null:
 		return
 	AudioManager.play_ui_click()
-	player.scrap -= wdata.shop_cost
+	player.scrap -= _weapon_shop_cost(wdata)
 	player.scrap_changed.emit(player.scrap)
 	# Remove the existing weapon from the loadout
 	if _selected_weapon_node == to_remove:
@@ -950,7 +1107,7 @@ func _on_shop_forge_pressed(player: Player, slot_idx: int) -> void:
 	var sfx := "res://assets/audio/sfx_levelup.ogg"
 	if ResourceLoader.exists(sfx):
 		AudioManager.play_sfx(load(sfx), -3.0, 1.1)
-	_replace_weapon_offer(slot_idx)
+	_replace_weapon_offer(slot_idx, player)
 	_scrap_label.text = "Scrap: %d" % player.scrap
 	_update_reroll_btn(player)
 	_render_shop(player)
@@ -958,6 +1115,7 @@ func _on_shop_forge_pressed(player: Player, slot_idx: int) -> void:
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	_update_power_display(player)
 	call_deferred("_restore_focus")
 
 func _make_weapon_node(wdata: WeaponData) -> BaseWeapon:
@@ -977,15 +1135,16 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	if player.weapons.size() >= max_slots:
 		return
 	AudioManager.play_ui_click()
-	if player.scrap < wdata.shop_cost:
+	var cost := _weapon_shop_cost(wdata)
+	if player.scrap < cost:
 		return
-	player.scrap -= wdata.shop_cost
+	player.scrap -= cost
 	player.scrap_changed.emit(player.scrap)
 	var weapon := _make_weapon_node(wdata)
 	weapon._projectile_parent = _projectile_parent
 	player.add_weapon(weapon)
 	# Replace only the purchased slot with a fresh item
-	_replace_weapon_offer(slot_idx)
+	_replace_weapon_offer(slot_idx, player)
 	_scrap_label.text = "Scrap: %d" % player.scrap
 	_update_reroll_btn(player)
 	_render_shop(player)
@@ -993,7 +1152,15 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	_populate_loadout(player)
 	_populate_stats(player)
 	_update_title(player)
+	_update_power_display(player)
 	call_deferred("_restore_focus")
+
+func _input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("ui_accept"):
+		get_viewport().set_input_as_handled()
+		_on_skip_pressed()
 
 func _on_skip_pressed() -> void:
 	AudioManager.play_ui_click()
@@ -1125,6 +1292,23 @@ func _render_modules(player: Player) -> void:
 			cost_label.add_theme_font_size_override("font_size", 13)
 		card_vbox.add_child(cost_label)
 
+		var mod_pw_delta := PlayerPowerCalculator.module_power_delta(item, player)
+		var mod_pw_label := Label.new()
+		if mod_pw_delta >= 0.01:
+			mod_pw_label.text = "+%.2f power" % mod_pw_delta
+			mod_pw_label.modulate = Color(1.0, 0.55, 0.55)
+		elif mod_pw_delta <= -0.01:
+			mod_pw_label.text = "%.2f power" % mod_pw_delta
+			mod_pw_label.modulate = Color(0.3, 1.0, 0.45)
+		else:
+			mod_pw_label.text = "no power gain"
+			mod_pw_label.modulate = Color(0.5, 0.5, 0.5)
+		mod_pw_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if font:
+			mod_pw_label.add_theme_font_override("font", font)
+			mod_pw_label.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(mod_pw_label)
+
 		var at_cap := item.max_stacks != -1 and player.count_upgrade(item.id) >= item.max_stacks
 		var can_buy := player.scrap >= item.shop_price and not at_cap
 		var buy_btn := Button.new()
@@ -1203,6 +1387,7 @@ func _on_buy_module_pressed(player: Player, slot_idx: int) -> void:
 	_populate_purchased(player)
 	_populate_stats(player)
 	_update_title(player)
+	_update_power_display(player)
 	call_deferred("_restore_focus")
 
 func _update_title(player: Player) -> void:
@@ -1213,6 +1398,16 @@ func _update_title(player: Player) -> void:
 		slots,
 	]
 
+func _update_power_display(player: Player) -> void:
+	if not is_instance_valid(_power_bar) or not is_instance_valid(_power_level_label):
+		return
+	var score := PlayerPowerCalculator.calc_display_power(player)
+	_power_level_label.text = "Power: %.2f" % score
+	_power_bar.value = score
+	var t := clampf(score / 8.0, 0.0, 1.0)
+	var bar_color := Color(0.18, 0.38, 1.0).lerp(Color(0.72, 0.04, 0.04), t)
+	_power_bar.modulate = bar_color
+
 func _reroll_cost() -> int:
 	return 60 + (_wave_number * 10) + (_reroll_count * 80)
 
@@ -1221,7 +1416,7 @@ func _update_reroll_btn(player: Player) -> void:
 	_reroll_btn.text = "Re-roll  [%d Scrap]" % cost
 	_reroll_btn.disabled = player.scrap < cost
 
-func _replace_weapon_offer(slot_idx: int) -> void:
+func _replace_weapon_offer(slot_idx: int, player: Player) -> void:
 	_offered_weapons.remove_at(slot_idx)
 	_locked_weapons.remove_at(slot_idx)
 	var pool := _load_all_weapons()
@@ -1235,7 +1430,8 @@ func _replace_weapon_offer(slot_idx: int) -> void:
 	if filtered.is_empty():
 		filtered = pool
 	var weights := _get_rarity_weights(_wave_number)
-	var replacement := _weighted_sample_weapons(filtered, weights, 1)
+	var item_weights := _get_weapon_item_weights(filtered, weights, player)
+	var replacement := _weighted_sample_by_item_weight(filtered, item_weights, 1)
 	if replacement.size() > 0:
 		_offered_weapons.insert(slot_idx, replacement[0])
 	elif pool.size() > 0:
@@ -1310,7 +1506,8 @@ func _on_reroll_pressed() -> void:
 				filtered.append(w)
 		if filtered.is_empty():
 			filtered = pool_w
-		var rep := _weighted_sample_weapons(filtered, weights, 1)
+		var item_weights := _get_weapon_item_weights(filtered, weights, player)
+		var rep := _weighted_sample_by_item_weight(filtered, item_weights, 1)
 		if rep.size() > 0:
 			_offered_weapons[i] = rep[0]
 

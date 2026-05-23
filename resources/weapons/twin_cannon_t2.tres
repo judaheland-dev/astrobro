@@ -27,6 +27,7 @@ projectile_scale = Vector2(0.7, 0.7)
 projectile_modulate = Color(1, 0.4, 0.05, 1)
 projectile_hitbox_size = Vector2(18, 18)
 emit_exhaust_trail = false
+fire_sfx_volume_db = -8.0
 tier = 2
 forged_weapon_id = &"twin_cannon_t3"
 is_forge_only = true

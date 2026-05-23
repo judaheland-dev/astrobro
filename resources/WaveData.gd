@@ -21,3 +21,8 @@ class_name WaveData
 # Rewards on wave clear
 @export var bonus_coins: int = 0
 @export var bonus_xp: int = 0
+
+## Expected player power score at this wave.
+## WaveManager compares the player's live power against this to determine
+## HIGH (×1.5), EXTREME (×2.5), and SUPREME (×4.0) power tiers.
+@export var expected_power: float = 1.0

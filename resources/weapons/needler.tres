@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue04.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"needler"
+display_name = "Needler"
+description = "Fires a stream of high-velocity needles. Lightly piercing; brutal under sustained pressure."
+ammo_type = 0
+weapon_class = 0
+shop_cost = 65
+damage = 6.0
+fire_rate = 10.0
+projectile_speed = 620.0
+range = 500.0
+spread = 0.04
+projectile_count = 1
+piercing = 1
+unlock_cost = 0
+rarity = 0
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.5, 0.5)
+projectile_modulate = Color(0.8, 0.9, 1.0, 1.0)
+projectile_hitbox_size = Vector2(8.0, 3.0)
+emit_exhaust_trail = false
+tier = 1
+forged_weapon_id = &"needler_t2"

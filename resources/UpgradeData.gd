@@ -44,6 +44,7 @@ enum StatKey {
 	KNOCKBACK_FORCE,       # weapon: impulse applied to enemy on hit (pixels/s)
 	DODGE_CHANCE,          # character: % chance to completely evade incoming hit (0..1)
 	ON_KILL_HEAL,          # character: HP healed on each kill
+	HP_REGEN,              # character: passive HP regeneration (HP/s)
 }
 
 @export var id: StringName = &""

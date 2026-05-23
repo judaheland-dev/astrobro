@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mine_layer_t2"
+display_name = "Mine Layer Mk.II"
+description = "Forged upgrade. Higher yield, wider blast radius, faster drop interval."
+ammo_type = 3
+weapon_class = 6
+shop_cost = 0
+damage = 130.0
+fire_rate = 0.65
+aoe_radius = 110.0
+unlock_cost = 0
+rarity = 3
+tier = 2
+is_forge_only = true

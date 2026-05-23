@@ -25,6 +25,10 @@ var xp_multiplier: float = 1.0
 var coin_multiplier: float = 1.0
 var lifesteal: float = 0.0
 
+# Starting weapon performance bonuses (read from CharacterData; applied at equip time)
+var fire_rate_bonus: float = 0.0   # additive fire-rate multiplier on all weapons (+0.2 = +20%)
+var damage_bonus: float = 0.0      # additive damage multiplier on all weapons (+0.2 = +20%)
+
 # In-run currency (resets each run; spent in weapon shop)
 var scrap: int = 0
 var scrap_bonus_chance: float = 0.0   # set by Rogue passive
@@ -48,6 +52,9 @@ var _block_cooldown: float = 0.0
 var crit_chance: float = 0.0
 var crit_multiplier: float = 2.0
 var emp_radius: float = 0.0
+
+# Passive HP regen
+var hp_regen: float = 0.35           # HP/s recovered continuously
 
 # Dodge and on-kill healing
 var dodge_chance: float = 0.0
@@ -74,7 +81,7 @@ var _dot_timer: float = 0.0
 # XP / leveling
 var xp: int = 0
 var level: int = 1
-var xp_threshold: int = 100
+var xp_threshold: int = 150
 var pending_upgrades: int = 0  # picks banked this wave; consumed by BetweenWaveUI
 
 # Weapons
@@ -111,6 +118,26 @@ const _THRUSTER_FPS: float = 12.0
 var damage_sprite_set: int = 1
 var _damage_overlay: Sprite2D = null
 
+# Global stat caps applied when upgrades are collected.
+# Per-ship overrides can be set via CharacterData.stat_caps using the same keys.
+const STAT_CAPS_DEFAULT: Dictionary = {
+	"max_health":          500.0,
+	"move_speed":          550.0,
+	"armor":                60.0,
+	"xp_multiplier":         3.0,
+	"coin_multiplier":       3.0,
+	"lifesteal":             0.5,
+	"damage_block_chance":   0.75,
+	"scrap_bonus_chance":    0.75,
+	"shield_max":          300.0,
+	"shield_regen_rate":    80.0,
+	"crit_chance":           0.75,
+	"crit_multiplier":       4.0,
+	"dodge_chance":          0.75,
+	"on_kill_heal":          30.0,
+	"hp_regen":               5.0,
+}
+
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision: CollisionShape2D = $CollisionShape2D
 
@@ -137,10 +164,79 @@ func _apply_character_data() -> void:
 	shield_max         = character_data.shield_max
 	shield_regen_rate  = character_data.shield_regen_rate
 	shield_regen_delay = character_data.shield_regen_delay
+	hp_regen           = character_data.hp_regen
+	# Offensive / defensive starting stats
+	lifesteal           = character_data.lifesteal
+	crit_chance         = character_data.crit_chance
+	crit_multiplier     = character_data.crit_multiplier
+	emp_radius          = character_data.emp_radius
+	dodge_chance        = character_data.dodge_chance
+	damage_block_chance = character_data.damage_block_chance
+	on_kill_heal        = character_data.on_kill_heal
+	scrap_bonus_chance  = character_data.scrap_bonus_chance
+	fire_rate_bonus     = character_data.fire_rate_bonus
+	damage_bonus        = character_data.damage_bonus
+
+	# Scale survival stats by difficulty
+	var health_mult := 1.0
+	var speed_mult  := 1.0
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY:
+			health_mult = 1.25
+			speed_mult  = 1.10
+		GameManager.Difficulty.EASY:
+			health_mult = 1.10
+			speed_mult  = 1.05
+		GameManager.Difficulty.NORMAL:
+			pass
+		GameManager.Difficulty.HARD:
+			health_mult = 0.85
+			speed_mult  = 0.95
+		GameManager.Difficulty.SUPER_HARD:
+			health_mult = 0.70
+			speed_mult  = 0.90
+	max_health        = max_health   * health_mult
+	armor             = armor        * health_mult
+	shield_max        = shield_max   * health_mult
+	shield_regen_rate = shield_regen_rate * health_mult
+	hp_regen          = hp_regen         * health_mult
+	move_speed        = move_speed   * speed_mult
+
 	current_shield     = shield_max
 	if character_data.sprite:
 		sprite.texture = character_data.sprite
 	sprite.modulate = character_data.ship_color
+
+	# Scale XP threshold (level-up frequency), coin multiplier, shield regen delay, and XP multiplier by difficulty
+	var xp_thresh_mult := 1.0
+	var coin_mult := 1.0
+	var p_regen_delay_mult := 1.0
+	var xp_mult_mult := 1.0
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY:
+			xp_thresh_mult     = 0.75
+			coin_mult          = 1.20
+			p_regen_delay_mult = 0.75
+			xp_mult_mult       = 1.20
+		GameManager.Difficulty.EASY:
+			xp_thresh_mult     = 0.88
+			coin_mult          = 1.10
+			p_regen_delay_mult = 0.88
+			xp_mult_mult       = 1.10
+		GameManager.Difficulty.HARD:
+			xp_thresh_mult     = 1.20
+			coin_mult          = 0.88
+			p_regen_delay_mult = 1.20
+			xp_mult_mult       = 0.88
+		GameManager.Difficulty.SUPER_HARD:
+			xp_thresh_mult     = 1.45
+			coin_mult          = 0.72
+			p_regen_delay_mult = 1.50
+			xp_mult_mult       = 0.72
+	xp_threshold       = int(xp_threshold * xp_thresh_mult)
+	coin_multiplier    = coin_multiplier * coin_mult
+	shield_regen_delay = shield_regen_delay * p_regen_delay_mult
+	xp_multiplier      = xp_multiplier * xp_mult_mult
 
 func _spawn_passive() -> void:
 	if not character_data:
@@ -223,6 +319,12 @@ func _physics_process(delta: float) -> void:
 
 	if _block_cooldown > 0.0:
 		_block_cooldown -= delta
+
+	# Passive HP regeneration
+	if hp_regen > 0.0 and current_health < max_health:
+		current_health = minf(current_health + hp_regen * delta, max_health)
+		health_changed.emit(current_health, max_health)
+		_update_damage_overlay(current_health / max_health)
 
 	# Shield regeneration
 	if shield_max > 0.0:
@@ -407,44 +509,68 @@ func gain_xp(amount: int) -> void:
 
 # --- Upgrades ---
 
+func _stat_cap(stat_name: String) -> float:
+	if character_data and character_data.stat_caps.has(stat_name):
+		return float(character_data.stat_caps[stat_name])
+	return STAT_CAPS_DEFAULT.get(stat_name, INF)
+
 func apply_upgrade(data: UpgradeData) -> void:
+	# Scale numeric upgrade effectiveness based on difficulty.
+	# Discrete mechanics (bounce/chain/fork counts) are excluded.
+	var _upgrade_mult := 1.0
+	match GameManager.current_difficulty:
+		GameManager.Difficulty.SUPER_EASY: _upgrade_mult = 1.20
+		GameManager.Difficulty.EASY:       _upgrade_mult = 1.10
+		GameManager.Difficulty.HARD:       _upgrade_mult = 0.90
+		GameManager.Difficulty.SUPER_HARD: _upgrade_mult = 0.80
+	const _DISCRETE_KEYS := [
+		UpgradeData.StatKey.BOUNCE_COUNT,
+		UpgradeData.StatKey.CHAIN_COUNT,
+		UpgradeData.StatKey.FORK_COUNT,
+	]
 	for key in data.stat_deltas:
 		var delta: float = data.stat_deltas[key]
+		if key not in _DISCRETE_KEYS:
+			delta *= _upgrade_mult
+			if character_data:
+				delta *= float(character_data.upgrade_efficiency.get(key, 1.0))
 		match key:
 			UpgradeData.StatKey.MAX_HEALTH:
-				max_health += delta
+				max_health = minf(max_health + delta, _stat_cap("max_health"))
 				current_health = minf(current_health + delta, max_health)
 			UpgradeData.StatKey.MOVE_SPEED:
-				move_speed += delta
+				move_speed = minf(move_speed + delta, _stat_cap("move_speed"))
 			UpgradeData.StatKey.ARMOR:
-				armor += delta
+				armor = minf(armor + delta, _stat_cap("armor"))
 			UpgradeData.StatKey.XP_MULTIPLIER:
-				xp_multiplier += delta
+				xp_multiplier = minf(xp_multiplier + delta, _stat_cap("xp_multiplier"))
 			UpgradeData.StatKey.COIN_MULTIPLIER:
-				coin_multiplier += delta
+				coin_multiplier = minf(coin_multiplier + delta, _stat_cap("coin_multiplier"))
 			UpgradeData.StatKey.LIFESTEAL:
-				lifesteal += delta
+				lifesteal = minf(lifesteal + delta, _stat_cap("lifesteal"))
 			UpgradeData.StatKey.DAMAGE_BLOCK_CHANCE:
-				damage_block_chance += delta
+				damage_block_chance = minf(damage_block_chance + delta, _stat_cap("damage_block_chance"))
 			UpgradeData.StatKey.SCRAP_BONUS_CHANCE:
-				scrap_bonus_chance += delta
+				scrap_bonus_chance = minf(scrap_bonus_chance + delta, _stat_cap("scrap_bonus_chance"))
 			UpgradeData.StatKey.INSTANT_HEAL:
 				heal(delta)
 			UpgradeData.StatKey.SHIELD_MAX:
-				shield_max += delta
+				shield_max = minf(shield_max + delta, _stat_cap("shield_max"))
 				current_shield = minf(current_shield + delta, shield_max)
 				shield_changed.emit(current_shield, shield_max)
 				_update_shield_ring()
 			UpgradeData.StatKey.SHIELD_REGEN_RATE:
-				shield_regen_rate += delta
+				shield_regen_rate = minf(shield_regen_rate + delta, _stat_cap("shield_regen_rate"))
 			UpgradeData.StatKey.CRIT_CHANCE:
-				crit_chance += delta
+				crit_chance = minf(crit_chance + delta, _stat_cap("crit_chance"))
 			UpgradeData.StatKey.CRIT_MULTIPLIER:
-				crit_multiplier += delta
+				crit_multiplier = minf(crit_multiplier + delta, _stat_cap("crit_multiplier"))
 			UpgradeData.StatKey.DODGE_CHANCE:
-				dodge_chance = minf(dodge_chance + delta, 0.75)
+				dodge_chance = minf(dodge_chance + delta, _stat_cap("dodge_chance"))
 			UpgradeData.StatKey.ON_KILL_HEAL:
-				on_kill_heal += delta
+				on_kill_heal = minf(on_kill_heal + delta, _stat_cap("on_kill_heal"))
+			UpgradeData.StatKey.HP_REGEN:
+				hp_regen = minf(hp_regen + delta, _stat_cap("hp_regen"))
 			UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
 			UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
 			UpgradeData.StatKey.SPREAD, \
@@ -477,9 +603,15 @@ func add_weapon(weapon_node: Node) -> void:
 	if weapons.size() >= slots:
 		return
 	var wdata = weapon_node.get("weapon_data")
+	# Enforce per-character weapon restrictions
+	if character_data and wdata != null and character_data.allowed_weapon_ids.size() > 0:
+		if not character_data.allowed_weapon_ids.has(wdata.id):
+			return
 	if character_data and wdata != null:
 		var bonus: float = character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0)
-		weapon_node.set("damage_multiplier", 1.0 + bonus)
+		weapon_node.set("damage_multiplier", 1.0 + bonus + damage_bonus)
+		if fire_rate_bonus != 0.0 and weapon_node.has_method("apply_stat_delta"):
+			weapon_node.call("apply_stat_delta", UpgradeData.StatKey.FIRE_RATE, fire_rate_bonus * weapon_node.get("fire_rate"))
 	weapons.append(weapon_node)
 	# Assign to the first unoccupied port in the default order.
 	# Do NOT use weapons.size()-1 as the index — the size reflects adds/removes

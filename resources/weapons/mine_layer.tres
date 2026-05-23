@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mine_layer"
+display_name = "Mine Layer"
+description = "Drops a proximity mine at your position. Mines arm after 1.5s then detonate on enemy contact."
+ammo_type = 3
+weapon_class = 6
+shop_cost = 120
+damage = 75.0
+fire_rate = 0.5
+aoe_radius = 80.0
+unlock_cost = 0
+rarity = 2
+tier = 1
+forged_weapon_id = &"mine_layer_t2"

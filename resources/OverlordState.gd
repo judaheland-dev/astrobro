@@ -45,10 +45,10 @@ const ENEMY_SPRITES: Dictionary = {
 # All supported deploy buttons: face + d-pad + shoulders
 # Each entry: [joy_constant, display_label, color]
 const BUTTON_DEFS: Array = [
-	[JOY_BUTTON_A,              "A",     Color(0.2, 0.8, 0.2)],
-	[JOY_BUTTON_B,              "B",     Color(0.8, 0.2, 0.2)],
-	[JOY_BUTTON_X,              "X",     Color(0.2, 0.5, 1.0)],
-	[JOY_BUTTON_Y,              "Y",     Color(1.0, 0.8, 0.1)],
+	[JOY_BUTTON_A,              "B",     Color(0.8, 0.2, 0.2)],
+	[JOY_BUTTON_B,              "A",     Color(0.2, 0.8, 0.2)],
+	[JOY_BUTTON_X,              "Y",     Color(1.0, 0.8, 0.1)],
+	[JOY_BUTTON_Y,              "X",     Color(0.2, 0.5, 1.0)],
 	[JOY_BUTTON_DPAD_UP,        "Up",    Color(0.7, 0.7, 0.7)],
 	[JOY_BUTTON_DPAD_DOWN,      "Down",  Color(0.7, 0.7, 0.7)],
 	[JOY_BUTTON_DPAD_LEFT,      "Left",  Color(0.7, 0.7, 0.7)],

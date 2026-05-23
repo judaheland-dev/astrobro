@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserGreen08.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"pulse_rifle_t2"
+display_name = "Pulse Rifle Mk.II"
+description = "Forged upgrade. Each burst splits into a fork, shredding clustered foes."
+ammo_type = 1
+weapon_class = 0
+shop_cost = 0
+damage = 12.0
+fire_rate = 9.0
+projectile_speed = 600.0
+range = 750.0
+spread = 0.01
+projectile_count = 1
+piercing = 0
+fork_count = 1
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.65, 0.65)
+projectile_modulate = Color(0.3, 1.0, 0.5, 1.0)
+projectile_hitbox_size = Vector2(10.0, 4.0)
+emit_exhaust_trail = false
+tier = 2
+is_forge_only = true

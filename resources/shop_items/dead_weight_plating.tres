@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_025.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"dead_weight_plating"
+display_name = "Dead Weight Plating"
+description = "+35 Max HP, -25 Move Speed. Bulk at a cost. Stand and fight."
+scope = 0
+stat_deltas = {0: 35.0, 1: -25.0}
+shop_price = 65
+max_stacks = 2
+rarity = 1

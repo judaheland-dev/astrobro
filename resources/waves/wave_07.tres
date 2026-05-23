@@ -1,17 +1,18 @@
-[gd_resource type="Resource" script_class="WaveData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="WaveData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://resources/WaveData.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/enemies/grunt.tres" id="2"]
 [ext_resource type="Resource" path="res://resources/enemies/exploder.tres" id="3"]
 [ext_resource type="Resource" path="res://resources/enemies/ranger.tres" id="4"]
 [ext_resource type="Resource" path="res://resources/enemies/sentinel.tres" id="5"]
+[ext_resource type="Resource" path="res://resources/enemies/extreme_sniper.tres" id="6"]
 
 [resource]
 script = ExtResource("1")
 wave_number = 7
 is_boss_wave = false
-enemy_pool = [ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5")]
-enemy_counts = [35, 13, 8, 4]
+enemy_pool = [ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6")]
+enemy_counts = [35, 13, 8, 4, 4]
 spawn_interval = 0.35
 initial_delay = 0.7
 time_limit = 75.0

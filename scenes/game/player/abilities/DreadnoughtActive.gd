@@ -1,10 +1,10 @@
 extends Node
-## Dreadnought active - Salvo: all weapons deal 3x damage for 1.5 s. 12 s cooldown.
+## Dreadnought active - Salvo: all weapons deal 2.5x damage for 1.5 s. 12 s cooldown.
 ## Re-applies multiplier every frame, overriding DreadnoughtPassive's rolling burst logic.
 
 const DURATION: float = 1.5
 const COOLDOWN: float = 12.0
-const SALVO_MULT: float = 3.0
+const SALVO_MULT: float = 2.5
 
 var _player: Player
 var _active: bool = false
@@ -30,6 +30,7 @@ func _process(delta: float) -> void:
 		else:
 			_active = false
 			_cooldown_timer = COOLDOWN
+			_set_multiplier(1.0)
 	elif _cooldown_timer > 0.0:
 		_cooldown_timer = maxf(0.0, _cooldown_timer - delta)
 		var ratio := _cooldown_timer / COOLDOWN

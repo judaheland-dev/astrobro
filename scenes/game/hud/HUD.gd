@@ -50,10 +50,11 @@ func register_player(player: Player) -> void:
 	player.health_changed.connect(func(cur, mx): _update_health(panel, cur, mx))
 	player.shield_changed.connect(func(cur, mx): _update_shield(panel, cur, mx))
 	player.xp_gained.connect(func(xp, threshold): _update_xp(panel, xp, threshold))
-	player.leveled_up.connect(func(lvl): _update_level(panel, lvl))
-	player.scrap_changed.connect(func(amount): _update_scrap(panel, amount))
+	player.leveled_up.connect(func(lvl): _update_level(panel, lvl); _update_power(panel, player))
+	player.scrap_changed.connect(func(amount): _update_scrap(panel, amount); _update_power(panel, player))
 	player.died.connect(func(): _mark_dead(panel))
 	player.ability_cooldown_changed.connect(func(ratio): _update_ability(panel, ratio))
+	_update_power(panel, player)
 
 func _create_player_panel(index: int) -> Control:
 	var vbox := VBoxContainer.new()
@@ -112,6 +113,29 @@ func _create_player_panel(index: int) -> Control:
 	ability_bar.visible = false
 	vbox.add_child(ability_bar)
 
+	var power_hbox := HBoxContainer.new()
+	power_hbox.name = "PowerHBox"
+	power_hbox.add_theme_constant_override("separation", 6)
+	vbox.add_child(power_hbox)
+
+	var power_label := Label.new()
+	power_label.name = "PowerLabel"
+	power_label.text = "Pwr Lv 1"
+	power_label.modulate = Color(1.0, 0.82, 0.2)
+	if panel_font:
+		power_label.add_theme_font_override("font", panel_font)
+		power_label.add_theme_font_size_override("font_size", 14)
+	power_hbox.add_child(power_label)
+
+	var power_bar := ProgressBar.new()
+	power_bar.name = "PowerBar"
+	power_bar.custom_minimum_size = Vector2(120, 14)
+	power_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	power_bar.max_value = 1.0
+	power_bar.value = 0.0
+	power_bar.modulate = Color(1.0, 0.75, 0.1)
+	power_hbox.add_child(power_bar)
+
 	return vbox
 
 func _mark_dead(panel: Control) -> void:
@@ -156,6 +180,19 @@ func _update_ability(panel: Control, ratio: float) -> void:
 	bar.visible = true
 	bar.value = 1.0 - ratio
 	bar.modulate = Color(0.2, 1.0, 0.4) if ratio <= 0.0 else Color(1.0, 0.7, 0.1)
+
+func _update_power(panel: Control, player: Player) -> void:
+	if not is_instance_valid(player):
+		return
+	var score := PlayerPowerCalculator.calc_display_power(player)
+	var lv    := PlayerPowerCalculator.power_to_level(score)
+	var prog  := PlayerPowerCalculator.power_level_progress(score)
+	var lbl   := panel.get_node_or_null("PowerHBox/PowerLabel") as Label
+	var bar   := panel.get_node_or_null("PowerHBox/PowerBar") as ProgressBar
+	if lbl:
+		lbl.text = "Pwr Lv %d" % lv
+	if bar:
+		bar.value = prog
 
 func update_wave(current: int, total: int) -> void:
 	if _wave_label:

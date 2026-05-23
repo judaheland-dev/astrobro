@@ -1,5 +1,5 @@
 extends Node
-## Dreadnought passive - Heavy Shells: every 5th firing burst deals 2x damage.
+## Dreadnought passive - Heavy Shells: every 5th firing burst deals 1.5x damage.
 ## Listens to the weapon_fired signal; sets passive_multiplier on all weapons
 ## BEFORE shots fire (signal is emitted at the start of _fire_all_weapons).
 
@@ -25,4 +25,4 @@ func _on_weapon_fired() -> void:
 func _set_heavy(on: bool) -> void:
 	for w in _player.weapons:
 		if w.has_method("try_fire"):
-			w.set("passive_multiplier", 2.0 if on else 1.0)
+			w.set("passive_multiplier", 1.5 if on else 1.0)
