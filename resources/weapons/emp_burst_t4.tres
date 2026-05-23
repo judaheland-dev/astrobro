@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue11.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"emp_burst_t4"
+display_name = "EMP Burst Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 0
+weapon_class = 5
+shop_cost = 0
+damage = 9.5
+fire_rate = 3.25
+projectile_speed = 471.5
+range = 548.8
+spread = 0.18
+projectile_count = 9
+piercing = 0
+knockback_force = 580.0
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.6, 0.6)
+projectile_modulate = Color(0.65, 0.75, 1.0, 1.0)
+projectile_hitbox_size = Vector2(10.0, 4.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"emp_burst_t5"

@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_010.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"volley_missiles_t4"
+display_name = "Volley Missiles Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 31.1
+fire_rate = 1.12
+projectile_speed = 460.0
+range = 1176.0
+spread = 0.34
+projectile_count = 9
+piercing = 0
+aoe_radius = 122.0
+is_homing = true
+homing_strength = 4.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.6, 0.6)
+projectile_modulate = Color(1.0, 0.4, 1.0, 1.0)
+projectile_hitbox_size = Vector2(18.0, 6.0)
+emit_exhaust_trail = true
+tier = 4
+forged_weapon_id = &"volley_missiles_t5"

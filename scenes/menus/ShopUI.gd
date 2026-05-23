@@ -22,6 +22,11 @@ var _locked_modules: Array[bool] = []
 var _reroll_count: int = 0
 var _selected_weapon_node: Node = null   # port-swap selection state
 
+# Banned items - cleared when a new game starts (set externally or via GameManager.start_run)
+# Each weapon ban stores {id: StringName, rarity: int} so only the specific rarity is excluded.
+var _banned_weapons: Array[Dictionary] = []
+var _banned_module_ids: Array[StringName] = []
+
 # Per-player offer state saved across waves (keyed by player index)
 var _saved_weapon_offers: Dictionary = {}
 var _saved_weapon_locks: Dictionary = {}
@@ -48,11 +53,17 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 10
 
+	# Root control fills the viewport so all children receive mouse input correctly.
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+
 	var bg := ColorRect.new()
 	bg.color = Color(0.0, 0.0, 0.0, 0.75)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	root.add_child(bg)
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -62,7 +73,7 @@ func _ready() -> void:
 	vbox.offset_bottom = -8.0
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 8)
-	add_child(vbox)
+	root.add_child(vbox)
 
 	_title_label = Label.new()
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -290,7 +301,7 @@ func _ready() -> void:
 	_stats_container.add_theme_constant_override("separation", 4)
 	stats_ov_scroll.add_child(_stats_container)
 
-	add_child(_stats_overlay)
+	root.add_child(_stats_overlay)
 
 	_popover = PanelContainer.new()
 	_popover.visible = false
@@ -313,7 +324,17 @@ func _ready() -> void:
 		_popover_label.add_theme_font_override("font", font)
 		_popover_label.add_theme_font_size_override("font_size", 13)
 	_popover.add_child(_popover_label)
-	add_child(_popover)
+	root.add_child(_popover)
+
+func reset_bans() -> void:
+	_banned_weapons.clear()
+	_banned_module_ids.clear()
+
+func _is_weapon_banned(w: WeaponData) -> bool:
+	for entry in _banned_weapons:
+		if entry.id == w.id and entry.rarity == int(w.rarity):
+			return true
+	return false
 
 func show_for_players(players: Array, projectile_parent: Node2D, wave_number: int = 1) -> void:
 	_players.clear()
@@ -333,6 +354,12 @@ func _reset_offer_state() -> void:
 	_locked_weapons.clear()
 	_locked_modules.clear()
 	_reroll_count = 0
+	_banned_weapons.clear()
+	_banned_module_ids.clear()
+	_saved_weapon_offers.clear()
+	_saved_weapon_locks.clear()
+	_saved_module_offers.clear()
+	_saved_module_locks.clear()
 
 func _save_player_state(idx: int) -> void:
 	_saved_weapon_offers[idx] = _offered_weapons.duplicate()
@@ -432,7 +459,7 @@ func _weighted_sample_weapons(pool: Array[WeaponData], weights: Array[float], co
 				break
 	return result
 
-func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], count: int) -> Array[UpgradeData]:
+func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], count: int, preferred: Array[StringName] = []) -> Array[UpgradeData]:
 	var result: Array[UpgradeData] = []
 	var remaining := pool.duplicate()
 	var attempts := 0
@@ -440,13 +467,13 @@ func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], c
 		attempts += 1
 		var total := 0.0
 		for item in remaining:
-			total += weights[int(item.rarity)]
+			total += weights[int(item.rarity)] * (3.0 if item.id in preferred else 1.0)
 		if total <= 0.0:
 			break
 		var roll := randf() * total
 		var acc := 0.0
 		for i in range(remaining.size()):
-			acc += weights[int(remaining[i].rarity)]
+			acc += weights[int(remaining[i].rarity)] * (3.0 if remaining[i].id in preferred else 1.0)
 			if roll <= acc:
 				result.append(remaining[i])
 				remaining.remove_at(i)
@@ -455,11 +482,15 @@ func _weighted_sample_modules(pool: Array[UpgradeData], weights: Array[float], c
 
 # Returns per-item weights for a weapon pool, boosting allowed weapons and
 # reducing others when the character has an allowed_weapon_ids restriction.
+# When no restriction exists, weapon_class_bonuses are used to bias toward
+# classes that benefit this ship and away from classes that penalise it.
 func _get_weapon_item_weights(pool: Array[WeaponData], rarity_weights: Array[float], player: Player) -> Array[float]:
 	var result: Array[float] = []
 	var allowed: Array[StringName] = []
+	var class_bonuses: Dictionary = {}
 	if player and player.character_data:
 		allowed = player.character_data.allowed_weapon_ids
+		class_bonuses = player.character_data.weapon_class_bonuses
 	for w in pool:
 		var base := rarity_weights[int(w.rarity)]
 		if allowed.size() > 0:
@@ -467,6 +498,16 @@ func _get_weapon_item_weights(pool: Array[WeaponData], rarity_weights: Array[flo
 				base *= 8.0   # preferred weapons appear much more often
 			else:
 				base *= 0.15  # other weapons are hard to come by
+		else:
+			# Scale by ship affinity for this weapon class.
+			# A +0.3 bonus ~doubles the weight; a -0.3 penalty halves it.
+			var class_key := int(w.weapon_class)
+			if class_bonuses.has(class_key):
+				var cb := float(class_bonuses[class_key])
+				if cb > 0.0:
+					base *= 1.0 + cb * 4.0   # up to ~3x for +0.5
+				elif cb < 0.0:
+					base *= maxf(0.2, 1.0 + cb * 2.0)  # down to 0.2x for -0.5
 		result.append(base)
 	return result
 
@@ -514,7 +555,7 @@ func _generate_weapon_offers(player: Player) -> void:
 	var weights := _get_rarity_weights(_wave_number)
 	var pool: Array[WeaponData] = []
 	for w in all_weapons:
-		if not exclude.has(w):
+		if not exclude.has(w) and not _is_weapon_banned(w):
 			pool.append(w)
 	if pool.is_empty():
 		pool = all_weapons
@@ -723,6 +764,17 @@ func _render_shop(player: Player) -> void:
 			lock_btn.add_theme_font_override("font", font)
 			lock_btn.add_theme_font_size_override("font_size", 11)
 		card_vbox.add_child(lock_btn)
+
+		var ban_btn := Button.new()
+		ban_btn.text = "Ban  [100 scrap]"
+		ban_btn.disabled = player.scrap < 100
+		ban_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		ban_btn.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		ban_btn.pressed.connect(_on_ban_weapon_pressed.bind(player, slot_idx))
+		if font:
+			ban_btn.add_theme_font_override("font", font)
+			ban_btn.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(ban_btn)
 
 		var shop_pop := "[%s] %s\n[%s]%s\n\n%s\n\nDMG: %.0f  |  Rate: %.1f/s\nRange: %.0f  |  Spread: %.2f\nShots: %d  |  Pierce: %d\nCost: %d scrap" % [
 			_rarity_name(int(wdata.rarity)), wdata.display_name,
@@ -1155,12 +1207,16 @@ func _on_buy_pressed(player: Player, slot_idx: int) -> void:
 	_update_power_display(player)
 	call_deferred("_restore_focus")
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event.is_action_pressed("ui_accept"):
 		get_viewport().set_input_as_handled()
 		_on_skip_pressed()
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.physical_keycode == KEY_U:
+			get_viewport().set_input_as_handled()
+			_on_stats_toggle()
 
 func _on_skip_pressed() -> void:
 	AudioManager.play_ui_click()
@@ -1198,7 +1254,8 @@ func _generate_module_offers(player: Player) -> void:
 			pool.append(m)
 	if pool.is_empty():
 		pool = available
-	var new_modules := _weighted_sample_modules(pool, weights, slots_to_fill.size())
+	var preferred_modules: Array[StringName] = player.character_data.preferred_upgrades if player.character_data else []
+	var new_modules := _weighted_sample_modules(pool, weights, slots_to_fill.size(), preferred_modules)
 	for i in range(slots_to_fill.size()):
 		var slot := slots_to_fill[i]
 		if i < new_modules.size():
@@ -1212,6 +1269,8 @@ func _filter_modules_for_player(pool: Array[UpgradeData], player: Player) -> Arr
 	var result: Array[UpgradeData] = []
 	for item in pool:
 		if item.id in excluded:
+			continue
+		if _banned_module_ids.has(item.id):
 			continue
 		if item.max_stacks == -1 or player.count_upgrade(item.id) < item.max_stacks:
 			result.append(item)
@@ -1229,20 +1288,40 @@ func _render_modules(player: Player) -> void:
 		var item := _offered_modules[slot_idx]
 		var is_locked := _locked_modules[slot_idx] if slot_idx < _locked_modules.size() else false
 
+		var stat_capped := player.is_upgrade_stat_capped(item)
 		var rarity_col := _rarity_color(int(item.rarity))
-		var border_col := Color(0.9, 0.75, 0.1) if is_locked else rarity_col
+		var border_col: Color
+		if is_locked:
+			border_col = Color(0.9, 0.75, 0.1)
+		elif stat_capped:
+			border_col = Color(0.75, 0.18, 0.18)
+		else:
+			border_col = rarity_col
 		var card := PanelContainer.new()
 		card.custom_minimum_size = Vector2(200.0, 150.0)
 		var card_style := StyleBoxFlat.new()
-		card_style.bg_color = rarity_col.darkened(0.6)
+		if stat_capped:
+			card_style.bg_color = Color(0.28, 0.06, 0.06)
+		else:
+			card_style.bg_color = rarity_col.darkened(0.6)
 		card_style.border_color = border_col
-		card_style.set_border_width_all(3 if is_locked else 2)
+		card_style.set_border_width_all(3 if (is_locked or stat_capped) else 2)
 		card_style.set_corner_radius_all(6)
 		card.add_theme_stylebox_override("panel", card_style)
 
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 5)
 		card.add_child(card_vbox)
+
+		if stat_capped:
+			var cap_badge := Label.new()
+			cap_badge.text = "MAX CAP REACHED"
+			cap_badge.modulate = Color(1.0, 0.35, 0.35)
+			cap_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if font:
+				cap_badge.add_theme_font_override("font", font)
+				cap_badge.add_theme_font_size_override("font_size", 11)
+			card_vbox.add_child(cap_badge)
 
 		if is_locked:
 			var lock_badge := Label.new()
@@ -1284,6 +1363,17 @@ func _render_modules(player: Player) -> void:
 			desc_label.add_theme_font_size_override("font_size", 12)
 		card_vbox.add_child(desc_label)
 
+		if stat_capped:
+			var useless_label := Label.new()
+			useless_label.text = "THIS UPGRADE IS USELESS."
+			useless_label.modulate = Color(1.0, 0.35, 0.35)
+			useless_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			useless_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			if font:
+				useless_label.add_theme_font_override("font", font)
+				useless_label.add_theme_font_size_override("font_size", 11)
+			card_vbox.add_child(useless_label)
+
 		var cost_label := Label.new()
 		cost_label.text = "%d Scrap" % item.shop_price
 		cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1309,10 +1399,12 @@ func _render_modules(player: Player) -> void:
 			mod_pw_label.add_theme_font_size_override("font_size", 11)
 		card_vbox.add_child(mod_pw_label)
 
-		var at_cap := item.max_stacks != -1 and player.count_upgrade(item.id) >= item.max_stacks
+		var at_cap := (item.max_stacks != -1 and player.count_upgrade(item.id) >= item.max_stacks) or stat_capped
 		var can_buy := player.scrap >= item.shop_price and not at_cap
 		var buy_btn := Button.new()
-		if at_cap:
+		if stat_capped:
+			buy_btn.text = "Cap Reached"
+		elif item.max_stacks != -1 and player.count_upgrade(item.id) >= item.max_stacks:
 			buy_btn.text = "MAXED"
 		elif can_buy:
 			buy_btn.text = "Buy"
@@ -1334,6 +1426,17 @@ func _render_modules(player: Player) -> void:
 			lock_btn.add_theme_font_override("font", font)
 			lock_btn.add_theme_font_size_override("font_size", 11)
 		card_vbox.add_child(lock_btn)
+
+		var ban_module_btn := Button.new()
+		ban_module_btn.text = "Ban  [100 scrap]"
+		ban_module_btn.disabled = player.scrap < 100
+		ban_module_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		ban_module_btn.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		ban_module_btn.pressed.connect(_on_ban_module_pressed.bind(player, slot_idx))
+		if font:
+			ban_module_btn.add_theme_font_override("font", font)
+			ban_module_btn.add_theme_font_size_override("font_size", 11)
+		card_vbox.add_child(ban_module_btn)
 
 		var mod_pop := "[%s] %s\n\n%s\n\n%sCost: %d scrap" % [
 			_rarity_name(int(item.rarity)), item.display_name,
@@ -1411,10 +1514,25 @@ func _update_power_display(player: Player) -> void:
 func _reroll_cost() -> int:
 	return 60 + (_wave_number * 10) + (_reroll_count * 80)
 
+## Returns how many free rerolls the player still has from the Evasion upgrade.
+func _evasion_free_rerolls_available(player: Player) -> int:
+	var total := player.count_upgrade(&"evasion") * 10
+	return maxi(0, total - player.evasion_free_rerolls_used)
+
+## Power gained for the Nth free reroll (0-indexed). Formula: 0.01*(n*(n+1)/2 + 1)
+static func _evasion_reroll_power(n: int) -> float:
+	return 0.01 * (n * (n + 1) / 2 + 1)
+
 func _update_reroll_btn(player: Player) -> void:
-	var cost := _reroll_cost()
-	_reroll_btn.text = "Re-roll  [%d Scrap]" % cost
-	_reroll_btn.disabled = player.scrap < cost
+	if _evasion_free_rerolls_available(player) > 0:
+		var free_left := _evasion_free_rerolls_available(player)
+		var next_power := _evasion_reroll_power(player.evasion_free_rerolls_used)
+		_reroll_btn.text = "Re-roll  [FREE x%d  +%.2f pwr]" % [free_left, next_power]
+		_reroll_btn.disabled = false
+	else:
+		var cost := _reroll_cost()
+		_reroll_btn.text = "Re-roll  [%d Scrap]" % cost
+		_reroll_btn.disabled = player.scrap < cost
 
 func _replace_weapon_offer(slot_idx: int, player: Player) -> void:
 	_offered_weapons.remove_at(slot_idx)
@@ -1425,7 +1543,7 @@ func _replace_weapon_offer(slot_idx: int, player: Player) -> void:
 		exclude.append(w)
 	var filtered: Array[WeaponData] = []
 	for w in pool:
-		if not exclude.has(w):
+		if not exclude.has(w) and not _is_weapon_banned(w):
 			filtered.append(w)
 	if filtered.is_empty():
 		filtered = pool
@@ -1454,7 +1572,8 @@ func _replace_module_offer(slot_idx: int, player: Player) -> void:
 	if filtered.is_empty():
 		filtered = pool
 	var weights := _get_rarity_weights(_wave_number)
-	var replacement := _weighted_sample_modules(filtered, weights, 1)
+	var preferred_modules: Array[StringName] = player.character_data.preferred_upgrades if player.character_data else []
+	var replacement := _weighted_sample_modules(filtered, weights, 1, preferred_modules)
 	if replacement.size() > 0:
 		_offered_modules.insert(slot_idx, replacement[0])
 	elif pool.size() > 0:
@@ -1462,6 +1581,52 @@ func _replace_module_offer(slot_idx: int, player: Player) -> void:
 	else:
 		_offered_modules.insert(slot_idx, _offered_modules[0] if _offered_modules.size() > 0 else null)
 	_locked_modules.insert(slot_idx, false)
+
+func _on_ban_weapon_pressed(player: Player, slot_idx: int) -> void:
+	if slot_idx >= _offered_weapons.size():
+		return
+	var wdata := _offered_weapons[slot_idx]
+	if wdata == null:
+		return
+	if player.scrap < 100:
+		return
+	AudioManager.play_ui_click()
+	player.scrap -= 100
+	player.scrap_changed.emit(player.scrap)
+	if not _is_weapon_banned(wdata):
+		_banned_weapons.append({"id": wdata.id, "rarity": int(wdata.rarity)})
+	# Remove from locked state and replace with a fresh item
+	if slot_idx < _locked_weapons.size():
+		_locked_weapons[slot_idx] = false
+	_replace_weapon_offer(slot_idx, player)
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	call_deferred("_restore_focus")
+
+func _on_ban_module_pressed(player: Player, slot_idx: int) -> void:
+	if slot_idx >= _offered_modules.size():
+		return
+	var item := _offered_modules[slot_idx]
+	if item == null:
+		return
+	if player.scrap < 100:
+		return
+	AudioManager.play_ui_click()
+	player.scrap -= 100
+	player.scrap_changed.emit(player.scrap)
+	if not _banned_module_ids.has(item.id):
+		_banned_module_ids.append(item.id)
+	# Remove from locked state and replace with a fresh item
+	if slot_idx < _locked_modules.size():
+		_locked_modules[slot_idx] = false
+	_replace_module_offer(slot_idx, player)
+	_scrap_label.text = "Scrap: %d" % player.scrap
+	_update_reroll_btn(player)
+	_render_shop(player)
+	_render_modules(player)
+	call_deferred("_restore_focus")
 
 func _on_toggle_weapon_lock(player: Player, slot_idx: int) -> void:
 	AudioManager.play_ui_click()
@@ -1481,16 +1646,30 @@ func _on_reroll_pressed() -> void:
 	if _players.is_empty() or _current_player_index >= _players.size():
 		return
 	var player := _players[_current_player_index]
-	var cost := _reroll_cost()
-	if player.scrap < cost:
-		return
-	AudioManager.play_ui_click()
-	player.scrap -= cost
-	player.scrap_changed.emit(player.scrap)
+	if _evasion_free_rerolls_available(player) > 0:
+		# Free reroll from Evasion upgrade — award escalating power bonus
+		var n := player.evasion_free_rerolls_used
+		var power_gain := _evasion_reroll_power(n)
+		player.flat_power_bonus += power_gain
+		player.evasion_free_rerolls_used += 1
+		AudioManager.play_ui_click()
+	else:
+		var cost := _reroll_cost()
+		if player.scrap < cost:
+			return
+		AudioManager.play_ui_click()
+		player.scrap -= cost
+		player.scrap_changed.emit(player.scrap)
 	_reroll_count += 1
 
 	# Re-sample all unlocked weapon slots
-	var pool_w := _load_all_weapons()
+	var all_pool_w := _load_all_weapons()
+	var pool_w: Array[WeaponData] = []
+	for w in all_pool_w:
+		if not _is_weapon_banned(w):
+			pool_w.append(w)
+	if pool_w.is_empty():
+		pool_w = all_pool_w
 	var weights := _get_rarity_weights(_wave_number)
 	for i in range(_offered_weapons.size()):
 		if _locked_weapons[i]:
@@ -1526,7 +1705,8 @@ func _on_reroll_pressed() -> void:
 				filtered_m.append(m)
 		if filtered_m.is_empty():
 			filtered_m = pool_m
-		var rep_m := _weighted_sample_modules(filtered_m, weights, 1)
+		var preferred_mods: Array[StringName] = player.character_data.preferred_upgrades if player.character_data else []
+		var rep_m := _weighted_sample_modules(filtered_m, weights, 1, preferred_mods)
 		if rep_m.size() > 0:
 			_offered_modules[i] = rep_m[0]
 

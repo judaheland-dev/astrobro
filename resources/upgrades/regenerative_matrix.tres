@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_070.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"regenerative_matrix"
+display_name = "Regenerative Matrix"
+description = "+4 HP Regen/s, +15 Max HP, +5 Armor."
+scope = 0
+stat_deltas = {25: 4.0, 0: 15.0, 2: 5.0}
+shop_price = 0
+max_stacks = 3
+rarity = 1

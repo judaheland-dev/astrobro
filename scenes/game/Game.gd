@@ -6,6 +6,10 @@ const ARENA_HALF_W: float = 960.0
 const ARENA_HALF_H: float = 600.0
 const WALL_THICKNESS: float = 32.0
 
+# Container for all game-world nodes (players, enemies, wave manager, etc.).
+# Disabling this single node freezes gameplay without touching the UI subtree.
+var _gameplay_root: Node
+
 var _players_container: Node2D
 var _enemies_container: Node2D
 var _projectiles_container: Node2D
@@ -40,16 +44,24 @@ func _add_trauma(amount: float) -> void:
 func _ready() -> void:
 	_build_arena()
 	_build_containers()
+
+	# Tell GameManager to use _gameplay_root for pause instead of get_tree().paused,
+	# so GUI picking (mouse hover/click) always works in every UI overlay.
+	GameManager.register_gameplay_pause_callbacks(
+		func(): _gameplay_root.process_mode = Node.PROCESS_MODE_DISABLED,
+		func(): _gameplay_root.process_mode = Node.PROCESS_MODE_INHERIT
+	)
+
 	_build_camera()
 	_build_hud()
 	_build_between_wave_ui()
 	_build_shop_ui()
 	_build_game_over_ui()
 
-	add_child(_wave_manager)
+	_gameplay_root.add_child(_wave_manager)
 	_wave_manager.spawn_container = _enemies_container
 
-	add_child(_power_calculator)
+	_gameplay_root.add_child(_power_calculator)
 	_wave_manager.register_power_calculator(_power_calculator)
 
 	_spawn_players()
@@ -69,10 +81,21 @@ func _ready() -> void:
 		_current_wave_number = 0
 		GameManager.run_wave = 1
 		GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
-		get_tree().paused = true
+		_gameplay_root.process_mode = Node.PROCESS_MODE_DISABLED
 		_overlord_shop_ui.call("show_shop", (_game_mode as OverlordMode).overlord_state, 0)
 	else:
+		# Debug: skip forward to the requested wave before starting.
+		if GameManager.debug_start_wave > 1:
+			_wave_manager.current_wave_index = GameManager.debug_start_wave - 2
 		_wave_manager.start_waves()
+
+	var overlay: Node = load("res://scenes/test/DebugOverlay.gd").new()
+	overlay.name = "DebugOverlay"
+	overlay._game = self
+	overlay._wave_manager = _wave_manager
+	overlay._players_ref = _players
+	overlay._enemies_container = _enemies_container
+	add_child(overlay)
 
 	GameManager.set_state(GameManager.GameState.PLAYING if not is_pvp else GameManager.GameState.BETWEEN_WAVES)
 	var music_path := _game_music_path()
@@ -87,23 +110,8 @@ func _build_arena() -> void:
 	arena.name = "ArenaMap"
 	add_child(arena)
 
-	# Background - tiled Kenney darkPurple space texture
-	var bg_tex: Texture2D = load("res://assets/sprites/bg_darkPurple.png")
-	if bg_tex:
-		var bg := TextureRect.new()
-		bg.texture = bg_tex
-		bg.stretch_mode = TextureRect.STRETCH_TILE
-		bg.size = Vector2(ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)
-		bg.position = Vector2(-ARENA_HALF_W, -ARENA_HALF_H)
-		bg.z_index = -10
-		arena.add_child(bg)
-	else:
-		var floor_rect := ColorRect.new()
-		floor_rect.color = Color(0.05, 0.05, 0.15)
-		floor_rect.size = Vector2(ARENA_HALF_W * 2.0, ARENA_HALF_H * 2.0)
-		floor_rect.position = Vector2(-ARENA_HALF_W, -ARENA_HALF_H)
-		floor_rect.z_index = -10
-		arena.add_child(floor_rect)
+	# Background - layered space scene
+	_build_space_background(arena)
 
 	# Boundary walls (StaticBody2D x4)
 	var walls_data := [
@@ -139,18 +147,116 @@ func _build_arena() -> void:
 	nav_region.navigation_polygon = nav_poly
 	arena.add_child(nav_region)
 
+func _build_space_background(arena: Node2D) -> void:
+	# 1. Deep-space base — pitch black with a hint of navy
+	var base := ColorRect.new()
+	base.color = Color(0.01, 0.01, 0.06)
+	base.size = Vector2(ARENA_HALF_W * 2.0 + 400.0, ARENA_HALF_H * 2.0 + 400.0)
+	base.position = Vector2(-ARENA_HALF_W - 200.0, -ARENA_HALF_H - 200.0)
+	base.z_index = -15
+	arena.add_child(base)
+
+	# 2. Nebula blobs — large semi-transparent coloured rectangles
+	var nebulae: Array = [
+		{"pos": Vector2(-320.0, -180.0), "size": Vector2(900.0, 700.0), "color": Color(0.15, 0.04, 0.30, 0.10)},
+		{"pos": Vector2( 350.0,  200.0), "size": Vector2(700.0, 550.0), "color": Color(0.04, 0.08, 0.28, 0.09)},
+		{"pos": Vector2(  60.0,   80.0), "size": Vector2(1000.0, 800.0),"color": Color(0.10, 0.02, 0.18, 0.07)},
+		{"pos": Vector2( 480.0, -260.0), "size": Vector2(500.0, 420.0), "color": Color(0.02, 0.12, 0.24, 0.08)},
+	]
+	for nd: Dictionary in nebulae:
+		var nb := ColorRect.new()
+		nb.color = nd["color"]
+		nb.size = nd["size"]
+		nb.position = nd["pos"] - nd["size"] * 0.5
+		nb.z_index = -14
+		arena.add_child(nb)
+
+	# 3. Starfield — three depth layers using star1/2/3 sprites
+	var star_textures: Array[Texture2D] = []
+	for i: int in range(1, 4):
+		var p := "res://assets/sprites/star%d.png" % i
+		if ResourceLoader.exists(p):
+			star_textures.append(load(p) as Texture2D)
+
+	if not star_textures.is_empty():
+		var layers: Array = [
+			# {seed, count, z_idx, scale_min, scale_max, alpha_min, alpha_max, tints}
+			{
+				"seed": 11111, "count": 160, "z": -13,
+				"smin": 0.25, "smax": 0.55, "amin": 0.20, "amax": 0.50,
+				"tints": [Color(0.70, 0.72, 0.95), Color(0.80, 0.82, 1.00)],
+			},
+			{
+				"seed": 22222, "count": 70, "z": -12,
+				"smin": 0.45, "smax": 0.85, "amin": 0.55, "amax": 0.85,
+				"tints": [Color(0.90, 0.92, 1.00), Color(1.00, 0.96, 0.82)],
+			},
+			{
+				"seed": 33333, "count": 28, "z": -11,
+				"smin": 0.75, "smax": 1.40, "amin": 0.80, "amax": 1.00,
+				"tints": [Color(1.00, 1.00, 1.00), Color(0.80, 0.90, 1.00),
+						  Color(1.00, 1.00, 0.80), Color(0.90, 0.80, 1.00)],
+			},
+		]
+		var rng := RandomNumberGenerator.new()
+		for lc: Dictionary in layers:
+			rng.seed = lc["seed"]
+			var layer := Node2D.new()
+			layer.z_index = lc["z"]
+			arena.add_child(layer)
+			for _i: int in lc["count"]:
+				var star := Sprite2D.new()
+				star.texture = star_textures[rng.randi() % star_textures.size()]
+				star.position = Vector2(
+					rng.randf_range(-ARENA_HALF_W, ARENA_HALF_W),
+					rng.randf_range(-ARENA_HALF_H, ARENA_HALF_H)
+				)
+				var sc := rng.randf_range(lc["smin"], lc["smax"])
+				star.scale = Vector2(sc, sc)
+				var tints: Array = lc["tints"]
+				var tint: Color = tints[rng.randi() % tints.size()]
+				tint.a = rng.randf_range(lc["amin"], lc["amax"])
+				star.modulate = tint
+				layer.add_child(star)
+
+	# 4. Twinkling particle layer
+	var twinkle := CPUParticles2D.new()
+	twinkle.name = "TwinkleParticles"
+	twinkle.amount = 50
+	twinkle.lifetime = 3.0
+	twinkle.randomness = 1.0
+	twinkle.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	twinkle.emission_rect_extents = Vector2(ARENA_HALF_W, ARENA_HALF_H)
+	twinkle.direction = Vector2.ZERO
+	twinkle.gravity = Vector2.ZERO
+	twinkle.initial_velocity_min = 0.0
+	twinkle.initial_velocity_max = 0.0
+	twinkle.scale_amount_min = 1.5
+	twinkle.scale_amount_max = 4.0
+	twinkle.scale_amount_curve = null
+	var grad := Gradient.new()
+	grad.colors = PackedColorArray([Color(1.0, 1.0, 1.0, 0.0), Color(1.0, 1.0, 1.0, 0.85), Color(1.0, 1.0, 1.0, 0.0)])
+	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	twinkle.color_ramp = grad
+	twinkle.z_index = -10
+	arena.add_child(twinkle)
+
 func _build_containers() -> void:
+	_gameplay_root = Node.new()
+	_gameplay_root.name = "GameplayRoot"
+	add_child(_gameplay_root)
+
 	_projectiles_container = Node2D.new()
 	_projectiles_container.name = "ProjectilesContainer"
-	add_child(_projectiles_container)
+	_gameplay_root.add_child(_projectiles_container)
 
 	_players_container = Node2D.new()
 	_players_container.name = "PlayersContainer"
-	add_child(_players_container)
+	_gameplay_root.add_child(_players_container)
 
 	_enemies_container = Node2D.new()
 	_enemies_container.name = "EnemiesContainer"
-	add_child(_enemies_container)
+	_gameplay_root.add_child(_enemies_container)
 
 func _build_camera() -> void:
 	_camera = Camera2D.new()
@@ -200,7 +306,7 @@ func _build_overlord_ui() -> void:
 	for p in _players:
 		oc_targets.append(p)
 	_overlord_controller.targets = oc_targets
-	add_child(_overlord_controller)
+	_gameplay_root.add_child(_overlord_controller)
 	_overlord_controller.enemy_spawned_by_overlord.connect(_on_enemy_spawned)
 
 	# Overlord HUD
@@ -337,7 +443,7 @@ func _setup_game_mode() -> void:
 		GameManager.RunMode.WAVE_SURVIVAL:
 			var mode := WaveSurvivalMode.new()
 			_game_mode = mode
-			add_child(mode)
+			_gameplay_root.add_child(mode)
 			mode.setup(_wave_manager, _players)
 			mode.show_between_wave_ui.connect(_show_between_wave_ui)
 			var ws_targets: Array[Node] = []
@@ -348,10 +454,10 @@ func _setup_game_mode() -> void:
 		GameManager.RunMode.HORDE_DEFENSE:
 			var mode := HordeDefenseMode.new()
 			_game_mode = mode
-			add_child(mode)
+			_gameplay_root.add_child(mode)
 			mode.setup(_wave_manager, _players)
 			var base := BaseObjective.new()
-			add_child(base)
+			_gameplay_root.add_child(base)
 			base.global_position = Vector2.ZERO
 			base.took_damage.connect(func(): _add_trauma(0.3))
 			mode.set_base(base)
@@ -360,7 +466,7 @@ func _setup_game_mode() -> void:
 		GameManager.RunMode.PVP_OVERLORD:
 			var mode := OverlordMode.new()
 			_game_mode = mode
-			add_child(mode)
+			_gameplay_root.add_child(mode)
 			mode.setup(_wave_manager, _players)
 			mode.show_overlord_shop.connect(_show_overlord_shop)
 			mode.show_between_wave_ui.connect(_show_between_wave_ui)
@@ -384,7 +490,7 @@ func _setup_terrain_events() -> void:
 	terrain.enemies_container = _enemies_container
 	terrain.wave_manager = _wave_manager
 	terrain.hud = _hud
-	add_child(terrain)
+	_gameplay_root.add_child(terrain)
 	_game_mode.run_ended.connect(func(_v: bool):
 		GameManager.solar_flare_active = false
 		GameManager.solar_flare_intensity = 1.0
@@ -395,7 +501,7 @@ func _setup_terrain_events() -> void:
 	special.players = _players
 	special.wave_manager = _wave_manager
 	special.hud = _hud
-	add_child(special)
+	_gameplay_root.add_child(special)
 	special.special_xp_dropped.connect(_on_xp_dropped)
 	special.special_coin_dropped.connect(_on_coin_dropped)
 	_game_mode.run_ended.connect(func(_v: bool): special.stop())
@@ -472,10 +578,12 @@ func _process(delta: float) -> void:
 
 func _show_between_wave_ui(wave_number: int) -> void:
 	_current_wave_number = wave_number
+	get_tree().paused = false  # Safety: clear any lingering pause before showing UI
 	GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
-	get_tree().paused = true
+	AudioManager.play_music_from_path("res://assets/audio/music_betweenwaves.mp3")
+	_gameplay_root.process_mode = Node.PROCESS_MODE_DISABLED
 	if _between_wave_ui.has_method("show_for_players"):
-		_between_wave_ui.show_for_players(_players, wave_number, _wave_manager)
+		_between_wave_ui.call("show_for_players", _players, wave_number, _wave_manager)
 
 func _on_between_wave_closed() -> void:
 	if _shop_ui.has_method("show_for_players"):
@@ -488,11 +596,11 @@ func _on_shop_closed() -> void:
 	# Revive any dead co-op players before the next wave
 	if _players.size() > 1:
 		for p in _players:
-			if not p.is_physics_processing():
+			if p.current_health <= 0.0:
 				p.revive()
 				_spawn_floating_text("REVIVED  -%d Scrap" % Player.REVIVE_SCRAP_PENALTY, p.global_position, Color(0.4, 1.0, 0.6))
 	AudioManager.play_music_from_path(_game_music_path())
-	get_tree().paused = false
+	_gameplay_root.process_mode = Node.PROCESS_MODE_INHERIT
 	GameManager.set_state(GameManager.GameState.PLAYING)
 	if GameManager.current_mode == GameManager.RunMode.PVP_OVERLORD:
 		_start_pvp_wave()
@@ -502,16 +610,18 @@ func _on_shop_closed() -> void:
 func _game_music_path() -> String:
 	var preferred: String
 	match GameManager.current_difficulty:
-		GameManager.Difficulty.SUPER_EASY, GameManager.Difficulty.EASY:
+		GameManager.Difficulty.EASY:
 			preferred = "res://assets/audio/music_game_easy.ogg"
-		GameManager.Difficulty.HARD, GameManager.Difficulty.SUPER_HARD:
-			preferred = "res://assets/audio/music_game_hard.ogg"
+		GameManager.Difficulty.HARD:
+			preferred = "res://assets/audio/music_game_hard.mp3"
+		GameManager.Difficulty.SUPER_HARD:
+			preferred = "res://assets/audio/music_game_super_hard.mp3"
 		_:
-			return "res://assets/audio/music_game.ogg"
+			return "res://assets/audio/music_game.mp3"
 	# Fall back to normal game music if the variant isn't in the exported PCK
 	if ResourceLoader.exists(preferred):
 		return preferred
-	return "res://assets/audio/music_game.ogg"
+	return "res://assets/audio/music_game.mp3"
 
 func _on_player_died() -> void:
 	pass  # GameMode handles multi-player death tracking
@@ -524,7 +634,7 @@ func _show_overlord_shop(wave_number: int) -> void:
 	## Called by OverlordMode when a wave ends. Show Overlord's shop first.
 	_current_wave_number = wave_number
 	GameManager.set_state(GameManager.GameState.BETWEEN_WAVES)
-	get_tree().paused = true
+	_gameplay_root.process_mode = Node.PROCESS_MODE_DISABLED
 	if _overlord_controller:
 		_overlord_controller.call("hide_cursor")
 	if _overlord_shop_ui:
@@ -534,7 +644,7 @@ func _show_overlord_shop(wave_number: int) -> void:
 func _on_overlord_shop_closed() -> void:
 	## After Overlord finishes shopping, show ship player's between-wave UI.
 	if _between_wave_ui.has_method("show_for_players"):
-		_between_wave_ui.show_for_players(_players, _current_wave_number, _wave_manager)
+		_between_wave_ui.call("show_for_players", _players, _current_wave_number, _wave_manager)
 
 func _start_pvp_wave() -> void:
 	## Begin a new PVP wave. Overlord can now deploy enemies.
@@ -643,7 +753,7 @@ func _spawn_floating_text(text: String, world_pos: Vector2, color: Color) -> voi
 	t.chain().tween_callback(lbl.queue_free)
 
 func _on_run_ended(victory: bool) -> void:
-	get_tree().paused = true
+	_gameplay_root.process_mode = Node.PROCESS_MODE_DISABLED
 	GameManager.set_state(GameManager.GameState.WIN if victory else GameManager.GameState.GAME_OVER)
 	MetaProgression.add_coins(GameManager.run_coins_earned)
 	# Always make visible first, then populate text via call() to avoid static-type issues

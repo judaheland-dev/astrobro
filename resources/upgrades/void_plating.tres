@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"void_plating"
+display_name = "Void Plating"
+description = "+20 Armor, +15% Block Chance, -40 Move Speed, -12% Dodge. Immovable. Untouchable."
+scope = 0
+stat_deltas = {2: 20.0, 11: 0.15, 1: -40.0, 23: -0.12}
+shop_price = 0
+max_stacks = 1
+rarity = 3

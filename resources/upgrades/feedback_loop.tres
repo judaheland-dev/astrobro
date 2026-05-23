@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_017.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"feedback_loop"
+display_name = "Feedback Loop"
+description = "+25% XP, +20% Coins, +15% Scrap Bonus. Every kill compounds."
+scope = 0
+stat_deltas = {6: 0.25, 7: 0.20, 12: 0.15}
+shop_price = 0
+max_stacks = 2
+rarity = 2

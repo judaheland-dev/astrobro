@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"blood_engine"
+display_name = "Blood Engine"
+description = "+18 Damage, +15% Lifesteal, -1 HP Regen/s. Burns your own hull to fuel the guns."
+scope = 1
+stat_deltas = {3: 18.0, 8: 0.15, 25: -1.0}
+shop_price = 0
+max_stacks = 1
+rarity = 3

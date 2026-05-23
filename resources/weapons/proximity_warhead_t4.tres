@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_006.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"proximity_warhead_t4"
+display_name = "Proximity Warhead Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 27.0
+fire_rate = 1.62
+projectile_speed = 322.0
+range = 728.0
+spread = 0.0
+projectile_count = 1
+piercing = 999
+aoe_radius = 335.5
+explode_on_expiry = true
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.85, 0.85)
+projectile_modulate = Color(1.0, 0.4, 0.0, 1.0)
+projectile_hitbox_size = Vector2(24.0, 10.0)
+emit_exhaust_trail = true
+tier = 4
+forged_weapon_id = &"proximity_warhead_t5"

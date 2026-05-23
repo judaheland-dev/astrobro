@@ -16,6 +16,6 @@ enemy_pool = [ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource(
 enemy_counts = [10, 32, 10, 6, 5, 4]
 spawn_interval = 0.30
 initial_delay = 0.6
-time_limit = 70.0
+time_limit = 60.0
 bonus_coins = 52
 bonus_xp = 0

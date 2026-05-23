@@ -554,8 +554,14 @@ func _process_gravity_pull(delta: float) -> void:
 			continue
 		var dir: Vector2 = (_gravity_center - node2d.global_position).normalized()
 		var falloff: float = 1.0 - (dist / _gravity_radius)
-		# Direct position nudge so the force isn't overwritten by the body's own _physics_process
-		node2d.global_position += dir * _gravity_strength * falloff * delta
+		var impulse: Vector2 = dir * _gravity_strength * falloff
+		# SET (not +=) so that if _process fires more than once between two
+		# _physics_process ticks the force isn't doubled.
+		# Player caps this internally so they can always escape.
+		if "external_velocity" in body:
+			body.external_velocity = impulse
+		else:
+			node2d.global_position += impulse * delta
 
 func _begin_gravity_fadeout(root: Node2D) -> void:
 	_gravity_active = false

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/game/weapons/BaseProjectile.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue01.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+id = &"pistol_t4"
+display_name = "Pistol Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 0
+weapon_class = 0
+shop_cost = 0
+damage = 37.8
+fire_rate = 11.25
+projectile_speed = 690.0
+range = 716.8
+spread = 0.03
+projectile_count = 1
+piercing = 0
+projectile_scene = ExtResource("2")
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("3")
+projectile_scale = Vector2(0.9, 0.9)
+projectile_modulate = Color(0.0, 0.95, 1.0, 1.0)
+projectile_hitbox_size = Vector2(12.0, 5.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"pistol_t5"

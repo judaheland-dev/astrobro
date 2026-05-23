@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"executioner"
+display_name = "Executioner's Drive"
+description = "+4 HP On-Kill, +8 Damage, +8% Crit Chance. Kill constantly or fall behind."
+scope = 0
+stat_deltas = {24: 4.0, 3: 8.0, 16: 0.08}
+shop_price = 0
+max_stacks = 2
+rarity = 2

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserGreen08.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"pulse_rifle_t3"
+display_name = "Pulse Rifle Mk.III"
+description = "Photon cascade rifle. Every bolt forks twice, hosing down entire formations."
+ammo_type = 1
+weapon_class = 0
+shop_cost = 0
+damage = 18.0
+fire_rate = 11.0
+projectile_speed = 660.0
+range = 820.0
+spread = 0.01
+projectile_count = 1
+piercing = 0
+fork_count = 2
+unlock_cost = 0
+rarity = 2
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.7, 0.7)
+projectile_modulate = Color(0.4, 1.0, 0.6, 1.0)
+projectile_hitbox_size = Vector2(10.0, 4.0)
+emit_exhaust_trail = false
+tier = 3
+forged_weapon_id = &"pulse_rifle_t4"

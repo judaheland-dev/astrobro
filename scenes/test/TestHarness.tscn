@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://test_harness"]
+
+[ext_resource type="Script" path="res://scenes/test/TestHarness.gd" id="1"]
+
+[node name="TestHarness" type="CanvasLayer"]
+script = ExtResource("1")

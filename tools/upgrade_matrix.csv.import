@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://okql3j0n8mwu"
+
+[deps]
+
+files=["res://tools/upgrade_matrix.Name.translation", "res://tools/upgrade_matrix.Path.translation", "res://tools/upgrade_matrix.Rarity.translation", "res://tools/upgrade_matrix.Scope.translation", "res://tools/upgrade_matrix.ShopPrice.translation", "res://tools/upgrade_matrix.MaxStacks.translation", "res://tools/upgrade_matrix.MaxHP.translation", "res://tools/upgrade_matrix.MoveSpd.translation", "res://tools/upgrade_matrix.Armor.translation", "res://tools/upgrade_matrix.Damage.translation", "res://tools/upgrade_matrix.FireRate.translation", "res://tools/upgrade_matrix.ProjSpd.translation", "res://tools/upgrade_matrix.XP%.translation", "res://tools/upgrade_matrix.Coin%.translation", "res://tools/upgrade_matrix.Lifesteal.translation", "res://tools/upgrade_matrix.Range.translation", "res://tools/upgrade_matrix.Spread.translation", "res://tools/upgrade_matrix.Block%.translation", "res://tools/upgrade_matrix.Scrap%.translation", "res://tools/upgrade_matrix.InstHeal.translation", "res://tools/upgrade_matrix.ShieldMax.translation", "res://tools/upgrade_matrix.ShieldRegen.translation", "res://tools/upgrade_matrix.CritChance.translation", "res://tools/upgrade_matrix.CritMult.translation", "res://tools/upgrade_matrix.Bounce.translation", "res://tools/upgrade_matrix.Chain.translation", "res://tools/upgrade_matrix.Fork.translation", "res://tools/upgrade_matrix.ArmorPen.translation", "res://tools/upgrade_matrix.Knockback.translation", "res://tools/upgrade_matrix.Dodge.translation", "res://tools/upgrade_matrix.OnKillHeal.translation", "res://tools/upgrade_matrix.HPRegen.translation", "res://tools/upgrade_matrix.Synergy.translation", "res://tools/upgrade_matrix.Description.translation"]
+
+source_file="res://tools/upgrade_matrix.csv"
+dest_files=["res://tools/upgrade_matrix.Name.translation", "res://tools/upgrade_matrix.Path.translation", "res://tools/upgrade_matrix.Rarity.translation", "res://tools/upgrade_matrix.Scope.translation", "res://tools/upgrade_matrix.ShopPrice.translation", "res://tools/upgrade_matrix.MaxStacks.translation", "res://tools/upgrade_matrix.MaxHP.translation", "res://tools/upgrade_matrix.MoveSpd.translation", "res://tools/upgrade_matrix.Armor.translation", "res://tools/upgrade_matrix.Damage.translation", "res://tools/upgrade_matrix.FireRate.translation", "res://tools/upgrade_matrix.ProjSpd.translation", "res://tools/upgrade_matrix.XP%.translation", "res://tools/upgrade_matrix.Coin%.translation", "res://tools/upgrade_matrix.Lifesteal.translation", "res://tools/upgrade_matrix.Range.translation", "res://tools/upgrade_matrix.Spread.translation", "res://tools/upgrade_matrix.Block%.translation", "res://tools/upgrade_matrix.Scrap%.translation", "res://tools/upgrade_matrix.InstHeal.translation", "res://tools/upgrade_matrix.ShieldMax.translation", "res://tools/upgrade_matrix.ShieldRegen.translation", "res://tools/upgrade_matrix.CritChance.translation", "res://tools/upgrade_matrix.CritMult.translation", "res://tools/upgrade_matrix.Bounce.translation", "res://tools/upgrade_matrix.Chain.translation", "res://tools/upgrade_matrix.Fork.translation", "res://tools/upgrade_matrix.ArmorPen.translation", "res://tools/upgrade_matrix.Knockback.translation", "res://tools/upgrade_matrix.Dodge.translation", "res://tools/upgrade_matrix.OnKillHeal.translation", "res://tools/upgrade_matrix.HPRegen.translation", "res://tools/upgrade_matrix.Synergy.translation", "res://tools/upgrade_matrix.Description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

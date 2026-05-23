@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"glass_cannon"
+display_name = "Glass Cannon Protocol"
+description = "+20 Damage, +2 Fire Rate, -50 Max HP, -10 Armor. All offense. No defense. Don't get hit."
+scope = 1
+stat_deltas = {3: 20.0, 4: 2.0, 0: -50.0, 2: -10.0}
+shop_price = 0
+max_stacks = 1
+rarity = 4

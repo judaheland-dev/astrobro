@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/game/weapons/BaseProjectile.tscn" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_010.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+id = &"twin_cannon_t5"
+display_name = "Twin Cannon Mk.V"
+description = "Legendary apex. The ultimate refinement of this weapon."
+ammo_type = 2
+weapon_class = 3
+shop_cost = 0
+damage = 92.8
+fire_rate = 4.81
+projectile_speed = 624.0
+range = 875.0
+spread = 0.04
+projectile_count = 4
+piercing = 5
+projectile_scene = ExtResource("2")
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("3")
+projectile_scale = Vector2(0.75, 0.75)
+projectile_modulate = Color(1.0, 0.5, 0.1, 1.0)
+projectile_hitbox_size = Vector2(18.0, 18.0)
+emit_exhaust_trail = false
+fire_sfx_volume_db = -8.0
+tier = 5
+forged_weapon_id = &""

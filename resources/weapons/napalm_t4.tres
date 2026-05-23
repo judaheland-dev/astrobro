@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"napalm_t4"
+display_name = "Napalm Projector Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 21.6
+fire_rate = 3.12
+projectile_speed = 264.5
+range = 403.2
+spread = 0.05
+projectile_count = 1
+piercing = 0
+aoe_radius = 183.0
+on_hit_dot_dps = 29.7
+on_hit_dot_ticks = 24
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.5, 0.5)
+projectile_modulate = Color(1.0, 0.45, 0.0, 1.0)
+projectile_hitbox_size = Vector2(14.0, 14.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"napalm_t5"

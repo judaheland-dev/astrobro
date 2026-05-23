@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_021.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"battle_stims"
+display_name = "Battle Stims"
+description = "+8 Max HP, +2 Damage, +3% Crit Chance. Combat cocktail."
+scope = 0
+stat_deltas = {0: 8.0, 3: 2.0, 16: 0.03}
+shop_price = 60
+max_stacks = 4
+rarity = 1

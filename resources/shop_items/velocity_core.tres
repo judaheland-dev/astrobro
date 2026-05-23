@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_008.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"velocity_core"
+display_name = "Velocity Core"
+description = "+200 Proj Speed, +15 Range. Fast shots reach further."
+scope = 1
+stat_deltas = {5: 200.0, 9: 15.0}
+shop_price = 65
+max_stacks = 3
+rarity = 0

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_042.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"reflex_module"
+display_name = "Reflex Module"
+description = "+8% Dodge Chance, +1 Move Speed. Neural overclocking."
+scope = 0
+stat_deltas = {23: 0.08, 1: 1.0}
+shop_price = 75
+max_stacks = 3
+rarity = 1

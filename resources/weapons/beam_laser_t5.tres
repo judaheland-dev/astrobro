@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"beam_laser_t5"
+display_name = "Plasma Cutter Mk.V"
+description = "Legendary apex. The ultimate refinement of this weapon."
+ammo_type = 5
+weapon_class = 1
+shop_cost = 0
+damage = 113.8
+fire_rate = 1.55
+projectile_speed = 0.0
+range = 575.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+aoe_radius = 0.0
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_scale = Vector2(1.0, 1.0)
+projectile_modulate = Color(0.0, 1.0, 0.7, 1.0)
+projectile_hitbox_size = Vector2(10.0, 4.0)
+emit_exhaust_trail = false
+tier = 5
+forged_weapon_id = &""

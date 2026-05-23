@@ -29,4 +29,3 @@ projectile_hitbox_size = Vector2(12, 5)
 emit_exhaust_trail = false
 tier = 2
 forged_weapon_id = &"pistol_t3"
-is_forge_only = true

@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue13.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"cryo_blaster_t4"
+display_name = "Cryo Blaster Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 1
+weapon_class = 5
+shop_cost = 0
+damage = 14.9
+fire_rate = 6.5
+projectile_speed = 529.0
+range = 739.2
+spread = 0.0
+projectile_count = 1
+piercing = 0
+knockback_force = 460.0
+on_hit_dot_dps = 37.8
+on_hit_dot_ticks = 16
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.8, 0.8)
+projectile_modulate = Color(0.7, 0.97, 1.0, 1.0)
+projectile_hitbox_size = Vector2(12.0, 5.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"cryo_blaster_t5"

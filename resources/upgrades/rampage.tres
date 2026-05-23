@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rampage"
+display_name = "Rampage Drive"
+description = "+3 HP On-Kill, +20 Move Speed, +5 Damage. Kill to keep moving."
+scope = 0
+stat_deltas = {24: 3.0, 1: 20.0, 3: 5.0}
+shop_price = 0
+max_stacks = 3
+rarity = 1

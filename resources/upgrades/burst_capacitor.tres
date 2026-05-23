@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_020.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"burst_capacitor"
+display_name = "Burst Capacitor"
+description = "+2 Fire Rate, +3 Damage, -150 Proj Speed. More bullets, less penetration."
+scope = 1
+stat_deltas = {4: 2.0, 3: 3.0, 5: -150.0}
+shop_price = 0
+max_stacks = 3
+rarity = 1

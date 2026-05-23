@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"velocity_harness"
+display_name = "Velocity Harness"
+description = "+0.05 fire rate per 50 move speed. Speed and aggression, unified."
+scope = 1
+stat_deltas = {}
+shop_price = 0
+max_stacks = 1
+rarity = 2
+synergy_source = 1
+synergy_target = 4
+synergy_scale = 0.05
+synergy_divisor = 50.0

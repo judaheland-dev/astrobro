@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_022.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"salvage_protocol"
+display_name = "Salvage Protocol"
+description = "+12% Scrap Bonus, +15% Coins, -10% XP. Loot-focused runner."
+scope = 0
+stat_deltas = {12: 0.12, 7: 0.15, 6: -0.10}
+shop_price = 0
+max_stacks = 3
+rarity = 1

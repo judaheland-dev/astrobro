@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"plated_recovery"
+display_name = "Plated Recovery"
+description = "+1 HP regen/s per 5 armor. Thick plating channels ambient energy into healing."
+scope = 0
+stat_deltas = {}
+shop_price = 0
+max_stacks = 1
+rarity = 2
+synergy_source = 2
+synergy_target = 25
+synergy_scale = 1.0
+synergy_divisor = 5.0

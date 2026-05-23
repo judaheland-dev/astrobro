@@ -373,13 +373,17 @@ func _spawn_next() -> void:
 func _build_and_spawn(entry: Dictionary) -> void:
 	# Build enemy entirely in code - no PackedScene required
 	var enemy_node := BaseEnemy.new()
+
+	# Epic Neutralizer: skip banned enemy types
+	var enemy_id: StringName = entry["data"].id if entry["data"] else &""
+	if GameManager.banned_enemy_ids.has(enemy_id):
+		return
 	enemy_node.collision_layer = 2   # enemies on layer 2
 	enemy_node.collision_mask  = 6   # collide with layer 2 (enemies) + layer 3 (walls); player contact via Area2D
 
 	# Sprite - pick based on enemy id, fall back to solid color
 	var sprite := Sprite2D.new()
 	sprite.name = "Sprite2D"
-	var enemy_id: StringName = entry["data"].id if entry["data"] else &""
 	var sprite_map: Dictionary = {
 		&"grunt":         "res://assets/sprites/enemyRed1.png",
 		&"speeder":       "res://assets/sprites/enemyBlue1.png",

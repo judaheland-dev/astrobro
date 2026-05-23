@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"evasive_momentum"
+display_name = "Evasive Momentum"
+description = "+2% dodge per 50 move speed. Too fast to target."
+scope = 0
+stat_deltas = {}
+shop_price = 0
+max_stacks = 1
+rarity = 3
+synergy_source = 1
+synergy_target = 23
+synergy_scale = 0.02
+synergy_divisor = 50.0

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_062.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"combat_medkit"
+display_name = "Combat Medkit"
+description = "+4% Lifesteal, +2 On Kill Heal. Bleed them to stay alive."
+scope = 0
+stat_deltas = {8: 0.04, 24: 2.0}
+shop_price = 75
+max_stacks = 3
+rarity = 1

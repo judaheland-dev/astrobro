@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"slipstream"
+display_name = "Slipstream Drive"
+description = "+50 Move Speed, +12% Dodge, -8 Damage. Speed over firepower."
+scope = 0
+stat_deltas = {1: 50.0, 23: 0.12, 3: -8.0}
+shop_price = 0
+max_stacks = 2
+rarity = 2

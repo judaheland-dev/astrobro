@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/gun04.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"tactical_scanner"
+display_name = "Tactical Scanner"
+description = "+7% Crit Chance, +15 Range. Know your shot before you take it."
+scope = 1
+stat_deltas = {16: 0.07, 9: 15.0}
+shop_price = 60
+max_stacks = 3
+rarity = 1

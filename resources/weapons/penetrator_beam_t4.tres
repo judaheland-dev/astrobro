@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue16.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"penetrator_beam_t4"
+display_name = "Penetrator Beam Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 1
+weapon_class = 1
+shop_cost = 0
+damage = 411.8
+fire_rate = 0.65
+projectile_speed = 2530.0
+range = 2016.0
+spread = 0.0
+projectile_count = 1
+piercing = 999
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(3.5, 3.5)
+projectile_modulate = Color(0.0, 1.0, 1.0, 1.0)
+projectile_hitbox_size = Vector2(52.0, 52.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"penetrator_beam_t5"

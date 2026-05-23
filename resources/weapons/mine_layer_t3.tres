@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mine_layer_t3"
+display_name = "Mine Layer Mk.III"
+description = "Apex ordnance layer. Rapid-drop ultra-yield mines shred anything that enters the field."
+ammo_type = 3
+weapon_class = 6
+shop_cost = 0
+damage = 210.0
+fire_rate = 0.85
+aoe_radius = 145.0
+unlock_cost = 0
+rarity = 2
+tier = 3
+forged_weapon_id = &"mine_layer_t4"

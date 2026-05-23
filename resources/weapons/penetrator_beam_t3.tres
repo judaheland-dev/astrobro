@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue16.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"penetrator_beam_t3"
+display_name = "Penetrator Beam Mk.III"
+description = "Singularity lance. A wall of pure energy that erases every enemy in a straight line."
+ammo_type = 1
+weapon_class = 1
+shop_cost = 0
+damage = 305.0
+fire_rate = 0.52
+projectile_speed = 2200.0
+range = 1800.0
+spread = 0.0
+projectile_count = 1
+piercing = 999
+projectile_scene = null
+unlock_cost = 0
+rarity = 2
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(3.5, 3.5)
+projectile_modulate = Color(0.0, 1.0, 1.0, 1.0)
+projectile_hitbox_size = Vector2(52.0, 52.0)
+emit_exhaust_trail = false
+tier = 3
+forged_weapon_id = &"penetrator_beam_t4"

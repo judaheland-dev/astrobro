@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_032.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"burst_injector"
+display_name = "Burst Injector"
+description = "+2.5 Fire Rate, -4 Damage. Volume over precision."
+scope = 1
+stat_deltas = {4: 2.5, 3: -4.0}
+shop_price = 55
+max_stacks = 3
+rarity = 1

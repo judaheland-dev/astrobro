@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"rocket_t4"
+display_name = "Rocket Launcher Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 113.4
+fire_rate = 1.62
+projectile_speed = 437.0
+range = 985.6
+spread = 0.02
+projectile_count = 1
+piercing = 0
+aoe_radius = 231.8
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.75, 0.75)
+projectile_modulate = Color(1.0, 0.7, 0.0, 1.0)
+projectile_hitbox_size = Vector2(30.0, 8.0)
+emit_exhaust_trail = true
+tier = 4
+forged_weapon_id = &"rocket_t5"

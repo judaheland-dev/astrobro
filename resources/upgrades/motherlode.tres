@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_046.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"motherlode"
+display_name = "Motherlode"
+description = "+50% XP, +50% Coin, +25% Scrap Bonus. The universe yields everything to you."
+scope = 0
+stat_deltas = {6: 0.50, 7: 0.50, 12: 0.25}
+shop_price = 500
+max_stacks = 1
+rarity = 4

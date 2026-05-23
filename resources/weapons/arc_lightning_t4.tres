@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue16.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"arc_lightning_t4"
+display_name = "Arc Lightning Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 6
+weapon_class = 1
+shop_cost = 0
+damage = 276.8
+fire_rate = 2.25
+projectile_speed = 1840.0
+range = 1120.0
+spread = 0.0
+projectile_count = 1
+piercing = 11
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.9, 0.9)
+projectile_modulate = Color(1.0, 1.0, 0.15, 1.0)
+projectile_hitbox_size = Vector2(14.0, 6.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"arc_lightning_t5"

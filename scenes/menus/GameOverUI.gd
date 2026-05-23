@@ -9,11 +9,17 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 20   # render on top of HUD (layer 1) and BetweenWaveUI
 
+	# Root control fills the viewport so all children receive mouse input correctly.
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+
 	var bg := ColorRect.new()
 	bg.color = Color(0.0, 0.0, 0.0, 0.85)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	root.add_child(bg)
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_CENTER)
@@ -23,7 +29,7 @@ func _ready() -> void:
 	vbox.offset_bottom =  200.0
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 20)
-	add_child(vbox)
+	root.add_child(vbox)
 
 	_result_label = Label.new()
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -57,7 +63,7 @@ func _ready() -> void:
 	hint.modulate = Color(0.6, 0.6, 0.6)
 	vbox.add_child(hint)
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):

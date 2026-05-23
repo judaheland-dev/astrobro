@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"void_channeling"
+display_name = "Void Channeling"
+description = "+1 flat damage per 30 shield capacity. Defensive energy bleeds into firepower."
+scope = 1
+stat_deltas = {}
+shop_price = 0
+max_stacks = 1
+rarity = 4
+synergy_source = 14
+synergy_target = 3
+synergy_scale = 1.0
+synergy_divisor = 30.0

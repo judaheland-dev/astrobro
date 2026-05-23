@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"null_field"
+display_name = "Null Field"
+description = "+20% Dodge, +12% Block Chance, -25 Move Speed. Stand still. Let nothing touch you."
+scope = 0
+stat_deltas = {23: 0.2, 11: 0.12, 1: -25.0}
+shop_price = 0
+max_stacks = 1
+rarity = 3

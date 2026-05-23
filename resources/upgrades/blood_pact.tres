@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"blood_pact"
+display_name = "Blood Pact"
+description = "+0.5 flat damage per 10 max HP you have. More hull = more hurt."
+scope = 1
+stat_deltas = {}
+shop_price = 0
+max_stacks = 1
+rarity = 3
+synergy_source = 0
+synergy_target = 3
+synergy_scale = 0.5
+synergy_divisor = 10.0

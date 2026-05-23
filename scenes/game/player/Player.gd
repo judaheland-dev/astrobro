@@ -6,6 +6,7 @@ class_name Player
 signal health_changed(current: float, maximum: float)
 signal shield_changed(current: float, maximum: float)
 signal died()
+signal revived()
 signal took_damage()
 signal xp_gained(new_xp: int, threshold: int)
 signal leveled_up(new_level: int)
@@ -29,12 +30,34 @@ var lifesteal: float = 0.0
 var fire_rate_bonus: float = 0.0   # additive fire-rate multiplier on all weapons (+0.2 = +20%)
 var damage_bonus: float = 0.0      # additive damage multiplier on all weapons (+0.2 = +20%)
 
+# Neutralizer upgrade stats
+var exploder_damage_reduction: float = 1.0    # damage from exploder AoE is divided by this
+var grunt_speeder_damage_reduction: float = 0.0  # flat reduction applied to grunt/speeder contact hits
+var no_debuff_chance: float = 0.0             # probability (0-1) that a negative stat_delta is skipped
+
+# Cumulative weapon-scope upgrade deltas (e.g. KNOCKBACK_FORCE, DAMAGE, etc.).
+# Applied to weapons acquired after the upgrade so they benefit retroactively.
+var accumulated_weapon_deltas: Dictionary = {}
+
 # In-run currency (resets each run; spent in weapon shop)
 var scrap: int = 0
 var scrap_bonus_chance: float = 0.0   # set by Rogue passive
 
 # All upgrades acquired this run (level-up picks + shop modules)
 var acquired_upgrades: Array[UpgradeData] = []
+
+# Flat bonus added directly to the display power score (accumulated via Evasion free rerolls)
+var flat_power_bonus: float = 0.0
+# How many free rerolls have been consumed this run via the Evasion upgrade
+var evasion_free_rerolls_used: int = 0
+
+# Cross-stat synergy tracking (populated by apply_upgrade when synergy_scale > 0)
+var _synergy_upgrades: Array[UpgradeData] = []
+var _synergy_applied: Array[float] = []  # parallel: last applied bonus delta for each entry
+
+# External impulse (e.g. gravity well, black hole) added by outside systems each frame.
+# Applied inside _physics_process and cleared every frame so it never accumulates.
+var external_velocity: Vector2 = Vector2.ZERO
 
 # Rechargeable shield
 var shield_max: float = 0.0
@@ -47,6 +70,11 @@ var _shield_ring: Sprite2D = null
 # Damage blocking (Tank passive sets this)
 var damage_block_chance: float = 0.0
 var _block_cooldown: float = 0.0
+
+# Invincibility frames: brief window after a real hit where no further
+# contact/projectile damage can land. DoT ticks bypass this.
+const IFRAME_DURATION: float = 0.6
+var _iframes_timer: float = 0.0
 
 # Critical hits and EMP
 var crit_chance: float = 0.0
@@ -117,6 +145,11 @@ const _THRUSTER_FPS: float = 12.0
 # Damage overlay (set damage_sprite_set = 1/2/3 before adding to scene tree)
 var damage_sprite_set: int = 1
 var _damage_overlay: Sprite2D = null
+
+## Base ship color tint. Set from character_data.ship_color and used to restore
+## sprite.modulate after flash effects (damage, dodge, abilities) instead of
+## always resetting to Color.WHITE.
+var base_sprite_color: Color = Color.WHITE
 
 # Global stat caps applied when upgrades are collected.
 # Per-ship overrides can be set via CharacterData.stat_caps using the same keys.
@@ -206,6 +239,7 @@ func _apply_character_data() -> void:
 	if character_data.sprite:
 		sprite.texture = character_data.sprite
 	sprite.modulate = character_data.ship_color
+	base_sprite_color = character_data.ship_color
 
 	# Scale XP threshold (level-up frequency), coin multiplier, shield regen delay, and XP multiplier by difficulty
 	var xp_thresh_mult := 1.0
@@ -275,6 +309,14 @@ func _physics_process(delta: float) -> void:
 	# Afterburner velocity scale
 	if _boost_timer > 0.0:
 		velocity *= boost_factor
+	# External impulse from terrain events (gravity well, black hole).
+	# Cap it to 65 % of current move_speed so the player can always escape: even at
+	# full gravity, a player pointing directly away still has 35 % net outward speed.
+	# Clearing AFTER reading prevents double-application when _process fires more
+	# than once per physics frame.
+	if external_velocity != Vector2.ZERO:
+		velocity += external_velocity.limit_length(move_speed * 0.65)
+		external_velocity = Vector2.ZERO
 	move_and_slide()
 
 	# Tick slow timer
@@ -283,7 +325,7 @@ func _physics_process(delta: float) -> void:
 		if _slow_timer <= 0.0:
 			_slow_factor = 1.0
 			move_speed = _base_move_speed
-			sprite.modulate = Color.WHITE
+			sprite.modulate = base_sprite_color
 
 	# Tick acid/burn DoT
 	if _dot_ticks_left > 0:
@@ -291,10 +333,10 @@ func _physics_process(delta: float) -> void:
 		if _dot_timer <= 0.0:
 			_dot_timer = 0.5
 			_dot_ticks_left -= 1
-			take_damage(_dot_dps * 0.5)
+			take_damage(_dot_dps * 0.5, 0.0, true)
 			if _dot_ticks_left <= 0:
 				_dot_dps = 0.0
-				sprite.modulate = Color.WHITE if _slow_timer <= 0.0 else Color(0.5, 0.9, 1.0)
+				sprite.modulate = base_sprite_color if _slow_timer <= 0.0 else Color(0.5, 0.9, 1.0)
 
 	var aim_dir := InputManager.get_aim_dir(player_index, global_position)
 	if aim_dir != Vector2.ZERO:
@@ -319,6 +361,8 @@ func _physics_process(delta: float) -> void:
 
 	if _block_cooldown > 0.0:
 		_block_cooldown -= delta
+	if _iframes_timer > 0.0:
+		_iframes_timer -= delta
 
 	# Passive HP regeneration
 	if hp_regen > 0.0 and current_health < max_health:
@@ -386,7 +430,21 @@ func activate_boost() -> void:
 
 # --- Health ---
 
-func take_damage(amount: float, _armor_penetration: float = 0.0) -> void:
+func take_exploder_damage(amount: float) -> void:
+	## Handles exploder AoE damage, divided by exploder_damage_reduction.
+	take_damage(amount / exploder_damage_reduction)
+
+func reduce_contact_damage(amount: float, enemy_id: StringName) -> float:
+	## Returns the effective contact damage after grunt/speeder flat reduction.
+	if enemy_id == &"grunt" or enemy_id == &"speeder":
+		return maxf(0.0, amount - grunt_speeder_damage_reduction)
+	return amount
+
+func take_damage(amount: float, _armor_penetration: float = 0.0, bypass_iframes: bool = false) -> void:
+	if GameManager.debug_god_mode:
+		return
+	if not bypass_iframes and _iframes_timer > 0.0:
+		return
 	if dodge_chance > 0.0 and randf() < dodge_chance:
 		_flash_dodge()
 		return
@@ -408,6 +466,7 @@ func take_damage(amount: float, _armor_penetration: float = 0.0) -> void:
 			_flash_shield_hit()
 			return
 	current_health -= effective
+	_iframes_timer = IFRAME_DURATION
 	took_damage.emit()
 	_flash_damage()
 	var hurt_sfx := "res://assets/audio/sfx_lose.ogg"
@@ -422,14 +481,14 @@ func _flash_dodge() -> void:
 	# Green flash indicating a successful dodge
 	sprite.modulate = Color(0.3, 2.5, 0.3, 1.0)
 	var tween := create_tween()
-	tween.tween_property(sprite, "modulate", Color.WHITE, 0.25)
+	tween.tween_property(sprite, "modulate", base_sprite_color, 0.25)
 
 func _flash_damage() -> void:
 	# Red flash + scale punch + invincibility blink
 	sprite.modulate = Color(3.0, 0.1, 0.1, 1.0)
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(sprite, "modulate", Color.WHITE, 0.35)
+	tween.tween_property(sprite, "modulate", base_sprite_color, 0.35)
 	tween.tween_property(self, "scale", Vector2.ONE * 1.18, 0.07).set_trans(Tween.TRANS_SINE)
 	tween.chain().tween_property(self, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_SINE)
 	# Blink during invincibility window
@@ -457,10 +516,11 @@ func revive() -> void:
 	set_physics_process(true)
 	show()
 	scale = Vector2.ONE
-	sprite.modulate = Color.WHITE
+	sprite.modulate = base_sprite_color
 	sprite.rotation_degrees = 90.0
 	health_changed.emit(current_health, max_health)
 	_update_damage_overlay(current_health / max_health)
+	revived.emit()
 	# Scrap penalty - take as much as the player has, up to the cap
 	var penalty := mini(scrap, REVIVE_SCRAP_PENALTY)
 	if penalty > 0:
@@ -476,8 +536,9 @@ func _die() -> void:
 	set_physics_process(false)
 	# Disable collision so enemy ContactAreas fire body_exited,
 	# preventing enemies stuck in ATTACK state from dealing damage to surviving players.
+	# Must use set_deferred — can't change physics state while flushing queries.
 	if is_instance_valid(collision):
-		collision.disabled = true
+		collision.set_deferred("disabled", true)
 	died.emit()
 	var death_sfx := "res://assets/audio/sfx_player_death.ogg"
 	if ResourceLoader.exists(death_sfx):
@@ -534,6 +595,9 @@ func apply_upgrade(data: UpgradeData) -> void:
 			delta *= _upgrade_mult
 			if character_data:
 				delta *= float(character_data.upgrade_efficiency.get(key, 1.0))
+		# Mythic Neutralizer: chance to negate debuff stats
+		if delta < 0.0 and no_debuff_chance > 0.0 and randf() < no_debuff_chance:
+			continue
 		match key:
 			UpgradeData.StatKey.MAX_HEALTH:
 				max_health = minf(max_health + delta, _stat_cap("max_health"))
@@ -577,6 +641,7 @@ func apply_upgrade(data: UpgradeData) -> void:
 			UpgradeData.StatKey.BOUNCE_COUNT, UpgradeData.StatKey.CHAIN_COUNT, \
 			UpgradeData.StatKey.FORK_COUNT, UpgradeData.StatKey.ARMOR_PEN, \
 			UpgradeData.StatKey.KNOCKBACK_FORCE:
+				accumulated_weapon_deltas[key] = accumulated_weapon_deltas.get(key, 0.0) + delta
 				for weapon in weapons:
 					if weapon.has_method("apply_stat_delta"):
 						weapon.apply_stat_delta(key, delta)
@@ -588,6 +653,13 @@ func apply_upgrade(data: UpgradeData) -> void:
 			if passive_node.has_method("setup"):
 				passive_node.call("setup", self)
 	acquired_upgrades.append(data)
+	# Register synergy upgrades and recalculate all active synergies so the
+	# new stat values immediately affect any dependent bonuses.
+	if data.synergy_scale != 0.0:
+		_synergy_upgrades.append(data)
+		_synergy_applied.append(0.0)
+	if not _synergy_upgrades.is_empty():
+		recalculate_synergies()
 
 func count_upgrade(id: StringName) -> int:
 	var n := 0
@@ -596,7 +668,137 @@ func count_upgrade(id: StringName) -> int:
 			n += 1
 	return n
 
-# --- Weapons ---
+## Returns true if every stat_delta in `data` would have zero net effect because
+## all affected stats are already at this ship's caps.  Used by the shop UI to
+## flag useless upgrades in soft red with a MAX CAP REACHED notice.
+func is_upgrade_stat_capped(data: UpgradeData) -> bool:
+	if data.stat_deltas.is_empty():
+		return false
+	for key in data.stat_deltas:
+		var delta: float = float(data.stat_deltas[key])
+		if delta == 0.0:
+			continue
+		if not _is_single_stat_capped(key, delta):
+			return false
+	return true
+
+func _is_single_stat_capped(key: UpgradeData.StatKey, delta: float) -> bool:
+	match key:
+		UpgradeData.StatKey.MAX_HEALTH:
+			return max_health >= _stat_cap("max_health")
+		UpgradeData.StatKey.MOVE_SPEED:
+			return move_speed >= _stat_cap("move_speed")
+		UpgradeData.StatKey.ARMOR:
+			return armor >= _stat_cap("armor")
+		UpgradeData.StatKey.XP_MULTIPLIER:
+			return xp_multiplier >= _stat_cap("xp_multiplier")
+		UpgradeData.StatKey.COIN_MULTIPLIER:
+			return coin_multiplier >= _stat_cap("coin_multiplier")
+		UpgradeData.StatKey.LIFESTEAL:
+			return lifesteal >= _stat_cap("lifesteal")
+		UpgradeData.StatKey.DAMAGE_BLOCK_CHANCE:
+			return damage_block_chance >= _stat_cap("damage_block_chance")
+		UpgradeData.StatKey.SCRAP_BONUS_CHANCE:
+			return scrap_bonus_chance >= _stat_cap("scrap_bonus_chance")
+		UpgradeData.StatKey.INSTANT_HEAL:
+			return false  # one-time heal always has an effect
+		UpgradeData.StatKey.SHIELD_MAX:
+			return shield_max >= _stat_cap("shield_max")
+		UpgradeData.StatKey.SHIELD_REGEN_RATE:
+			return shield_regen_rate >= _stat_cap("shield_regen_rate")
+		UpgradeData.StatKey.CRIT_CHANCE:
+			return crit_chance >= _stat_cap("crit_chance")
+		UpgradeData.StatKey.CRIT_MULTIPLIER:
+			return crit_multiplier >= _stat_cap("crit_multiplier")
+		UpgradeData.StatKey.DODGE_CHANCE:
+			return dodge_chance >= _stat_cap("dodge_chance")
+		UpgradeData.StatKey.ON_KILL_HEAL:
+			return on_kill_heal >= _stat_cap("on_kill_heal")
+		UpgradeData.StatKey.HP_REGEN:
+			return hp_regen >= _stat_cap("hp_regen")
+		# Weapon-scope stats: capped only when every equipped weapon is at its cap.
+		# If no weapons are equipped the delta will be stored and applied on next
+		# equip, so it is never wasted — treat as not capped.
+		UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
+		UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
+		UpgradeData.StatKey.SPREAD, UpgradeData.StatKey.ARMOR_PEN, \
+		UpgradeData.StatKey.KNOCKBACK_FORCE:
+			if weapons.is_empty():
+				return false
+			for weapon in weapons:
+				if not weapon.has_method("is_stat_at_cap"):
+					return false  # unknown weapon type, assume not capped
+				if not weapon.call("is_stat_at_cap", key, delta):
+					return false
+			return true
+		# Discrete counts have no practical hard cap enforced by the engine
+		UpgradeData.StatKey.BOUNCE_COUNT, UpgradeData.StatKey.CHAIN_COUNT, \
+		UpgradeData.StatKey.FORK_COUNT:
+			return false
+	return false
+
+
+# --- Synergy system ---
+
+func _read_stat_for_synergy(key: UpgradeData.StatKey) -> float:
+	## Returns the current value of a player stat that can act as a synergy source.
+	match key:
+		UpgradeData.StatKey.MAX_HEALTH:  return max_health
+		UpgradeData.StatKey.MOVE_SPEED:  return move_speed
+		UpgradeData.StatKey.ARMOR:       return armor
+		UpgradeData.StatKey.SHIELD_MAX:  return shield_max
+		UpgradeData.StatKey.DODGE_CHANCE: return dodge_chance
+		UpgradeData.StatKey.CRIT_CHANCE: return crit_chance
+	return 0.0
+
+func _apply_synergy_raw_delta(key: UpgradeData.StatKey, delta: float) -> void:
+	## Apply a signed delta to a stat for synergy undo/redo. Does NOT update
+	## accumulated_weapon_deltas — synergy bonuses are tracked separately.
+	match key:
+		UpgradeData.StatKey.MAX_HEALTH:
+			max_health = maxf(1.0, max_health + delta)
+		UpgradeData.StatKey.MOVE_SPEED:
+			move_speed = maxf(50.0, move_speed + delta)
+		UpgradeData.StatKey.ARMOR:
+			armor = maxf(0.0, armor + delta)
+		UpgradeData.StatKey.DODGE_CHANCE:
+			dodge_chance = clampf(dodge_chance + delta, 0.0, _stat_cap("dodge_chance"))
+		UpgradeData.StatKey.HP_REGEN:
+			hp_regen = maxf(0.0, hp_regen + delta)
+		UpgradeData.StatKey.LIFESTEAL:
+			lifesteal = clampf(lifesteal + delta, 0.0, _stat_cap("lifesteal"))
+		UpgradeData.StatKey.DAMAGE, UpgradeData.StatKey.FIRE_RATE, \
+		UpgradeData.StatKey.PROJECTILE_SPEED, UpgradeData.StatKey.RANGE, \
+		UpgradeData.StatKey.ARMOR_PEN, UpgradeData.StatKey.KNOCKBACK_FORCE:
+			for weapon in weapons:
+				if weapon.has_method("apply_stat_delta"):
+					weapon.apply_stat_delta(key, delta)
+
+func recalculate_synergies() -> void:
+	## Re-evaluate all synergy upgrades. Call after any stat that can serve
+	## as a synergy source changes (MAX_HEALTH, MOVE_SPEED, ARMOR, SHIELD_MAX, etc).
+	## Also called in add_weapon so new weapons inherit current synergy bonuses.
+	var health_dirty := false
+	for i in _synergy_upgrades.size():
+		var data: UpgradeData = _synergy_upgrades[i]
+		var old_delta: float = _synergy_applied[i]
+		# Undo previous bonus
+		if old_delta != 0.0:
+			_apply_synergy_raw_delta(data.synergy_target, -old_delta)
+		# Compute new bonus: floor(source / divisor) * scale
+		var src: float = _read_stat_for_synergy(data.synergy_source)
+		var new_delta: float = floorf(src / data.synergy_divisor) * data.synergy_scale
+		# Apply new bonus
+		if new_delta != 0.0:
+			_apply_synergy_raw_delta(data.synergy_target, new_delta)
+		_synergy_applied[i] = new_delta
+		if data.synergy_target == UpgradeData.StatKey.MAX_HEALTH:
+			health_dirty = true
+	if health_dirty:
+		current_health = minf(current_health, max_health)
+		health_changed.emit(current_health, max_health)
+		_update_damage_overlay(current_health / max_health)
+
 
 func add_weapon(weapon_node: Node) -> void:
 	var slots := character_data.weapon_slots if character_data else 6
@@ -612,6 +814,11 @@ func add_weapon(weapon_node: Node) -> void:
 		weapon_node.set("damage_multiplier", 1.0 + bonus + damage_bonus)
 		if fire_rate_bonus != 0.0 and weapon_node.has_method("apply_stat_delta"):
 			weapon_node.call("apply_stat_delta", UpgradeData.StatKey.FIRE_RATE, fire_rate_bonus * weapon_node.get("fire_rate"))
+	# Apply all accumulated weapon-scope upgrade deltas so this weapon benefits
+	# from knockback, damage, fire rate, etc. picked up before it was acquired.
+	if weapon_node.has_method("apply_stat_delta"):
+		for key in accumulated_weapon_deltas:
+			weapon_node.call("apply_stat_delta", key, accumulated_weapon_deltas[key])
 	weapons.append(weapon_node)
 	# Assign to the first unoccupied port in the default order.
 	# Do NOT use weapons.size()-1 as the index — the size reflects adds/removes
@@ -628,6 +835,10 @@ func add_weapon(weapon_node: Node) -> void:
 	weapon_node.set("port_index", port_idx)
 	weapon_node.position = PORT_DATA[port_idx]["pos"]
 	add_child(weapon_node)
+	# Apply any active synergy bonuses to the new weapon. We call recalculate_synergies
+	# which undoes old deltas and reapplies to all weapons including this new one.
+	if not _synergy_upgrades.is_empty():
+		recalculate_synergies()
 	_update_weapon_visuals()
 
 func get_weapon_count() -> int:

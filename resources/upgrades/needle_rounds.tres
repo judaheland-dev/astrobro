@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_005.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"needle_rounds"
+display_name = "Needle Rounds"
+description = "+5 Armor Pen, +100 Proj Speed, -0.04 Spread. Razor-thin, ultra-fast."
+scope = 1
+stat_deltas = {21: 5.0, 5: 100.0, 10: -0.04}
+shop_price = 0
+max_stacks = 4
+rarity = 0

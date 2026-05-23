@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_001.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"napalm_t5"
+display_name = "Napalm Projector Mk.V"
+description = "Legendary apex. The ultimate refinement of this weapon."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 28.0
+fire_rate = 3.88
+projectile_speed = 299.0
+range = 450.0
+spread = 0.05
+projectile_count = 1
+piercing = 0
+aoe_radius = 222.0
+on_hit_dot_dps = 37.4
+on_hit_dot_ticks = 30
+projectile_scene = null
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.5, 0.5)
+projectile_modulate = Color(1.0, 0.45, 0.0, 1.0)
+projectile_hitbox_size = Vector2(14.0, 14.0)
+emit_exhaust_trail = false
+tier = 5
+forged_weapon_id = &""

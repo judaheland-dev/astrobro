@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_044.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"war_profiteer"
+display_name = "War Profiteer"
+description = "+35% Coin Gain, +20% Scrap Bonus, -10 Damage. Profit over power."
+scope = 0
+stat_deltas = {7: 0.35, 12: 0.20, 3: -10.0}
+shop_price = 0
+max_stacks = 1
+rarity = 2
+build_path = &"SCAVENGER"

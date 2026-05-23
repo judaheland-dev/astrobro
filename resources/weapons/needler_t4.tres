@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue04.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"needler_t4"
+display_name = "Needler Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 0
+weapon_class = 0
+shop_cost = 0
+damage = 17.6
+fire_rate = 17.5
+projectile_speed = 908.5
+range = 694.4
+spread = 0.02
+projectile_count = 1
+piercing = 5
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.5, 0.5)
+projectile_modulate = Color(0.95, 1.0, 1.0, 1.0)
+projectile_hitbox_size = Vector2(8.0, 3.0)
+emit_exhaust_trail = false
+tier = 4
+forged_weapon_id = &"needler_t5"

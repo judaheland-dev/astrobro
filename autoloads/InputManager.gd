@@ -8,10 +8,16 @@ extends Node
 ## It is built from Input.get_connected_joypads() on _ready() and updated
 ## via Input.joy_connection_changed so IDs never drift mid-session.
 
-const DEADZONE: float = 0.2
+const DEADZONE: float = 0.25
 
 # _device_map[player_index] = SDL device id, or -1 if no pad assigned.
 var _device_map: Array[int] = [-1, -1]
+
+# How long (seconds) keyboard input suppresses gamepad movement after the last
+# key release. Prevents a spurious/misbehaving controller from pushing the ship
+# while the player is momentarily not holding any movement key.
+const _KEYBOARD_PRIORITY_WINDOW: float = 0.4
+var _keyboard_timer: Array[float] = [0.0, 0.0]
 
 func _ready() -> void:
 	# Assign currently connected pads in the order SDL reports them.
@@ -27,6 +33,13 @@ func _on_joy_connection_changed(_device: int, _connected: bool) -> void:
 	# Rebuild the full map so connection-order stays stable.
 	_rebuild_device_map()
 
+func _process(delta: float) -> void:
+	# Tick down keyboard-priority suppression timers each frame.
+	if _keyboard_timer[0] > 0.0:
+		_keyboard_timer[0] -= delta
+	if _keyboard_timer[1] > 0.0:
+		_keyboard_timer[1] -= delta
+
 # Returns normalized movement direction for given player index (0-based).
 func get_move_dir(player_index: int) -> Vector2:
 	if player_index == 0:
@@ -35,7 +48,12 @@ func get_move_dir(player_index: int) -> Vector2:
 		if Input.is_action_pressed("move_down"):  dir.y += 1.0
 		if Input.is_action_pressed("move_left"):  dir.x -= 1.0
 		if Input.is_action_pressed("move_right"): dir.x += 1.0
-		if dir == Vector2.ZERO:
+		if dir != Vector2.ZERO:
+			# Keyboard is active — refresh suppression window so a misbehaving
+			# controller cannot interfere while the player is using keys.
+			_keyboard_timer[0] = _KEYBOARD_PRIORITY_WINDOW
+		elif _keyboard_timer[0] <= 0.0:
+			# No keyboard input and suppression window has expired — allow gamepad.
 			dir = _get_gamepad_stick(_device_map[0], 0)
 		return dir.normalized() if dir.length() > DEADZONE else Vector2.ZERO
 	else:
@@ -45,7 +63,9 @@ func get_move_dir(player_index: int) -> Vector2:
 		if Input.is_action_pressed("p2_move_down"):  dir.y += 1.0
 		if Input.is_action_pressed("p2_move_left"):  dir.x -= 1.0
 		if Input.is_action_pressed("p2_move_right"): dir.x += 1.0
-		if dir == Vector2.ZERO:
+		if dir != Vector2.ZERO:
+			_keyboard_timer[1] = _KEYBOARD_PRIORITY_WINDOW
+		elif _keyboard_timer[1] <= 0.0:
 			dir = _get_gamepad_stick(_device_map[player_index], 0)
 		return dir.normalized() if dir.length() > DEADZONE else Vector2.ZERO
 

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/flash00.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"boost_away"
+display_name = "Boost Away!"
+description = "If all your weapon slots are filled with the same weapon type, instantly upgrades them all to Legendary. Already Legendary? They ascend to Mythic (+20% damage, fire rate, and range)."
+scope = 2
+stat_deltas = {}
+shop_price = 350
+max_stacks = 1
+rarity = 4
+passive_script = "res://scenes/game/player/abilities/BoostAwayPassive.gd"

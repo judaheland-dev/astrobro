@@ -53,6 +53,7 @@ func register_player(player: Player) -> void:
 	player.leveled_up.connect(func(lvl): _update_level(panel, lvl); _update_power(panel, player))
 	player.scrap_changed.connect(func(amount): _update_scrap(panel, amount); _update_power(panel, player))
 	player.died.connect(func(): _mark_dead(panel))
+	player.revived.connect(func(): _mark_alive(panel, player))
 	player.ability_cooldown_changed.connect(func(ratio): _update_ability(panel, ratio))
 	_update_power(panel, player)
 
@@ -143,6 +144,12 @@ func _mark_dead(panel: Control) -> void:
 	var lbl := panel.get_node_or_null("LevelLabel") as Label
 	if lbl:
 		lbl.text = "-- DEAD --"
+
+func _mark_alive(panel: Control, player: Player) -> void:
+	panel.modulate = Color.WHITE
+	var lbl := panel.get_node_or_null("LevelLabel") as Label
+	if lbl and is_instance_valid(player):
+		lbl.text = "Lv %d" % player.level
 
 func _update_health(panel: Control, current: float, maximum: float) -> void:
 	var bar := panel.get_node_or_null("HPBar") as ProgressBar

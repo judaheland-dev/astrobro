@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_065.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"impact_gel"
+display_name = "Impact Gel"
+description = "+200 Knockback, +5 Damage, -10% Crit Chance. Sends enemies flying."
+scope = 1
+stat_deltas = {22: 200.0, 3: 5.0, 16: -0.10}
+shop_price = 0
+max_stacks = 3
+rarity = 1

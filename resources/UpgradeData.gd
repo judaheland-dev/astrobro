@@ -69,3 +69,16 @@ enum StatKey {
 # If set, this GDScript path is loaded and instantiated as a passive ability
 # node added to the player when the upgrade is applied.
 @export var passive_script: String = ""
+
+# Cross-stat synergy: a bonus derived from one stat and applied to another.
+# bonus = floor(source_value / synergy_divisor) * synergy_scale → added to synergy_target.
+# Re-evaluated every time any source stat changes (via Player.recalculate_synergies()).
+# Set synergy_scale = 0.0 (default) to disable synergy entirely.
+@export var synergy_source: StatKey = StatKey.MAX_HEALTH
+@export var synergy_target: StatKey = StatKey.DAMAGE
+@export var synergy_scale: float = 0.0
+@export var synergy_divisor: float = 10.0
+
+# Optional explicit build path label (e.g. "TANK", "SPEED", "GUNSLINGER").
+# If left blank, BetweenWaveUI infers the path from stat_deltas automatically.
+@export var build_path: StringName = &""

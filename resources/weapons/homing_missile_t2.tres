@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"homing_missile_t2"
+display_name = "Homing Missile Mk.II"
+description = "Forged upgrade. Dual-warhead seeker—hunts harder and detonates with wider devastation."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 65.0
+fire_rate = 1.5
+projectile_speed = 380.0
+range = 1000.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+is_homing = true
+homing_strength = 4.5
+aoe_radius = 160.0
+emit_exhaust_trail = true
+unlock_cost = 0
+rarity = 1
+projectile_scale = Vector2(1.0, 1.0)
+projectile_modulate = Color(1.0, 0.5, 0.1, 1.0)
+tier = 2
+forged_weapon_id = &"homing_missile_t3"

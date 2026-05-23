@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_084.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"nullifier_shell"
+display_name = "Nullifier Shell"
+description = "+1 Shield Regen/s per 5 Armor. Hard plating channels energy back into the barrier."
+scope = 0
+stat_deltas = {}
+shop_price = 0
+max_stacks = 1
+rarity = 2
+synergy_source = 2
+synergy_target = 15
+synergy_scale = 1.0
+synergy_divisor = 5.0
+build_path = &"SHIELD"

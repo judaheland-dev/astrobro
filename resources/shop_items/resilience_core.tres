@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_048.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"resilience_core"
+display_name = "Resilience Core"
+description = "+25 Max HP, +3 HP Regen/s. Tough and self-sustaining."
+scope = 0
+stat_deltas = {0: 25.0, 25: 3.0}
+shop_price = 55
+max_stacks = 4
+rarity = 0

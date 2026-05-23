@@ -29,4 +29,3 @@ projectile_hitbox_size = Vector2(8, 3)
 emit_exhaust_trail = false
 tier = 2
 forged_weapon_id = &"gatling_t3"
-is_forge_only = true

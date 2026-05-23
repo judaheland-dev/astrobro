@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceEffects_017.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"frenzy_drive"
+display_name = "Frenzy Drive"
+description = "+8 HP On-Kill, +8% Lifesteal, -40 Max HP. Stop killing and you're dead."
+scope = 0
+stat_deltas = {24: 8.0, 8: 0.08, 0: -40.0}
+shop_price = 0
+max_stacks = 1
+rarity = 3
+build_path = &"PREDATOR"

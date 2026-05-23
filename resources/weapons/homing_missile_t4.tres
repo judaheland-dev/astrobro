@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"homing_missile_t4"
+display_name = "Homing Missile Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 2
+weapon_class = 4
+shop_cost = 0
+damage = 121.5
+fire_rate = 2.25
+projectile_speed = 483.0
+range = 1232.0
+spread = 0.0
+projectile_count = 3
+piercing = 0
+is_homing = true
+homing_strength = 5.0
+aoe_radius = 244.0
+emit_exhaust_trail = true
+unlock_cost = 0
+rarity = 3
+projectile_scale = Vector2(1.0, 1.0)
+projectile_modulate = Color(1.0, 0.4, 0.0, 1.0)
+tier = 4
+forged_weapon_id = &"homing_missile_t5"

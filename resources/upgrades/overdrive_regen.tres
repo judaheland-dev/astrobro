@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"overdrive_regen"
+display_name = "Overdrive Regen"
+description = "+4 HP Regen/s, -20 Max HP. Trade your HP ceiling for constant recovery."
+scope = 0
+stat_deltas = {25: 4.0, 0: -20.0}
+shop_price = 0
+max_stacks = 2
+rarity = 1

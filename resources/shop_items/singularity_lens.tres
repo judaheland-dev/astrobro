@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/gun09.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"singularity_lens"
+display_name = "Singularity Lens"
+description = "+30 Range, +10% Crit Chance, +0.20 Crit Multiplier. For the marksman who never misses."
+scope = 1
+stat_deltas = {9: 30.0, 16: 0.10, 17: 0.20}
+shop_price = 150
+max_stacks = 2
+rarity = 3

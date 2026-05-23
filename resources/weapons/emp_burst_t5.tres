@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue11.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"emp_burst_t5"
+display_name = "EMP Burst Mk.V"
+description = "Legendary apex. The ultimate refinement of this weapon."
+ammo_type = 0
+weapon_class = 5
+shop_cost = 0
+damage = 12.2
+fire_rate = 4.03
+projectile_speed = 533.0
+range = 612.5
+spread = 0.18
+projectile_count = 10
+piercing = 0
+knockback_force = 580.0
+unlock_cost = 0
+rarity = 4
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.6, 0.6)
+projectile_modulate = Color(0.65, 0.75, 1.0, 1.0)
+projectile_hitbox_size = Vector2(10.0, 4.0)
+emit_exhaust_trail = false
+tier = 5
+forged_weapon_id = &""

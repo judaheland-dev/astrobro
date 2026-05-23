@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceMissiles_015.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"burst_pod_t4"
+display_name = "Burst Pod Mk.IV"
+description = "Forged to epic tier. Dominant firepower in every metric."
+ammo_type = 2
+weapon_class = 2
+shop_cost = 0
+damage = 37.8
+fire_rate = 1.88
+projectile_speed = 483.0
+range = 649.6
+spread = 0.74
+projectile_count = 10
+piercing = 0
+aoe_radius = 107.4
+projectile_scene = null
+unlock_cost = 0
+rarity = 3
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.52, 0.52)
+projectile_modulate = Color(1.0, 0.55, 0.1, 1.0)
+projectile_hitbox_size = Vector2(14.0, 6.0)
+emit_exhaust_trail = true
+tier = 4
+forged_weapon_id = &"burst_pod_t5"

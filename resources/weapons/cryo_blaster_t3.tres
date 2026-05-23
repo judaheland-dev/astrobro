@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/WeaponData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/laserBlue13.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"cryo_blaster_t3"
+display_name = "Cryo Blaster Mk.III"
+description = "Absolute-zero cannon. Enemies are launched backward and shattered by lingering deep-freeze."
+ammo_type = 1
+weapon_class = 5
+shop_cost = 0
+damage = 11.0
+fire_rate = 5.2
+projectile_speed = 460.0
+range = 660.0
+spread = 0.0
+projectile_count = 1
+piercing = 0
+knockback_force = 460.0
+on_hit_dot_dps = 28.0
+on_hit_dot_ticks = 12
+unlock_cost = 0
+rarity = 2
+projectile_sprite = ExtResource("2")
+projectile_scale = Vector2(0.8, 0.8)
+projectile_modulate = Color(0.7, 0.97, 1.0, 1.0)
+projectile_hitbox_size = Vector2(12.0, 5.0)
+emit_exhaust_trail = false
+tier = 3
+forged_weapon_id = &"cryo_blaster_t4"

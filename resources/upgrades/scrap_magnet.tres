@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"scrap_magnet"
+display_name = "Scrap Magnet"
+description = "+25% Scrap Bonus Chance, +15% Coin Gain. The more you fight, the richer you get."
+scope = 2
+stat_deltas = {12: 0.25, 7: 0.15}
+shop_price = 0
+max_stacks = 2
+rarity = 1

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"bleed_engine"
+display_name = "Bleed Engine"
+description = "+25 Damage, +5% Crit Chance, -1 HP Regen/s. Bleed your own hull for raw firepower."
+scope = 1
+stat_deltas = {3: 25.0, 16: 0.05, 25: -1.0}
+shop_price = 0
+max_stacks = 2
+rarity = 2

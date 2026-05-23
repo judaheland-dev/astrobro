@@ -1,0 +1,131 @@
+id,Name,Path,Rarity,Scope,ShopPrice,MaxStacks,MaxHP,MoveSpd,Armor,Damage,FireRate,ProjSpd,XP%,Coin%,Lifesteal,Range,Spread,Block%,Scrap%,InstHeal,ShieldMax,ShieldRegen,CritChance,CritMult,Bounce,Chain,Fork,ArmorPen,Knockback,Dodge,OnKillHeal,HPRegen,Synergy,Description
+armor_piercing,AP Rounds,GUNSLINGER,Common,Weapon,50,5,,,,,,,,,,,,,,,,,,,,,,5.0,,,,,,+5 Armor Penetration (bypasses enemy armor)
+kinetic_rounds,Kinetic Payload,GUNSLINGER,Common,Weapon,50,4,,,,,,,,,,,,,,,,,,,,,,,200.0,,,,,Hits push enemies back (+200 knockback force)
+crit_chance,Targeting Reticle,GUNSLINGER,Common,Character,45,5,,,,,,,,,,,,,,,,,0.05,,,,,,,,,,,+5% Critical Hit Chance
+dead_zone_rounds,Dead Zone Rounds,GUNSLINGER,Uncommon,Weapon,75,3,,,,,-0.5,,,,,,,,,,,,,,,,,10.0,,,,,,"+10 Armor Pen, -0.5 Fire Rate. Punches through armor but fires slower."
+fortune_seeker,Fortune Seeker,GUNSLINGER,Uncommon,Character,0,1,,,,-8.0,,,0.2,,,,,,0.3,,,,,,,,,,,,,,,"+30% Scrap Bonus, +20% XP Gain, -8 Damage. Profit over power."
+haywire_rounds,Haywire Rounds,GUNSLINGER,Uncommon,Weapon,60,3,,,,,,,,,,,,,,,,,,,,,,8.0,300.0,,,,,"+8 Armor Pen, +300 Knockback"
+impact_gel,Impact Gel,GUNSLINGER,Uncommon,Weapon,0,3,,,,5.0,,,,,,,,,,,,,-0.1,,,,,,200.0,,,,,"+200 Knockback, +5 Damage, -10% Crit Chance. Sends enemies flying."
+damage_boost,Overcharged Rounds,GUNSLINGER,Uncommon,Weapon,50,-1,,,,4.0,,,,,,,,,,,,,,,,,,,,,,,,+4 Weapon Damage
+fire_rate_boost,Rapid Fire Mod,GUNSLINGER,Uncommon,Weapon,60,-1,,,,,0.6,,,,,,,,,,,,,,,,,,,,,,,+0.6 Fire Rate
+spray_pattern,Spray Pattern,GUNSLINGER,Uncommon,Weapon,65,3,,,,10.0,,,,,,,0.25,,,,,,,,,,,,,,,,,"+10 Damage, but +0.25 Spread. More power, less precision."
+arc_web,Arc Web Module,GUNSLINGER,Rare,Weapon,0,2,,,,,,,,,,,,,,,,,,,,2.0,,,100.0,,,,,"+2 Chain targets, +100 Knockback. Electricity that chains AND shoves."
+bleed_engine,Bleed Engine,GUNSLINGER,Rare,Weapon,0,2,,,,25.0,,,,,,,,,,,,,0.05,,,,,,,,,-1.0,,"+25 Damage, +5% Crit Chance, -1 HP Regen/s. Bleed your own hull for raw firepower."
+cortex_spike,Cortex Spike,GUNSLINGER,Rare,Weapon,100,2,,,,,,,,,,,,,,,,,-0.05,0.5,,,,,,,,,,"+0.5x Crit Damage, -5% Crit Chance. Hit harder on each crit, but less often."
+rapid_fire,Dual Trigger Mod,GUNSLINGER,Rare,Weapon,85,-1,,,,,1.2,,,,,,,,,,,,,,,,,,,,,,,+1.2 Fire Rate
+executioner,Executioner's Drive,GUNSLINGER,Rare,Character,0,2,,,,8.0,,,,,,,,,,,,,0.08,,,,,,,,4.0,,,"+4 HP On-Kill, +8 Damage, +8% Crit Chance. Kill constantly or fall behind."
+hunter_protocol,Hunter Protocol,GUNSLINGER,Rare,Character,95,2,,,,,,,,,,,,,,,,,0.1,0.25,,,,,,,,,,"+10% Crit Chance, +0.25x Crit Damage"
+overcharge,Overcharged Core,GUNSLINGER,Rare,Weapon,90,-1,,,,7.0,,,,,,,,,,,,,,,,,,,,,,,,+7 Weapon Damage
+crit_multiplier,Precision Core,GUNSLINGER,Rare,Character,80,4,,,,,,,,,,,,,,,,,,0.3,,,,,,,,,,+0.3x Critical Hit Multiplier
+scrap_cannon,Scrap Cannon,GUNSLINGER,Rare,Weapon,85,2,,,,14.0,,,,,,,,,0.07,,,,,,,,,,,,,,,"+14 Damage, +7% Scrap Bonus Chance. Profit from destruction."
+titanfall_round,Titanfall Round,GUNSLINGER,Rare,Weapon,0,2,,,,8.0,-1.0,,,,,,,,,,,,,,1.0,,,,,,,,,"+1 Ricochet, +8 Damage, -1 Fire Rate. Slow and devastating."
+blood_engine,Blood Engine,GUNSLINGER,Epic,Weapon,0,1,,,,18.0,,,,,0.15,,,,,,,,,,,,,,,,,-1.0,,"+18 Damage, +15% Lifesteal, -1 HP Regen/s. Burns your own hull to fuel the guns."
+critical_mass,Critical Mass,GUNSLINGER,Epic,Weapon,0,1,,,,-10.0,,,,,,,,,,,,,0.2,0.4,,,,,,,,,,"+20% Crit Chance, +0.40 Crit Multiplier, -10 Damage. High risk. Maximum reward."
+emp_module,EMP Module,GUNSLINGER,Epic,Passive,130,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,15% crit chance. Critical hits stun nearby enemies for 1.5 s.
+hive_core,Hive Core,GUNSLINGER,Epic,Weapon,0,1,,,,-8.0,,,,,,,,,,,,,,,,1.0,1.0,,,,,,,"+1 Chain, +1 Fork, -8 Damage. Your shots branch into a swarm."
+omega_strike,Omega Strike,GUNSLINGER,Epic,Weapon,160,1,,,,5.0,,,,,,,,,,,,,0.1,0.3,,,,,,,,,,"+10% Crit Chance, +0.3x Crit Damage, +5 Damage. For when crits are your whole build."
+orbital_turret,Orbital Turret,GUNSLINGER,Epic,Passive,140,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,Places a stationary turret at your position that auto-fires at enemies.
+warlord,Warlord Config,GUNSLINGER,Epic,Weapon,150,3,,,,10.0,1.5,,,,,,,,,,,,,,,,,,,,,,,"+10 Damage, +1.5 Fire Rate"
+apex_predator,Apex Predator,GUNSLINGER,Legendary,Character,200,1,,,,,,,,,,,,,,,,,0.15,0.5,,,,,,,,,,"+15% Crit Chance, +0.5x Crit Damage"
+berserker_protocol,Berserker Protocol,GUNSLINGER,Legendary,Weapon,300,1,,,,15.0,,,,,0.1,,,,,,,,,,,,,,,,,,,"+15 Damage, +10% Lifesteal"
+transcendence,Transcendence,GUNSLINGER,Mythic,Weapon,400,1,,,,20.0,2.0,,,,,,,,,,,,0.15,,1.0,,,,,,,,,"+20 Damage, +2 Fire Rate, +15% Crit Chance, +1 Bounce. The pinnacle of offense."
+void_reactor,Void Reactor,GUNSLINGER,Mythic,Weapon,450,1,-60.0,,-8.0,30.0,3.0,,,,,,,,,,,,,,,,,,350.0,,,,,"+30 Damage, +3 Fire Rate, +350 Knockback, -60 Max HP, -8 Armor. Obliterates enemies. One mistake is fatal."
+bloodhound,Bloodhound,PREDATOR,Common,Character,45,5,,,,,,,,,0.03,,,,,,,,,,,,,,,,,,,+3% Lifesteal on hit
+field_medkit,Field Medkit,PREDATOR,Common,Character,35,-1,,,,,,,,,,,,,,30.0,,,,,,,,,,,,,,Instantly restore 30 HP
+kill_rush,Kill Rush,PREDATOR,Common,Character,45,5,,,,,,,,,,,,,,,,,,,,,,,,,3.0,,,+3 HP restored on each kill
+regen_core,Regen Core,PREDATOR,Common,Passive,0,5,,,,,,,,,,,,,,,,,,,,,,,,,,1.5,,+1.5 HP Regen/s. Slowly heals over time without doing anything special.
+pack_hunter,Pack Hunter,PREDATOR,Uncommon,Character,70,3,,15.0,,,,,,,,,,,,,,,,,,,,,,,5.0,,,"+5 HP On-Kill, +15 Move Speed. Hunt to keep moving. Move to keep hunting."
+on_kill_heal,Regenerative Kill,PREDATOR,Uncommon,Character,60,5,,,,,,,,,,,,,,,,,,,,,,,,,2.0,,,Restore 2 HP on each enemy kill
+biotic_mesh,Biotic Mesh,PREDATOR,Rare,Passive,0,3,,,,,,,,,0.04,,,,,,,,,,,,,,,,,2.0,,"+2 HP Regen/s, +4% Lifesteal. Recover through time and through combat."
+killing_momentum,Killing Momentum,PREDATOR,Rare,Character,0,2,,1.5,,,,,,,0.03,,,,,,,,,,,,,,,,3.0,,,"+3 On Kill Heal, +3% Lifesteal, +1.5 Move Speed. Fuelled by carnage."
+parasitic_blade,Parasitic Blade,PREDATOR,Rare,Weapon,0,2,-20.0,,,8.0,,,,,0.1,,,,,,,,,,,,,,,,,,,"+10% Lifesteal, +8 Damage, -20 Max HP. Drain your enemies or drain yourself."
+predator_instinct,Predator Instinct,PREDATOR,Rare,Weapon,0,3,,,,,,,,,,,,,,,,,0.05,0.2,,,,,,,2.0,,,"+5% Crit Chance, +0.20 Crit Multiplier, +2 On Kill Heal. Hunt to survive."
+lifesteal,Vampire Core,PREDATOR,Rare,Character,80,4,,,,,,,,,0.04,,,,,,,,,,,,,,,,,,,+4% Lifesteal on hit
+carnage_pact,Carnage Pact,PREDATOR,Epic,Character,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,MaxHP→24 ×0.5 per 10.0,"+0.5 HP On-Kill per 10 Max HP. Big hull, bigger appetite."
+frenzy_drive,Frenzy Drive,PREDATOR,Epic,Character,0,1,-40.0,,,,,,,,0.08,,,,,,,,,,,,,,,,8.0,,,"+8 HP On-Kill, +8% Lifesteal, -40 Max HP. Stop killing and you're dead."
+vampiric_engine,Vampiric Engine,PREDATOR,Epic,Character,160,2,,,,,,,,,0.08,,,,,,,,,,,,,,,,,,,+8% Lifesteal on hit
+data_burst,Data Burst,SCAVENGER,Common,Character,35,4,,,,,,,0.15,,,,,,,,,,,,,,,,,,,,,+15% XP Gain
+fortune_matrix,Fortune Matrix,SCAVENGER,Uncommon,Character,60,3,,,,,,,0.1,0.1,,,,,,,,,,,,,,,,,,,,"+10% XP Gain, +10% Coin Gain"
+kill_tax,Kill Tax,SCAVENGER,Uncommon,Character,0,3,,,,,,,0.2,0.1,,,,,,,,,,,,,,,,,2.0,,,"+20% XP Gain, +10% Coins, +2 HP On-Kill. Every kill is profitable."
+coin_magnet,Loot Matrix,SCAVENGER,Uncommon,Character,50,3,,,,,,,,0.2,,,,,,,,,,,,,,,,,,,,+20% Coin Gain
+xp_surge,Neural Accelerator,SCAVENGER,Uncommon,Character,50,3,,,,,,,0.2,,,,,,,,,,,,,,,,,,,,,+20% XP Gain
+profit_round,Profit Round,SCAVENGER,Uncommon,Character,55,4,,,,,,,,0.1,,,,,0.08,,,,,,,,,,,,,,,"+10% Coin Gain, +8% Scrap Bonus Chance. Every kill earns."
+salvage_protocol,Salvage Protocol,SCAVENGER,Uncommon,Character,0,3,,,,,,,-0.1,0.15,,,,,0.12,,,,,,,,,,,,,,,"+12% Scrap Bonus, +15% Coins, -10% XP. Loot-focused runner."
+scavenger_chip,Scavenger Chip,SCAVENGER,Uncommon,Character,55,3,,,,,,,,,,,,,0.15,,,,,,,,,,,,,,,+15% Chance to Double Scrap Drops
+scrap_magnet,Scrap Magnet,SCAVENGER,Uncommon,Passive,0,2,,,,,,,,0.15,,,,,0.25,,,,,,,,,,,,,,,"+25% Scrap Bonus Chance, +15% Coin Gain. The more you fight, the richer you get."
+feedback_loop,Feedback Loop,SCAVENGER,Rare,Character,0,2,,,,,,,0.25,0.2,,,,,0.15,,,,,,,,,,,,,,,"+25% XP, +20% Coins, +15% Scrap Bonus. Every kill compounds."
+war_profiteer,War Profiteer,SCAVENGER,Rare,Character,0,1,,,,-10.0,,,,0.35,,,,,0.2,,,,,,,,,,,,,,,"+35% Coin Gain, +20% Scrap Bonus, -10 Damage. Profit over power."
+motherlode,Motherlode,SCAVENGER,Legendary,Character,500,1,,,,,,,0.5,0.5,,,,,0.25,,,,,,,,,,,,,,,"+50% XP, +50% Coin, +25% Scrap Bonus. The universe yields everything to you."
+ion_barrier,Ion Barrier,SHIELD,Common,Character,30,5,,,,,,,,,,,,,,,10.0,,,,,,,,,,,,,+10 Max Shield
+capacitor_weave,Capacitor Weave,SHIELD,Uncommon,Weapon,90,2,,,,,0.8,,,,,,,,,,20.0,,,,,,,,,,,,,"+20 Shield Max, +0.8 Fire Rate. Stored energy feeds your guns."
+reactive_nanites,Reactive Nanites,SHIELD,Uncommon,Character,85,3,,,,,,,,,,,,0.08,,,,2.0,,,,,,,,,,,,"+8% Block Chance, +2 Shield Regen/s. Defense and recovery together."
+shield_amplifier,Shield Amplifier,SHIELD,Uncommon,Character,0,3,-20.0,,,,,,,,,,,,,,40.0,1.5,,,,,,,,,,,,"+40 Shield Max, +1.5 Shield Regen/s, -20 Max HP. Shields up. Hull down."
+shield_boost,Shield Capacitor,SHIELD,Uncommon,Character,60,3,,,,,,,,,,,,,,,20.0,,,,,,,,,,,,,+20 Max Shield
+shield_surge,Shield Surge,SHIELD,Uncommon,Character,80,3,,,,,,,,,,,,,,,25.0,2.0,,,,,,,,,,,,"+25 Shield Max, +2 Shield Regen/s"
+shield_regen_speed,Flux Condenser,SHIELD,Rare,Character,75,3,,,,,,,,,,,,,,,,5.0,,,,,,,,,,,,+5 Shield Regen/s
+nullifier_shell,Nullifier Shell,SHIELD,Rare,Character,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,Armor→15 ×1.0 per 5.0,+1 Shield Regen/s per 5 Armor. Hard plating channels energy back into the barrier.
+overload_cell,Overload Cell,SHIELD,Rare,Character,0,2,-15.0,,,,,,,,,,,,,,35.0,6.0,,,,,,,,,,,,"+35 Shield Max, +6 Shield Regen/s, -15 Max HP. Shield first. Hull second."
+reactive_shield,Reactive Shield Generator,SHIELD,Rare,Character,85,3,,,,,,,,,,,,,,,18.0,3.0,,,,,,,,,,,,"+18 Shield Capacity, +3 Shield Regen/s"
+warden_matrix,Warden Matrix,SHIELD,Epic,Character,150,1,,,6.0,,,,,,,,,0.12,,,25.0,,,,,,,,,,,,,"+6 Armor, +12% Block Chance, +25 Shield"
+bulwark_field,Bulwark Field,SHIELD,Legendary,Character,320,1,,,,,,,,,,,,0.1,,,60.0,8.0,,,,,,,,,,,,"+60 Shield Max, +8 Shield Regen/s, +10% Block Chance. The ultimate wall."
+reflective_shield,Reflective Shield,SHIELD,Legendary,Passive,200,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,Intercepted enemy missiles bounce back as player projectiles.
+void_channeling,Void Channeling,SHIELD,Legendary,Weapon,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,ShieldMax→Damage ×1.0 per 30.0,+1 flat damage per 30 shield capacity. Defensive energy bleeds into firepower.
+projectile_speed_boost,Accelerator Coil,SPECIALIST,Common,Weapon,35,3,,,,,,150.0,,,,,,,,,,,,,,,,,,,,,,+150 Projectile Speed
+needle_rounds,Needle Rounds,SPECIALIST,Common,Weapon,0,4,,,,,,100.0,,,,,-0.04,,,,,,,,,,,5.0,,,,,,"+5 Armor Pen, +100 Proj Speed, -0.04 Spread. Razor-thin, ultra-fast."
+burst_capacitor,Burst Capacitor,SPECIALIST,Uncommon,Weapon,0,3,,,,3.0,2.0,-150.0,,,,,,,,,,,,,,,,,,,,,,"+2 Fire Rate, +3 Damage, -150 Proj Speed. More bullets, less penetration."
+tight_spread,Collimator Lens,SPECIALIST,Uncommon,Weapon,45,4,,,,,,,,,,,-1.5,,,,,,,,,,,,,,,,,-1.5 Spread (tighter shots)
+range_boost,Extended Barrel,SPECIALIST,Uncommon,Weapon,45,-1,,,,,,,,,,60.0,,,,,,,,,,,,,,,,,,+60 Weapon Range
+overcharged_lens,Overcharged Lens,SPECIALIST,Uncommon,Weapon,0,3,,,-10.0,,,,,,,20.0,,,,,,,0.05,,,,,,,,,,,"+20 Range, +5% Crit Chance, -10 Armor. See further, risk more."
+overwatch_lens,Overwatch Lens,SPECIALIST,Uncommon,Weapon,55,3,,,,,,,,,,80.0,-1.5,,,,,,,,,,,,,,,,,"+80 Range, -1.5 Spread"
+chain_shot,Chain Lightning,SPECIALIST,Rare,Weapon,80,2,,,,,,,,,,,,,,,,,,,,1.0,,,,,,,,Hits arc to +1 nearby enemy within 200 px
+point_blank_protocol,Point Blank,SPECIALIST,Rare,Weapon,90,2,,,,18.0,,,,,,-100.0,,,,,,,,,,,,,,,,,,"+18 Damage, -100 Range. Devastating up close, useless from afar."
+quantum_accelerator,Quantum Accelerator,SPECIALIST,Rare,Weapon,80,3,,,,5.0,,200.0,,,,,,,,,,,,,,,,,,,,,,"+5 Damage, +200 Projectile Speed"
+bounce_shot,Ricochet Rounds,SPECIALIST,Rare,Weapon,80,3,,,,,,,,,,,,,,,,,,,1.0,,,,,,,,,Projectiles ricochet to +1 additional enemy
+shatter_burst,Shatter Burst,SPECIALIST,Rare,Weapon,0,2,,,,,-0.3,,,,,,,,,,,,0.1,,,,1.0,,,,,,,"+1 Fork, +10% Crit Chance, -0.3 Fire Rate. Every kill seeds chaos."
+siege_protocol,Siege Protocol,SPECIALIST,Rare,Weapon,85,4,,,,8.0,,,,,,60.0,,,,,,,,,,,,,,,,,,"+8 Damage, +60 Range"
+splinter_storm,Splinter Storm,SPECIALIST,Rare,Weapon,0,2,,,,,0.5,,,,,,,,,,,,,,,,2.0,,,,,,,"+2 Fork projectiles on death, +0.5 Fire Rate. Spray the whole battlefield."
+velocity_rounds,Velocity Rounds,SPECIALIST,Rare,Weapon,80,2,,,,-5.0,,400.0,,,,,,,,,,,,,,,,,200.0,,,,,"+400 Proj Speed, +200 Knockback, -5 Damage. Fast and forceful, but lighter hits."
+warp_bullet,Warp Bullet,SPECIALIST,Rare,Weapon,0,2,,,,-4.0,,500.0,,,,,,,,,,,0.08,,,,,,,,,,,"+500 Proj Speed, +8% Crit Chance, -4 Damage. Instant impact, less mass."
+fork_shot,Fork Protocol,SPECIALIST,Epic,Weapon,100,2,,,,,,,,,,,,,,,,,,,,,1.0,,,,,,,Projectiles split into +1 sub-projectile on death
+overclock,Overclock Module,SPECIALIST,Epic,Weapon,140,3,,,,,1.5,150.0,,,,,,,,,,,,,,,,,,,,,,"+1.5 Fire Rate, +150 Proj Speed"
+shrapnel_core,Shrapnel Core,SPECIALIST,Legendary,Weapon,150,1,,,,,,,,,,,,,,,,,,,1.0,,1.0,,,,,,,Projectiles ricochet AND split on death
+temporal_overdrive,Temporal Overdrive,SPECIALIST,Legendary,Weapon,300,1,,,,,3.0,200.0,0.2,,,,,,,,,,,,,,,,,,,,,"+3 Fire Rate, +200 Proj Speed, +20% XP"
+speed_boost,Thruster Upgrade,SPEED,Common,Character,45,3,,30.0,,,,,,,,,,,,,,,,,,,,,,,,,,+30 Move Speed
+evasion_module,Evasion Module,SPEED,Uncommon,Character,80,3,,,,,,,,,,,,,,,,,,,,,,,,0.08,,,,+8% chance to completely evade incoming damage
+momentum_harness,Momentum Harness,SPEED,Uncommon,Character,65,3,,15.0,,,,,,,,,,,,,,,,,,,,,,0.05,,,,"+15 Move Speed, +5% Dodge Chance"
+overcautious_plating,Overcautious Plating,SPEED,Uncommon,Character,70,2,,-20.0,15.0,,,,,,,,,,,,,,,,,,,,,,,,,"+15 Armor, but -20 Move Speed. Tanky, but slow."
+rampage,Rampage Drive,SPEED,Uncommon,Character,0,3,,20.0,,5.0,,,,,,,,,,,,,,,,,,,,,3.0,,,"+3 HP On-Kill, +20 Move Speed, +5 Damage. Kill to keep moving."
+afterburner,Afterburner,SPEED,Rare,Passive,100,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,Press Left Shift to boost speed x2.2 for 0.7 s. 6 s recharge.
+phase_boots,Phase Boots,SPEED,Rare,Character,85,2,,40.0,,,,,,,,,,,,,,,,,,,,,,0.1,,,,"+40 Move Speed, +10% Dodge. The best defense is not being there."
+slipstream,Slipstream Drive,SPEED,Rare,Character,0,2,,50.0,,-8.0,,,,,,,,,,,,,,,,,,,,0.12,,,,"+50 Move Speed, +12% Dodge, -8 Damage. Speed over firepower."
+velocity_harness,Velocity Harness,SPEED,Rare,Weapon,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,MoveSpd→FireRate ×0.05 per 50.0,"+0.05 fire rate per 50 move speed. Speed and aggression, unified."
+evasive_momentum,Evasive Momentum,SPEED,Epic,Character,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,MoveSpd→Dodge ×0.02 per 50.0,+2% dodge per 50 move speed. Too fast to target.
+ghost_frame,Ghost Frame,SPEED,Epic,Character,165,1,,25.0,-5.0,,,,,,,,,,,,,,,,,,,,,0.18,,,,"+18% Dodge, +25 Move Speed, -5 Armor. Untouchable, but fragile if caught."
+null_field,Null Field,SPEED,Epic,Character,0,1,,-25.0,,,,,,,,,,0.12,,,,,,,,,,,,0.2,,,,"+20% Dodge, +12% Block Chance, -25 Move Speed. Stand still. Let nothing touch you."
+void_plating,Void Plating,SPEED,Epic,Character,0,1,,-40.0,20.0,,,,,,,,,0.15,,,,,,,,,,,,-0.12,,,,"+20 Armor, +15% Block Chance, -40 Move Speed, -12% Dodge. Immovable. Untouchable."
+phantom_protocol,Phantom Protocol,SPEED,Legendary,Character,280,1,,35.0,,,,,,,,,,,,,,,,,,,,,,0.25,,,,"+25% Dodge, +35 Move Speed. Never stop moving. Never get hit."
+armor_boost,Blast Plating,TANK,Common,Character,35,-1,,,3.0,,,,,,,,,,,,,,,,,,,,,,,,,+3 Armor
+hp_boost,Hull Reinforcement,TANK,Common,Character,40,-1,15.0,,,,,,,,,,,,,,,,,,,,,,,,,,,+15 Max HP
+crisis_protocol,Crisis Protocol,TANK,Uncommon,Character,60,2,25.0,,,,,,,,,,,,,,,,,,,,,,,-0.1,,,,"+25 Max HP, but -10% Dodge. Bulk up at the cost of agility."
+overdrive_regen,Overdrive Regen,TANK,Uncommon,Character,0,2,-20.0,,,,,,,,,,,,,,,,,,,,,,,,,4.0,,"+4 HP Regen/s, -20 Max HP. Trade your HP ceiling for constant recovery."
+phase_cloak,Phase Cloak,TANK,Uncommon,Character,0,3,,1.0,-10.0,,,,,,,,,,,,,,,,,,,,,0.06,,,,"+6% Dodge, +1 Move Speed, -10 Armor. Agile, but exposed."
+reactive_armor,Reactive Armor,TANK,Uncommon,Character,65,4,,,,,,,,,,,,0.08,,,,,,,,,,,,,,,,+8% Damage Block Chance
+regenerative_matrix,Regenerative Matrix,TANK,Uncommon,Character,0,3,15.0,,5.0,,,,,,,,,,,,,,,,,,,,,,,4.0,,"+4 HP Regen/s, +15 Max HP, +5 Armor."
+survivor_grit,Survivor's Grit,TANK,Uncommon,Character,0,3,-10.0,,,,,,,,,,,0.1,,,,,,,,,,,,,,3.0,,"+10% Block Chance, +3 HP Regen/s, -10 Max HP. Pain makes you tougher."
+bulwark,Bulwark Plating,TANK,Rare,Character,90,3,,,6.0,,,,,,,,,0.1,,,,,,,,,,,,,,,,"+6 Armor, +10% Damage Block Chance"
+hardened_carapace,Hardened Carapace,TANK,Rare,Character,95,2,-30.0,,8.0,,,,,,,,,0.15,,,,,,,,,,,,,,,,"+8 Armor, +15% Block Chance, -30 Max HP. Your shell is tough, but smaller."
+plated_recovery,Plated Recovery,TANK,Rare,Character,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,Armor→HPRegen ×1.0 per 5.0,+1 HP regen/s per 5 armor. Thick plating channels ambient energy into healing.
+heavy_plating,Reinforced Hull,TANK,Rare,Character,80,-1,20.0,,5.0,,,,,,,,,,,,,,,,,,,,,,,,,"+20 HP, +5 Armor"
+wraith_protocol,Wraith Protocol,TANK,Rare,Character,0,2,-30.0,1.5,,,,,,,,,,,,,,,,,,,,,,0.12,,,,"+12% Dodge, +1.5 Move Speed, -30 Max HP. Become shadow. Never stop moving."
+blood_pact,Blood Pact,TANK,Epic,Weapon,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,MaxHP→Damage ×0.5 per 10.0,+0.5 flat damage per 10 max HP you have. More hull = more hurt.
+decoy_drone,Decoy Drone,TANK,Epic,Passive,110,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,Deploys a decoy that draws enemy fire. Respawns after 10 s.
+fortress_protocol,Fortress Protocol,TANK,Epic,Character,180,1,35.0,-30.0,8.0,,,,,,,,,0.05,,,,,,,,,,,,,,,,"+35 Max HP, +8 Armor, +5% Block, -30 Move Speed. An immovable wall."
+predator_drive,Predator Drive,TANK,Epic,Weapon,175,1,-40.0,,,10.0,,,,,0.2,,,,,,,,,,,,,,,,,,,"+20% Lifesteal, +10 Damage, -40 Max HP. Hunt or be hunted."
+tank_protocol,Tank Protocol,TANK,Epic,Character,0,1,60.0,-2.0,15.0,,-0.5,,,,,,,,,,,,,,,,,,,,,,,"+60 Max HP, +15 Armor, -2 Move Speed, -0.5 Fire Rate. A walking fortress."
+vitality_matrix,Vitality Matrix,TANK,Epic,Character,145,-1,45.0,,6.0,,,,,,,,,,,,,,,,,,,,,,,,,"+45 HP, +6 Armor"
+annihilator,Annihilator,TANK,Legendary,Weapon,350,1,-80.0,,-10.0,25.0,2.0,,,,,,,,,,,,,,,,,,,,,,,"+25 Damage, +2 Fire Rate, -80 Max HP, -10 Armor. Total offense. Hope you can lifesteal."
+glass_cannon,Glass Cannon Protocol,TANK,Legendary,Weapon,0,1,-50.0,,-10.0,20.0,2.0,,,,,,,,,,,,,,,,,,,,,,,"+20 Damage, +2 Fire Rate, -50 Max HP, -10 Armor. All offense. No defense. Don't get hit."
+iron_colossus,Iron Colossus,TANK,Legendary,Character,300,1,70.0,,12.0,,,,,,,,,0.15,,,,,,,,,,,,,,,,"+70 Max HP, +12 Armor, +15% Block Chance. Pure survival. No trade-off."
+runaway_reactor,Runaway Reactor,TANK,Legendary,Weapon,0,1,-50.0,,-8.0,18.0,2.0,,,,,,,,,,,,,,,,,,,,,,,"+18 Damage, +2 Fire Rate, -50 Max HP, -8 Armor. Pure annihilation. Pure fragility."
+singularity_core,Singularity Core,TANK,Legendary,Weapon,300,1,30.0,,,12.0,2.0,,,,,,,,,,,,,,,,,,,,,,,"+12 Dmg, +2 Fire Rate, +30 HP"
+titan_plating,Titan Plating,TANK,Legendary,Character,220,2,60.0,,15.0,,,,,,,,,,,,,,,,,,,,,,,,,+60 HP and +15 armor. Your hull becomes near-impervious.

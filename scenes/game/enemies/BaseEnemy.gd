@@ -22,6 +22,10 @@ var contact_damage: float = 10.0
 var contact_cooldown: float = 1.0
 var armor: float = 0.0
 
+# Wave-scaling factors stored so WaveManager can re-use them on respawn
+var wave_multiplier: float = 1.0
+var wave_speed_mult: float = 1.0
+
 # Rechargeable shield
 var shield_max: float = 0.0
 var current_shield: float = 0.0
@@ -44,7 +48,7 @@ var _contact_timer: float = 0.0
 var _ranged_timer: float = 0.0
 var _targets: Array[Node] = []
 var _player_targets: Array[Node] = []
-var _base_target: Node = null
+var _base_target: Node2D = null
 
 # Boss phase tracking
 var _boss_phase: int = 1
@@ -57,6 +61,9 @@ var _summon_timer: float = 0.0
 
 const RANGED_COOLDOWN: float = 2.5
 const RANGED_MIN_DIST: float = 220.0
+
+# Copier weapon state: populated by copier_sync_to_player
+var _copier_weapon_ports: Array = []
 
 var _e_thruster: Sprite2D = null
 var _e_thruster_textures: Array = []
@@ -114,6 +121,11 @@ func _apply_data() -> void:
 	if enemy_data.sprite:
 		sprite.texture = enemy_data.sprite
 		sprite.scale   = enemy_data.sprite_scale
+	# Resize physics collision to cover the full sprite, not just a tiny core.
+	# Base sprite width at scale 1 is ~46px, so radius ~23; scale accordingly.
+	var col_node := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col_node != null and col_node.shape is CircleShape2D:
+		(col_node.shape as CircleShape2D).radius = 23.0 * enemy_data.sprite_scale.x
 
 func register_targets(targets: Array[Node]) -> void:
 	_targets = targets
@@ -125,21 +137,24 @@ func register_targets(targets: Array[Node]) -> void:
 		else:
 			_base_target = t
 
-func scale_with_wave(wave_multiplier: float, speed_mult: float = 1.0) -> void:
-	max_health     = max_health * wave_multiplier
+func scale_with_wave(p_wave_multiplier: float, speed_mult: float = 1.0) -> void:
+	wave_multiplier = p_wave_multiplier
+	wave_speed_mult = speed_mult
+	max_health     = max_health * p_wave_multiplier
 	current_health = max_health
-	contact_damage = contact_damage * wave_multiplier
+	contact_damage = contact_damage * p_wave_multiplier
 	move_speed     = move_speed * speed_mult
-	armor          = armor * wave_multiplier
+	armor          = armor * p_wave_multiplier
 	if shield_max > 0.0:
-		shield_max        = shield_max * wave_multiplier
+		shield_max        = shield_max * p_wave_multiplier
 		current_shield    = shield_max
-		shield_regen_rate = shield_regen_rate * wave_multiplier
+		shield_regen_rate = shield_regen_rate * p_wave_multiplier
 
 func copier_sync_to_player(player: Player) -> void:
-	## Copy 1/5 of the living player's current stats onto this enemy.
+	## Copy 1/3 of the living player's current stats onto this enemy.
+	## Also mirrors the player's weapons at their exact port positions.
 	## Called by WaveManager after scale_with_wave so wave multipliers don't override us.
-	const COPY_SCALE := 0.2
+	const COPY_SCALE: float = 1.0 / 3.0
 	max_health         = player.max_health * COPY_SCALE
 	current_health     = max_health
 	move_speed         = player.move_speed * COPY_SCALE
@@ -154,11 +169,131 @@ func copier_sync_to_player(player: Player) -> void:
 	elif shield_max <= 0.0 and _shield_ring != null:
 		_shield_ring.queue_free()
 		_shield_ring = null
-	# Mirror the player's ship appearance
+	# Mirror the player's ship appearance exactly
 	if player.character_data and player.character_data.sprite:
 		sprite.texture = player.character_data.sprite
 	if player.character_data:
-		sprite.modulate = player.character_data.ship_color.lerp(Color.WHITE, 0.35)
+		sprite.modulate = player.character_data.ship_color
+	# Remove any previously added weapon mount sprites
+	for child in get_children():
+		if child.is_in_group(&"copier_mount"):
+			child.queue_free()
+	# Copy the player's weapons (same port positions, stats / 3)
+	_copier_weapon_ports.clear()
+	for weapon_node in player.weapons:
+		var wdata: WeaponData = weapon_node.get("weapon_data")
+		if wdata == null:
+			continue
+		var port_idx: int = weapon_node.get("port_index")
+		var port: Dictionary = player.PORT_DATA[port_idx]
+		var entry := {
+			"weapon_data":      wdata,
+			"port_pos":         port["pos"],
+			"is_rear":          port["is_rear"],
+			"mount_rot":        port["mount_rot"],
+			"damage":           weapon_node.get("damage")           * COPY_SCALE,
+			"fire_rate":        weapon_node.get("fire_rate")        * COPY_SCALE,
+			"projectile_speed": weapon_node.get("projectile_speed") * COPY_SCALE,
+			"range":            weapon_node.get("range")            * COPY_SCALE,
+			"spread":           weapon_node.get("spread"),
+			"projectile_count": weapon_node.get("projectile_count"),
+			"cooldown":         0.0,
+		}
+		_copier_weapon_ports.append(entry)
+		_add_copier_mount_sprite(wdata, port["pos"], port["mount_rot"])
+
+func _add_copier_mount_sprite(wdata: WeaponData, pos: Vector2, mount_rot: float) -> void:
+	var wclass: int = int(wdata.weapon_class) if wdata != null else -1
+	var path: String
+	var scale_factor := 1.0
+	match wclass:
+		0: path = "res://assets/sprites/spaceParts_092.png"
+		1: path = "res://assets/sprites/spaceParts_095.png"
+		2: path = "res://assets/sprites/spaceParts_093.png"
+		3: path = "res://assets/sprites/spaceParts_094.png"
+		4:
+			path = "res://assets/sprites/spaceMissiles_001.png"
+			scale_factor = 0.8
+		_: return
+	if not ResourceLoader.exists(path):
+		return
+	var spr := Sprite2D.new()
+	spr.texture = load(path)
+	spr.rotation_degrees = mount_rot
+	spr.position = pos
+	spr.scale = Vector2(scale_factor, scale_factor)
+	spr.z_index = 1
+	spr.add_to_group(&"copier_mount")
+	add_child(spr)
+
+func _fire_copier_weapons(target: Node2D, delta: float) -> void:
+	if GameManager.solar_flare_intensity >= 2.0:
+		return
+	var forward_dir := (target.global_position - global_position).normalized()
+	var right_dir   := forward_dir.rotated(PI * 0.5)
+	for entry in _copier_weapon_ports:
+		entry["cooldown"] -= delta
+		if entry["cooldown"] > 0.0:
+			continue
+		var fr: float = entry["fire_rate"]
+		if fr <= 0.0:
+			continue
+		entry["cooldown"] = 1.0 / fr
+		var pp: Vector2    = entry["port_pos"]
+		var port_world := global_position + pp.x * forward_dir + pp.y * right_dir
+		var fire_dir: Vector2
+		if entry["is_rear"]:
+			fire_dir = -forward_dir
+		else:
+			fire_dir = (target.global_position - port_world).normalized()
+		var wdata: WeaponData = entry["weapon_data"]
+		var proj_count: int   = entry["projectile_count"]
+		var spread_ang: float = entry["spread"]
+		for _i in proj_count:
+			var spread_offset := randf_range(-spread_ang * 0.5, spread_ang * 0.5)
+			var dir := fire_dir.rotated(spread_offset).normalized()
+			var proj := _build_copier_projectile(wdata)
+			get_tree().current_scene.add_child(proj)
+			proj.global_position = port_world
+			proj.setup(dir, entry["damage"], entry["projectile_speed"], entry["range"], 0)
+			proj.register_targets(_player_targets)
+		_fire_sfx()
+
+func _build_copier_projectile(wdata: WeaponData) -> BaseProjectile:
+	var proj := BaseProjectile.new()
+	proj.is_enemy_projectile = true
+	proj.collision_layer = 0
+	proj.collision_mask  = 1
+	var spr := Sprite2D.new()
+	if wdata != null and wdata.projectile_sprite != null:
+		spr.texture           = wdata.projectile_sprite
+		spr.rotation_degrees  = 90.0
+		spr.scale             = wdata.projectile_scale
+		spr.modulate          = wdata.projectile_modulate
+	else:
+		var spr_path := "res://assets/sprites/laserRed01.png"
+		if ResourceLoader.exists(spr_path):
+			spr.texture          = load(spr_path)
+			spr.rotation_degrees = 90.0
+		else:
+			var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+			img.fill(Color(1.0, 0.2, 0.2))
+			spr.texture = ImageTexture.create_from_image(img)
+	proj.add_child(spr)
+	var col   := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = wdata.projectile_hitbox_size if wdata != null else Vector2(10.0, 4.0)
+	col.shape  = shape
+	proj.add_child(col)
+	if wdata != null:
+		proj.aoe_radius        = wdata.aoe_radius
+		proj.explode_on_expiry = wdata.explode_on_expiry
+		proj.emit_exhaust_trail = wdata.emit_exhaust_trail
+		proj.projectile_color  = wdata.projectile_modulate
+		if wdata.on_hit_dot_dps > 0.0:
+			proj.on_hit_dot_dps   = wdata.on_hit_dot_dps
+			proj.on_hit_dot_ticks = wdata.on_hit_dot_ticks if wdata.on_hit_dot_ticks > 0 else 6
+	return proj
 
 func _diff_fire_cooldown_mult() -> float:
 	match GameManager.current_difficulty:
@@ -234,9 +369,9 @@ func _physics_process(delta: float) -> void:
 		State.ATTACK:
 			_attack_contact(target)
 
-func _get_primary_target() -> Node:
+func _get_primary_target() -> Node2D:
 	# Prefer the nearest living player within PLAYER_PREFER_RADIUS
-	var best_player: Node = null
+	var best_player: Node2D = null
 	var best_dist_sq := PLAYER_PREFER_RADIUS * PLAYER_PREFER_RADIUS
 	for t in _player_targets:
 		if not is_instance_valid(t) or not t.is_physics_processing():
@@ -251,7 +386,7 @@ func _get_primary_target() -> Node:
 	if _base_target != null and is_instance_valid(_base_target):
 		return _base_target
 	# Fallback: nearest living player regardless of distance (wave survival / no base)
-	var fallback: Node = null
+	var fallback: Node2D = null
 	var fallback_d := INF
 	for t in _player_targets:
 		if not is_instance_valid(t) or not t.is_physics_processing():
@@ -262,7 +397,7 @@ func _get_primary_target() -> Node:
 			fallback = t
 	return fallback
 
-func _chase(target: Node, _delta: float) -> void:
+func _chase(target: Node2D, _delta: float) -> void:
 	nav_agent.target_position = target.global_position
 	if nav_agent.is_navigation_finished():
 		return
@@ -278,7 +413,10 @@ func _chase(target: Node, _delta: float) -> void:
 
 func _attack_contact(target: Node) -> void:
 	if _contact_timer <= 0.0 and target.has_method("take_damage"):
-		target.take_damage(contact_damage)
+		var effective := contact_damage
+		if target.has_method("reduce_contact_damage"):
+			effective = target.reduce_contact_damage(contact_damage, enemy_data.id if enemy_data else &"")
+		target.take_damage(effective)
 		_contact_timer = contact_cooldown
 
 func take_damage(amount: float, armor_penetration: float = 0.0) -> void:
@@ -483,13 +621,16 @@ func _ranged_update(target: Node, delta: float) -> void:
 	if dir != Vector2.ZERO:
 		sprite.rotation = dir.angle() - PI * 0.5
 
-	var cooldown := RANGED_COOLDOWN
-	if enemy_data and enemy_data.ranged_attack:
-		cooldown = enemy_data.ranged_attack.fire_cooldown
-	cooldown *= _diff_fire_cooldown_mult()
-	if _ranged_timer <= 0.0:
-		_fire_at_target(target)
-		_ranged_timer = cooldown
+	if _copier_weapon_ports.size() > 0:
+		_fire_copier_weapons(target, delta)
+	else:
+		var cooldown := RANGED_COOLDOWN
+		if enemy_data and enemy_data.ranged_attack:
+			cooldown = enemy_data.ranged_attack.fire_cooldown
+		cooldown *= _diff_fire_cooldown_mult()
+		if _ranged_timer <= 0.0:
+			_fire_at_target(target)
+			_ranged_timer = cooldown
 
 func _sentinel_update(delta: float) -> void:
 	_sentinel_timer -= delta
@@ -777,7 +918,9 @@ func _explode_aoe() -> void:
 		if not is_instance_valid(t):
 			continue
 		if global_position.distance_to(t.global_position) <= EXPLODER_RADIUS:
-			if t.has_method("take_damage"):
+			if t.has_method("take_exploder_damage"):
+				t.take_exploder_damage(contact_damage * 4.0)
+			elif t.has_method("take_damage"):
 				t.take_damage(contact_damage * 4.0)
 
 func _on_body_entered(body: Node) -> void:

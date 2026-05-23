@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_043.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"kill_tax"
+display_name = "Kill Tax"
+description = "+20% XP Gain, +10% Coins, +2 HP On-Kill. Every kill is profitable."
+scope = 0
+stat_deltas = {6: 0.20, 7: 0.10, 24: 2.0}
+shop_price = 0
+max_stacks = 3
+rarity = 1
+build_path = &"SCAVENGER"

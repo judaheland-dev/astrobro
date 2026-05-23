@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"biotic_mesh"
+display_name = "Biotic Mesh"
+description = "+2 HP Regen/s, +4% Lifesteal. Recover through time and through combat."
+scope = 2
+stat_deltas = {25: 2.0, 8: 0.04}
+shop_price = 0
+max_stacks = 3
+rarity = 2

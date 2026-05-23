@@ -223,6 +223,28 @@ func apply_stat_delta(key: UpgradeData.StatKey, delta: float) -> void:
 		UpgradeData.StatKey.ARMOR_PEN:       armor_pen     = minf(armor_pen + delta, 1.0)
 		UpgradeData.StatKey.KNOCKBACK_FORCE: knockback_force = minf(knockback_force + delta, 600.0)
 
+## Returns true if applying `delta` to stat `key` on this weapon would have zero
+## net effect because the weapon is already at its hard cap for that stat.
+func is_stat_at_cap(key: UpgradeData.StatKey, delta: float) -> bool:
+	match key:
+		UpgradeData.StatKey.DAMAGE:
+			return delta > 0.0 and damage >= _base_damage * 5.0
+		UpgradeData.StatKey.FIRE_RATE:
+			return (delta > 0.0 and fire_rate >= _base_fire_rate * 3.0) \
+				or (delta < 0.0 and fire_rate <= 0.1)
+		UpgradeData.StatKey.PROJECTILE_SPEED:
+			return delta > 0.0 and projectile_speed >= _base_projectile_speed * 3.0
+		UpgradeData.StatKey.RANGE:
+			return delta > 0.0 and range >= _base_range * 2.5
+		UpgradeData.StatKey.SPREAD:
+			return delta < 0.0 and spread <= 0.0
+		UpgradeData.StatKey.ARMOR_PEN:
+			return delta > 0.0 and armor_pen >= 1.0
+		UpgradeData.StatKey.KNOCKBACK_FORCE:
+			return delta > 0.0 and knockback_force >= 600.0
+		_:
+			return false
+
 func _sfx_for_weapon() -> String:
 	if weapon_data == null:
 		return "res://assets/audio/sfx_laser1.ogg"

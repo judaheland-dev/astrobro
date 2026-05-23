@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_038.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"overload_chip"
+display_name = "Overload Chip"
+description = "+1.5 Fire Rate, +5 Damage, -5% Crit Chance. Burn hot, aim less."
+scope = 1
+stat_deltas = {4: 1.5, 3: 5.0, 16: -0.05}
+shop_price = 90
+max_stacks = 3
+rarity = 1

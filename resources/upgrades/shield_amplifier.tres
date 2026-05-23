@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="UpgradeData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://resources/UpgradeData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spaceParts_015.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+icon = ExtResource("2")
+id = &"shield_amplifier"
+display_name = "Shield Amplifier"
+description = "+40 Shield Max, +1.5 Shield Regen/s, -20 Max HP. Shields up. Hull down."
+scope = 0
+stat_deltas = {14: 40.0, 15: 1.5, 0: -20.0}
+shop_price = 0
+max_stacks = 3
+rarity = 1

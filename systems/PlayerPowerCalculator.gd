@@ -57,6 +57,19 @@ var _wave_count: int = 0
 var _perf_history: Array[float] = []
 const HISTORY_LEN: int = 5
 
+# Exponential weight applied to each older history entry.
+# 0.70 means each wave one step older carries 70% of the previous weight,
+# so the most recent wave always dominates but old waves still matter.
+const HISTORY_WEIGHT: float = 0.70
+
+# Maximum pressure-score change allowed in a single wave (rate limiter).
+# Prevents a single outlier wave from spiking/cratering difficulty instantly.
+const MAX_PRESSURE_DELTA_PER_WAVE: float = 0.30
+
+# Consecutive waves completed without taking any damage.
+# Used to escalate the perfect-round pressure bonus.
+var _consecutive_perfect_rounds: int = 0
+
 # ──────────────────────────────────────────────────────────────────────────────
 # CAP GROWTH CONFIG
 # ──────────────────────────────────────────────────────────────────────────────
@@ -117,10 +130,12 @@ func register_players(player_list: Array[Player]) -> void:
 func effective_enemy_cap() -> int:
 	if dominance_score < DOMINANCE_STRONG:
 		return concurrent_enemy_cap
-	if dominance_score >= DOMINANCE_EXTREME:
-		return 9999  # fully bypass
-	# Between STRONG and EXTREME: linearly expand up to 2× cap
-	var over: float = (dominance_score - DOMINANCE_STRONG) / (DOMINANCE_EXTREME - DOMINANCE_STRONG)
+	# Between STRONG and max dominance: linearly expand up to 2× cap.
+	# No full bypass — keeps concurrent pressure gradual even at extreme dominance.
+	var over: float = clampf(
+		(dominance_score - DOMINANCE_STRONG) / (1.0 - DOMINANCE_STRONG),
+		0.0, 1.0
+	)
 	return concurrent_enemy_cap + int(over * float(concurrent_enemy_cap))
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -185,23 +200,34 @@ func end_wave(enemies_spawned: int, wave_elapsed_sec: float) -> Dictionary:
 	if dominance_score >= DOMINANCE_EXTREME:
 		dominance_spike.emit(dominance_score)
 
-	# ── Effective history length: shrink when dominating so pressure reacts fast
+	# ── Effective history length: shrink when dominating so pressure reacts fast.
+	# Interpolated continuously across the STRONG→EXTREME dominance range so
+	# there are no hard jumps in behaviour.  Minimum of 2 prevents a single
+	# outlier wave from fully controlling the score.
 	var eff_hist_len: int = HISTORY_LEN
-	if dominance_score >= DOMINANCE_EXTREME:
-		eff_hist_len = 1   # immediate — no dampening when fully dominating
-	elif dominance_score >= DOMINANCE_STRONG:
-		eff_hist_len = 2   # react within 2 waves
+	if dominance_score >= DOMINANCE_STRONG:
+		var dom_t: float = clampf(
+			(dominance_score - DOMINANCE_STRONG) / (DOMINANCE_EXTREME - DOMINANCE_STRONG),
+			0.0, 1.0
+		)
+		eff_hist_len = maxi(2, roundi(lerpf(float(HISTORY_LEN), 2.0, dom_t)))
 
-	# Smooth with history (prevent single bad wave from spiking difficulty)
+	# Smooth with exponentially-weighted history so recent waves dominate
+	# but older context still softens transient spikes.
 	_perf_history.append(combined)
 	while _perf_history.size() > eff_hist_len:
 		_perf_history.pop_front()
 	var smoothed: float = 0.0
-	for v in _perf_history:
-		smoothed += v
-	smoothed /= _perf_history.size()
+	var total_weight: float = 0.0
+	for i in _perf_history.size():
+		var age: int = _perf_history.size() - 1 - i   # 0 = newest
+		var w: float = pow(HISTORY_WEIGHT, age)
+		smoothed += _perf_history[i] * w
+		total_weight += w
+	smoothed /= total_weight
 
-	# At extreme dominance, amplify the smoothed score beyond normal history dampening
+	# At extreme dominance, nudge the smoothed score toward the raw combined value
+	# so sustained dominance still escalates even with a short history.
 	if dominance_score >= DOMINANCE_EXTREME:
 		var dom_over: float = (dominance_score - DOMINANCE_EXTREME) / (1.0 - DOMINANCE_EXTREME)
 		smoothed = lerpf(smoothed, combined * 1.40, dom_over * 0.65)
@@ -209,11 +235,28 @@ func end_wave(enemies_spawned: int, wave_elapsed_sec: float) -> Dictionary:
 	# Apply per-difficulty pressure multiplier and per-difficulty clamp range
 	var diff_mult: float = PRESSURE_MULT.get(GameManager.current_difficulty, 1.0)
 	var clamp_range: Array = PRESSURE_CLAMP.get(GameManager.current_difficulty, [0.55, 2.2])
-	pressure_score = clampf(smoothed * diff_mult, clamp_range[0], clamp_range[1])
+	var target_score: float = clampf(smoothed * diff_mult, clamp_range[0], clamp_range[1])
 
-	# Perfect-round bonus: no damage taken → jump one full power level
+	# Rate limiter: cap how much pressure can move in a single wave so a lone
+	# exceptional wave cannot spike or crater difficulty instantly.
+	pressure_score = clampf(
+		target_score,
+		pressure_score - MAX_PRESSURE_DELTA_PER_WAVE,
+		pressure_score + MAX_PRESSURE_DELTA_PER_WAVE
+	)
+	pressure_score = clampf(pressure_score, clamp_range[0], clamp_range[1])
+
+	# Perfect-round bonus: no damage taken this wave.
+	# Consecutive perfect rounds escalate the bonus up to 2.5× the base.
 	if _wave_damage_taken == 0.0:
-		pressure_score = clampf(pressure_score + POWER_LEVEL_STEP, clamp_range[0], clamp_range[1])
+		_consecutive_perfect_rounds += 1
+		var streak_mult: float = clampf(1.0 + (_consecutive_perfect_rounds - 1) * 0.30, 1.0, 2.5)
+		pressure_score = clampf(
+			pressure_score + PERFECT_ROUND_PRESSURE_BONUS * streak_mult,
+			clamp_range[0], clamp_range[1]
+		)
+	else:
+		_consecutive_perfect_rounds = 0
 
 	power_updated.emit(pressure_score)
 
@@ -231,6 +274,7 @@ func end_wave(enemies_spawned: int, wave_elapsed_sec: float) -> Dictionary:
 		"effective_cap": effective_enemy_cap(),
 		"bias": enemy_bias,
 		"perfect_round_bonus": _wave_damage_taken == 0.0,
+		"consecutive_perfect_rounds": _consecutive_perfect_rounds,
 	}
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -302,6 +346,34 @@ func _player_loadout_score(p: Player) -> float:
 	# ── Level ────────────────────────────────────────────────────────────────
 	s += clampf((p.level - 1) * 0.04, 0.0, 0.5)
 
+	# ── Critical hits ────────────────────────────────────────────────────────
+	# Effective crit multiplier: expected DPS bonus = crit_chance * (mult - 1)
+	var eff_crit: float = p.crit_chance * (p.crit_multiplier - 1.0)
+	s += clampf(eff_crit * 0.50, 0.0, 0.35)
+
+	# ── Evasion ──────────────────────────────────────────────────────────────
+	s += clampf(p.dodge_chance * 0.50, 0.0, 0.25)
+
+	# ── Sustain ──────────────────────────────────────────────────────────────
+	# On-kill healing (30 = cap → +0.15)
+	s += clampf(p.on_kill_heal / 30.0 * 0.15, 0.0, 0.15)
+	# Passive regen above the 0.35 hp/s baseline
+	s += clampf((p.hp_regen - 0.35) / 4.65 * 0.12, 0.0, 0.12)
+
+	# ── Shield quality ───────────────────────────────────────────────────────
+	# Faster regen only matters if a shield exists
+	if p.shield_max > 0.0:
+		s += clampf((p.shield_regen_rate - 20.0) / 60.0 * 0.10, 0.0, 0.10)
+	if p.reflective_shield:
+		s += 0.10
+
+	# ── Damage mitigation ────────────────────────────────────────────────────
+	s += clampf(p.damage_block_chance * 0.20, 0.0, 0.15)
+
+	# ── Upgrade breadth ──────────────────────────────────────────────────────
+	# Each upgrade is a synergy node; depth of 15 upgrades ≈ +0.30
+	s += clampf(p.acquired_upgrades.size() * 0.02, 0.0, 0.30)
+
 	return maxf(s, 0.4)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -328,7 +400,22 @@ func _calc_performance_score(enemies_spawned: int, wave_elapsed_sec: float) -> f
 	var early_ratio: float = float(early_kills) / maxi(_wave_kills, 1)
 	var early_bonus: float = clampf((early_ratio - 0.5) * 0.4, -0.1, 0.2)
 
-	return clampf(kill_fraction * speed_score + early_bonus, 0.3, 2.0)
+	# Burst bonus: count 2-second windows that contain 3+ kills.
+	# Each burst window reflects high-density AOE or weapon synergy.
+	var burst_count: int = 0
+	for i in _kill_times.size():
+		var window_end: float = _kill_times[i] + 2.0
+		var in_window: int = 1
+		for j in range(i + 1, _kill_times.size()):
+			if _kill_times[j] <= window_end:
+				in_window += 1
+			else:
+				break
+		if in_window >= 3:
+			burst_count += 1
+	var burst_bonus: float = clampf(burst_count * 0.025, 0.0, 0.25)
+
+	return clampf(kill_fraction * speed_score + early_bonus + burst_bonus, 0.3, 2.0)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Survival score (how much health/shield was lost)
@@ -413,13 +500,17 @@ func _update_enemy_bias(loadout_score: float) -> void:
 ## Step between Power Level 1→2 (in raw score units). Each subsequent level
 ## costs POWER_LEVEL_GROWTH× more than the previous, so higher levels require
 ## progressively more power to reach.
-const POWER_LEVEL_STEP: float = 0.20
-## Per-level cost growth factor. 1.08 = each level costs 8% more than the last.
-const POWER_LEVEL_GROWTH: float = 1.08
+const POWER_LEVEL_STEP: float = 0.10
+## Per-level cost growth factor. 1.045 = each level costs 4.5% more than the last.
+## Shallower than before so all 30 levels are reachable in normal play.
+const POWER_LEVEL_GROWTH: float = 1.045
 ## Raw score at which Power Level 1 begins (≈ a fresh player with 1 weak weapon).
 const POWER_LEVEL_BASE: float = 0.70
 ## Maximum displayed power level.
-const POWER_LEVEL_MAX: int = 20
+const POWER_LEVEL_MAX: int = 30
+## Pressure-score bonus applied when a wave is completed without taking any damage.
+## Kept as a dedicated constant so it reads clearly at the call site.
+const PERFECT_ROUND_PRESSURE_BONUS: float = 0.18
 
 ## Comprehensive display power score for a player, scaled by difficulty.
 ## Easier modes dampen the score so the bar levels up more slowly and
@@ -505,6 +596,37 @@ static func module_power_delta(item: UpgradeData, player: Player) -> float:
 		var cur_dps := _static_player_dps(player)
 		var new_dps := _static_player_dps_with_mods(player, dmg_d, fr_d)
 		d += clampf((new_dps - 100.0) / 200.0, -0.3, 1.0) - clampf((cur_dps - 100.0) / 200.0, -0.3, 1.0)
+	# Crit chance
+	var crit_ch_d := float(item.stat_deltas.get(UpgradeData.StatKey.CRIT_CHANCE, 0.0))
+	if crit_ch_d != 0.0:
+		var new_eff := (player.crit_chance + crit_ch_d) * (player.crit_multiplier - 1.0)
+		var old_eff := player.crit_chance * (player.crit_multiplier - 1.0)
+		d += clampf(new_eff * 0.50, 0.0, 0.35) - clampf(old_eff * 0.50, 0.0, 0.35)
+	# Dodge chance
+	var dodge_d := float(item.stat_deltas.get(UpgradeData.StatKey.DODGE_CHANCE, 0.0))
+	if dodge_d != 0.0:
+		d += clampf((player.dodge_chance + dodge_d) * 0.50, 0.0, 0.25) \
+		   - clampf(player.dodge_chance * 0.50, 0.0, 0.25)
+	# On-kill heal
+	var okh_d := float(item.stat_deltas.get(UpgradeData.StatKey.ON_KILL_HEAL, 0.0))
+	if okh_d != 0.0:
+		d += clampf((player.on_kill_heal + okh_d) / 30.0 * 0.15, 0.0, 0.15) \
+		   - clampf(player.on_kill_heal / 30.0 * 0.15, 0.0, 0.15)
+	# HP regen
+	var regen_d := float(item.stat_deltas.get(UpgradeData.StatKey.HP_REGEN, 0.0))
+	if regen_d != 0.0:
+		d += clampf((player.hp_regen + regen_d - 0.35) / 4.65 * 0.12, 0.0, 0.12) \
+		   - clampf((player.hp_regen - 0.35) / 4.65 * 0.12, 0.0, 0.12)
+	# Shield regen rate (only meaningful if the player has a shield)
+	var srr_d := float(item.stat_deltas.get(UpgradeData.StatKey.SHIELD_REGEN_RATE, 0.0))
+	if srr_d != 0.0 and player.shield_max > 0.0:
+		d += clampf((player.shield_regen_rate + srr_d - 20.0) / 60.0 * 0.10, 0.0, 0.10) \
+		   - clampf((player.shield_regen_rate - 20.0) / 60.0 * 0.10, 0.0, 0.10)
+	# Each new upgrade adds upgrade-depth score (+0.02 per upgrade, capped at 0.30)
+	# A module purchase adds exactly one upgrade to the list.
+	var upgrades_after: int = player.acquired_upgrades.size() + 1
+	d += clampf(upgrades_after * 0.02, 0.0, 0.30) \
+	   - clampf(player.acquired_upgrades.size() * 0.02, 0.0, 0.30)
 	return maxf(0.0, d) * _difficulty_power_scale()
 
 # ── Private static helpers ────────────────────────────────────────────────────
@@ -552,6 +674,25 @@ static func _static_loadout_score(p: Player) -> float:
 	# No contribution below 50 scrap; ramps to 0.15 at ~250 scrap.
 	var scrap_over := maxf(0.0, float(p.scrap) - 50.0)
 	s += clampf(scrap_over / 200.0 * 0.15, 0.0, 0.15)
+	# Critical hits
+	var eff_crit: float = p.crit_chance * (p.crit_multiplier - 1.0)
+	s += clampf(eff_crit * 0.50, 0.0, 0.35)
+	# Evasion
+	s += clampf(p.dodge_chance * 0.50, 0.0, 0.25)
+	# Sustain
+	s += clampf(p.on_kill_heal / 30.0 * 0.15, 0.0, 0.15)
+	s += clampf((p.hp_regen - 0.35) / 4.65 * 0.12, 0.0, 0.12)
+	# Shield quality
+	if p.shield_max > 0.0:
+		s += clampf((p.shield_regen_rate - 20.0) / 60.0 * 0.10, 0.0, 0.10)
+	if p.reflective_shield:
+		s += 0.10
+	# Damage mitigation
+	s += clampf(p.damage_block_chance * 0.20, 0.0, 0.15)
+	# Upgrade breadth
+	s += clampf(p.acquired_upgrades.size() * 0.02, 0.0, 0.30)
+	# Flat power bonus accumulated via Evasion free rerolls
+	s += p.flat_power_bonus
 	return maxf(s, 0.4)
 
 static func _static_player_dps(p: Player) -> float:
