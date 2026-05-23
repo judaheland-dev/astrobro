@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = &"vanguard"
+id = &"Vanguard"
 display_name = "Vanguard"
 description = "Laser-locked lancer. Beams only, shields as armor. Devastating sustained damage with built-in lifesteal. The only ship built around beam weaponry."
 max_health = 170.0

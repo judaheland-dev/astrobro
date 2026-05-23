@@ -310,9 +310,16 @@ func _player_loadout_score(p: Player) -> float:
 		var rate: float  = w.get("fire_rate") if w.get("fire_rate") else wd.fire_rate
 		var count: int   = wd.projectile_count
 		var tier_bonus: float = 1.0 + (wd.tier - 1) * 0.25
-		total_dps += dmg * rate * count * tier_bonus
-		if wd.aoe_radius > 0.0:
-			has_aoe = true
+		var is_mine: bool = wd.weapon_class == WeaponData.WeaponClass.TRAP
+		# Mines are area-denial; their raw fire_rate * damage massively overstates
+		# real DPS (arming delay, placement dependency, enemies must walk into them).
+		# Use a 40% effectiveness discount and exclude from weapon-count / has_aoe.
+		var dps_mult: float = 0.40 if is_mine else 1.0
+		total_dps += dmg * rate * count * tier_bonus * dps_mult
+		if not is_mine:
+			weapon_count += 1
+			if wd.aoe_radius > 0.0:
+				has_aoe = true
 		match wd.ammo_type:
 			WeaponData.AmmoType.LASER:  has_laser = true
 			WeaponData.AmmoType.ROCKET: has_rocket = true
@@ -322,7 +329,7 @@ func _player_loadout_score(p: Player) -> float:
 	# Normalise DPS: 100 DPS ≈ baseline 1.0
 	s += clampf((total_dps - 100.0) / 200.0, -0.3, 1.0)
 
-	# Multi-weapon bonus
+	# Multi-weapon bonus (traps already excluded from weapon_count above)
 	s += (weapon_count - 1) * 0.08
 
 	# Diversity bonus (mixed types are stronger overall)
@@ -558,11 +565,14 @@ static func weapon_power_delta(wdata: WeaponData, player: Player) -> float:
 	if player.character_data:
 		var cb := float(player.character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0))
 		w_dmg *= (1.0 + cb)
-	var added_dps := w_dmg * wdata.fire_rate * wdata.projectile_count * tier_b
+	var is_trap := wdata.weapon_class == WeaponData.WeaponClass.TRAP
+	var dps_eff_mult := 0.40 if is_trap else 1.0
+	var added_dps := w_dmg * wdata.fire_rate * wdata.projectile_count * tier_b * dps_eff_mult
 	var new_dps := cur_dps + added_dps
 	var dps_delta := clampf((new_dps - 100.0) / 200.0, -0.3, 1.0) \
 		- clampf((cur_dps - 100.0) / 200.0, -0.3, 1.0)
-	var count_bonus := 0.08
+	# Traps don't add a firing-slot bonus; they're supplemental area denial.
+	var count_bonus := 0.0 if is_trap else 0.08
 	var div_delta := _static_diversity_delta(wdata, player)
 	return maxf(0.0, dps_delta + count_bonus + div_delta) * _difficulty_power_scale()
 
@@ -650,9 +660,13 @@ static func _static_loadout_score(p: Player) -> float:
 		var rate: float = w.get("fire_rate") if w.get("fire_rate") else wd.fire_rate
 		var cnt: int    = wd.projectile_count
 		var tier_b: float = 1.0 + (wd.tier - 1) * 0.25
-		total_dps += dmg * rate * cnt * tier_b
-		if wd.aoe_radius > 0.0:
-			has_aoe = true
+		var is_mine_s: bool = wd.weapon_class == WeaponData.WeaponClass.TRAP
+		var dps_mult_s: float = 0.40 if is_mine_s else 1.0
+		total_dps += dmg * rate * cnt * tier_b * dps_mult_s
+		if not is_mine_s:
+			weapon_count += 1
+			if wd.aoe_radius > 0.0:
+				has_aoe = true
 		match wd.ammo_type:
 			WeaponData.AmmoType.LASER:  has_laser = true
 			WeaponData.AmmoType.ROCKET: has_rocket = true

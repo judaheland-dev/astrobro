@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = &"scout"
+id = &"starter1"
 display_name = "Scout"
 description = "A blank slate. No clear strengths, no crippling weaknesses. Any upgrade path is viable — nothing will excel without commitment."
 max_health = 100.0

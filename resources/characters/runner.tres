@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = &"runner"
+id = &"SpeedShip1"
 display_name = "Runner"
 description = "Untouchable at full speed. Dodge-stacking is its life support. HP and armor upgrades barely register — it was never meant to be hit."
 max_health = 55.0

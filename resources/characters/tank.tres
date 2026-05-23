@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = &"tank"
+id = &"Tough1"
 display_name = "Tank"
 description = "An immovable wall of HP and armor. Stack defense upgrades until nothing can kill it. Speed and evasion upgrades are dead weight on this hull."
 max_health = 200.0

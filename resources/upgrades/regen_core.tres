@@ -6,9 +6,9 @@
 script = ExtResource("1")
 id = &"regen_core"
 display_name = "Regen Core"
-description = "+1.5 HP Regen/s. Slowly heals over time without doing anything special."
+description = "+1.0 HP Regen/s. Slowly heals over time without doing anything special."
 scope = 2
-stat_deltas = {25: 1.5}
+stat_deltas = {25: 1.0}
 shop_price = 0
 max_stacks = 5
 rarity = 0

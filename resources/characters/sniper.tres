@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-id = &"sniper"
+id = &"Sniper"
 display_name = "Sniper"
 description = "One shot, one kill. Crit-focused precision destroyer. Spread and rapid weapons are a crippling penalty. Off-class armor is dead weight."
 max_health = 75.0

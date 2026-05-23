@@ -812,8 +812,10 @@ func add_weapon(weapon_node: Node) -> void:
 	if character_data and wdata != null:
 		var bonus: float = character_data.weapon_class_bonuses.get(int(wdata.weapon_class), 0.0)
 		weapon_node.set("damage_multiplier", 1.0 + bonus + damage_bonus)
-		if fire_rate_bonus != 0.0 and weapon_node.has_method("apply_stat_delta"):
-			weapon_node.call("apply_stat_delta", UpgradeData.StatKey.FIRE_RATE, fire_rate_bonus * weapon_node.get("fire_rate"))
+		# Apply class bonus/penalty to fire rate (same factor as damage).
+		var total_rate_bonus := fire_rate_bonus + bonus
+		if total_rate_bonus != 0.0 and weapon_node.has_method("apply_stat_delta"):
+			weapon_node.call("apply_stat_delta", UpgradeData.StatKey.FIRE_RATE, total_rate_bonus * weapon_node.get("fire_rate"))
 	# Apply all accumulated weapon-scope upgrade deltas so this weapon benefits
 	# from knockback, damage, fire rate, etc. picked up before it was acquired.
 	if weapon_node.has_method("apply_stat_delta"):
