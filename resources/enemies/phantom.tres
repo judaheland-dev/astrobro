@@ -40,3 +40,4 @@ ranged_attack = SubResource("ra_1")
 shield_max = 55.0
 shield_regen_rate = 14.0
 shield_regen_delay = 3.5
+min_power_level = 46

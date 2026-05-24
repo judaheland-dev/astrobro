@@ -38,9 +38,9 @@ var _wave_elapsed: float = 0.0
 var _wave_spawned_count: int = 0
 # Per-enemy respawn queue: each entry is { timer, data, multiplier, speed_mult }.
 # When an enemy dies during a timed wave it is added here with a 5 s countdown.
-const ENEMY_RESPAWN_DELAY: float = 5.0
+const ENEMY_RESPAWN_DELAY: float = 4.0
 # Minimum seconds before the next enemy spawns from the queue after a kill.
-const KILL_SPAWN_COOLDOWN: float = 2.5
+const KILL_SPAWN_COOLDOWN: float = 4.0
 var _respawn_queue: Array[Dictionary] = []
 var _respawn_delay_timer: float = -1.0
 # Surge scale: builds up gradually when the player stays overpowered across waves,
@@ -75,7 +75,7 @@ const _DIFF_CYCLE: Dictionary = {
 	# NORMAL = 2
 	2: { "cycle_length": 6,  "break_relief": 0.60, "cycle_escalation": 0.10, "power_ramp": 0.14 },
 	# HARD = 3
-	3: { "cycle_length": 5,  "break_relief": 0.65, "cycle_escalation": 0.14, "power_ramp": 0.18 },
+	3: { "cycle_length": 5,  "break_relief": 0.65, "cycle_escalation": 0.11, "power_ramp": 0.15 },
 	# SUPER_HARD = 4
 	4: { "cycle_length": 4,  "break_relief": 0.70, "cycle_escalation": 0.20, "power_ramp": 0.24 },
 }
@@ -98,9 +98,9 @@ const POWER_SUPREME_SPEED_MULT: float = 1.4
 ## Prevents enemy HP/damage from growing to unkillable levels in infinite waves.
 const MAX_WAVE_STAT_MULT: float = 8.0
 ## Surge scale ceiling.  _surge_scale never exceeds this.
-const SURGE_MAX: float = 2.0
+const SURGE_MAX: float = 1.5
 ## How much _surge_scale grows each wave the player is above POWER_HIGH_MULT.
-const SURGE_RAMP_PER_WAVE: float = 0.18
+const SURGE_RAMP_PER_WAVE: float = 0.12
 ## How much _surge_scale decays each wave the player is not overpowered (or on a break wave).
 const SURGE_DECAY_PER_WAVE: float = 0.12
 
@@ -130,11 +130,19 @@ func _wave_expected_power() -> float:
 func _power_ratio() -> float:
 	return _player_display_power() / maxf(_wave_expected_power(), 0.1)
 
-## Returns a 0–1 factor for how deep into the SUPREME tier the player is.
-## 0 = below EXTREME; 1 = fully at SUPREME or beyond.
+## Player power level at which enemy stat inflation begins (HP, damage, speed).
+## A value of 30 means enemies start getting tougher once the player hits power level 30.
+const POWER_STAT_BOOST_START_LEVEL: int = 30
+## Player power level at which stat inflation reaches its maximum multiplier.
+const POWER_STAT_BOOST_MAX_LEVEL: int = 70
+
+## Returns a 0–1 factor for how far the player is into the stat-inflation range.
+## 0 = below START_LEVEL; 1 = at or above MAX_LEVEL.
+## Uses absolute power level so the threshold is always reachable regardless of wave number.
 func _supreme_factor() -> float:
+	var pl := PlayerPowerCalculator.power_to_level(_player_display_power())
 	return clampf(
-		(_power_ratio() - POWER_EXTREME_MULT) / (POWER_SUPREME_MULT - POWER_EXTREME_MULT),
+		float(pl - POWER_STAT_BOOST_START_LEVEL) / float(POWER_STAT_BOOST_MAX_LEVEL - POWER_STAT_BOOST_START_LEVEL),
 		0.0, 1.0
 	)
 
@@ -260,7 +268,7 @@ func _build_spawn_queue(wave: WaveData) -> void:
 	# For pre-authored static waves, blend in adaptive pressure so dominating has consequences.
 	# Procedural waves already bake pressure into their WaveData counts/timers.
 	if current_wave_index < wave_data_list.size() and power_calculator:
-		wave_power *= clampf(power_calculator.pressure_score, 0.6, 1.8)
+		wave_power *= clampf(power_calculator.pressure_score, 0.6, 1.5)
 	# Spawn count scales with _surge_scale which builds gradually when the player stays
 	# overpowered across multiple waves, rather than blasting immediately.
 	if current_wave_index < wave_data_list.size():
@@ -282,9 +290,9 @@ func _build_spawn_queue(wave: WaveData) -> void:
 				speed_mult = base_speed * 0.75
 				count = maxi(1, int(base_count * wave_power * 0.75))
 			GameManager.Difficulty.HARD:
-				wave_multiplier = wave_power * 1.35
+				wave_multiplier = wave_power * 1.20
 				speed_mult = base_speed * 0.90
-				count = maxi(1, int(ceil(base_count * wave_power * 1.35)))
+				count = maxi(1, int(ceil(base_count * wave_power * 1.20)))
 			GameManager.Difficulty.SUPER_HARD:
 				wave_multiplier = wave_power * 1.7
 				speed_mult = base_speed * 1.05
@@ -491,7 +499,7 @@ func _random_spawn_position() -> Vector2:
 	# Arena is 1920x1200 centered at origin; nav mesh covers ~±950 x ±590.
 	var hw := 900.0   # safe horizontal half-width (wall at 960)
 	var hh := 560.0   # safe vertical half-height (wall at 600)
-	const MIN_PLAYER_DIST: float = 200.0
+	const MIN_PLAYER_DIST: float = 350.0
 	for _attempt in 10:
 		var edge := randi() % 4
 		var pos: Vector2
@@ -626,21 +634,8 @@ func _generate_procedural_wave(wave_idx: int) -> WaveData:
 	var display_pwr := _player_display_power()
 	# Power ratio: how far the player exceeds this wave's expected power.
 	var pr_gen := display_pwr / maxf(_wave_expected_power(), 0.1)
-	# EXTREME power unlocks future enemy types early; SUPREME unlocks everything.
-	var power_tier_bonus := 0
-	if pr_gen >= POWER_SUPREME_MULT:
-		power_tier_bonus = 6
-	elif pr_gen >= POWER_EXTREME_MULT:
-		power_tier_bonus = clampi(int((pr_gen - POWER_EXTREME_MULT) / ((POWER_SUPREME_MULT - POWER_EXTREME_MULT) / 4.0)) + 2, 2, 6)
-	elif pr_gen >= POWER_HIGH_MULT:
-		power_tier_bonus = 1
-	# Hard/super-hard also unlock ranged enemies sooner so challenge comes from
-	# bullet pressure rather than pure movement speed.
-	var diff_tier_bonus := 0
-	match GameManager.current_difficulty:
-		GameManager.Difficulty.HARD:       diff_tier_bonus = 1
-		GameManager.Difficulty.SUPER_HARD: diff_tier_bonus = 2
-	var eff_tier := tier + power_tier_bonus + diff_tier_bonus  # effective tier for enemy-type gate checks
+	# Current player power level (1–100) — used to gate enemy types via min_power_level.
+	var player_pl: int = PlayerPowerCalculator.power_to_level(_player_display_power())
 	# On break waves, clamp pressure down so they always feel like a breather
 	if is_break:
 		pressure = minf(pressure, 0.85)
@@ -714,19 +709,30 @@ func _generate_procedural_wave(wave_idx: int) -> WaveData:
 		pool_def.append({"path": "", "data": grunt_data,    "frac": grunt_frac,   "id": &"grunt"})
 		pool_def.append({"path": "", "data": speeder_data,  "frac": speeder_frac, "id": &"speeder"})
 		pool_def.append({"path": "", "data": exploder_data, "frac": 0.2,          "id": &"exploder"})
-		if eff_tier >= 1:
-			pool_def.append({"path": "res://resources/enemies/sniper.tres",       "data": null, "frac": 0.1, "id": &"sniper"})
-			pool_def.append({"path": "res://resources/enemies/heavy_ranger.tres", "data": null, "frac": 0.1, "id": &"heavy_ranger"})
-		if eff_tier >= 2:
-			pool_def.append({"path": "res://resources/enemies/tracker.tres",    "data": null, "frac": 0.1, "id": &"tracker"})
-			pool_def.append({"path": "res://resources/enemies/sentinel.tres",   "data": null, "frac": 0.1, "id": &"sentinel"})
-			pool_def.append({"path": "res://resources/enemies/acid_ranger.tres","data": null, "frac": 0.1, "id": &"acid_ranger"})
-		if eff_tier >= 3:
-			pool_def.append({"path": "res://resources/enemies/brute.tres",      "data": null, "frac": 0.1, "id": &"brute"})
-		if eff_tier >= 4:
-			pool_def.append({"path": "res://resources/enemies/corruptor.tres",  "data": null, "frac": 0.1, "id": &"corruptor"})
-		if eff_tier >= 6:
-			pool_def.append({"path": "res://resources/enemies/ranger.tres",     "data": null, "frac": 0.1, "id": &"ranger"})
+		# All other enemy types are gated by the player's current power level
+		# (EnemyData.min_power_level).  Higher power → tougher enemy roster.
+		var tier_enemy_paths: Array[Dictionary] = [
+			{"path": "res://resources/enemies/sniper.tres",       "id": &"sniper",        "frac": 0.10},
+			{"path": "res://resources/enemies/heavy_ranger.tres", "id": &"heavy_ranger",  "frac": 0.10},
+			{"path": "res://resources/enemies/shielded_grunt.tres","id": &"shielded_grunt","frac": 0.08},
+			{"path": "res://resources/enemies/tracker.tres",      "id": &"tracker",       "frac": 0.10},
+			{"path": "res://resources/enemies/sentinel.tres",     "id": &"sentinel",      "frac": 0.08},
+			{"path": "res://resources/enemies/acid_ranger.tres",  "id": &"acid_ranger",   "frac": 0.10},
+			{"path": "res://resources/enemies/bomber.tres",       "id": &"bomber",        "frac": 0.08},
+			{"path": "res://resources/enemies/berserker.tres",    "id": &"berserker",     "frac": 0.08},
+			{"path": "res://resources/enemies/brute.tres",        "id": &"brute",         "frac": 0.10},
+			{"path": "res://resources/enemies/phantom.tres",      "id": &"phantom",       "frac": 0.08},
+			{"path": "res://resources/enemies/life_stealer.tres", "id": &"life_stealer",  "frac": 0.08},
+			{"path": "res://resources/enemies/corruptor.tres",    "id": &"corruptor",     "frac": 0.10},
+			{"path": "res://resources/enemies/extreme_sniper.tres","id": &"extreme_sniper","frac": 0.08},
+			{"path": "res://resources/enemies/ranger.tres",       "id": &"ranger",        "frac": 0.10},
+		]
+		for ep in tier_enemy_paths:
+			if not ResourceLoader.exists(ep["path"]):
+				continue
+			var edata: EnemyData = ResourceLoader.load(ep["path"])
+			if player_pl >= edata.min_power_level:
+				pool_def.append({"path": "", "data": edata, "frac": ep["frac"], "id": ep["id"]})
 
 		# Compute total weight (base fraction + bias bonus)
 		var total_weight: float = 0.0
@@ -740,10 +746,7 @@ func _generate_procedural_wave(wave_idx: int) -> WaveData:
 			var e: Dictionary = pool_def[i]
 			var edata: EnemyData = e["data"]
 			if edata == null:
-				if ResourceLoader.exists(e["path"]):
-					edata = ResourceLoader.load(e["path"])
-				else:
-					continue
+				continue
 			var w: float = e["frac"] + (bias.get(e["id"], 0.0) as float)
 			var count: int = maxi(1, int(total_enemies * w / total_weight))
 			wave.enemy_pool.append(edata)

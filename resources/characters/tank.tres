@@ -20,6 +20,6 @@ excluded_upgrades = [&"afterburner", &"xp_surge", &"singularity_core", &"warlord
 ship_color = Color(0.7, 0.3, 1.0, 1.0)
 hp_regen = 0.85
 weapon_class_bonuses = {2: 0.25, 3: 0.35, 4: 0.35, 6: 0.25, 5: 0.15, 0: -0.35, 1: -0.35}
-upgrade_efficiency = {1: 0.35, 23: 0.25, 4: 0.50}
+upgrade_efficiency = {1: 0.18, 23: 0.10, 4: 0.28}
 damage_block_chance = 0.20
 on_kill_heal = 12.0

@@ -43,3 +43,8 @@ enum AIType {
 
 # When true, projectiles fired by this enemy can be shot down by the player
 @export var fires_interceptable_missiles: bool = false
+
+## Minimum player power level required before this enemy type can appear in a wave pool.
+## Power level 1 = always available.  Set higher for enemies that require the player
+## to have meaningful upgrades before they are a fair challenge.
+@export var min_power_level: int = 1

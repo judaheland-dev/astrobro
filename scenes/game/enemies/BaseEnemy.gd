@@ -255,7 +255,7 @@ func _fire_copier_weapons(target: Node2D, delta: float) -> void:
 			var proj := _build_copier_projectile(wdata)
 			get_tree().current_scene.add_child(proj)
 			proj.global_position = port_world
-			proj.setup(dir, entry["damage"], entry["projectile_speed"], entry["range"], 0)
+			proj.setup(dir, entry["damage"] * 0.75, entry["projectile_speed"], entry["range"], 0)
 			proj.register_targets(_player_targets)
 		_fire_sfx()
 
@@ -412,6 +412,8 @@ func _chase(target: Node2D, _delta: float) -> void:
 		sprite.rotation = velocity.angle() - PI * 0.5
 
 func _attack_contact(target: Node) -> void:
+	if enemy_data and enemy_data.ai_type == EnemyData.AIType.EXPLODER:
+		return
 	if _contact_timer <= 0.0 and target.has_method("take_damage"):
 		var effective := contact_damage
 		if target.has_method("reduce_contact_damage"):
@@ -811,7 +813,7 @@ func _build_projectile(spr_path: String, color_fallback: Color) -> BaseProjectil
 func _launch_projectile(proj: BaseProjectile, dir: Vector2, dmg: float, spd: float, rng: float) -> void:
 	get_tree().current_scene.add_child(proj)
 	proj.global_position = global_position
-	proj.setup(dir, dmg, spd, rng, 0)
+	proj.setup(dir, dmg * 0.75, spd, rng, 0)
 	proj.register_targets(_player_targets)
 
 func _fire_sfx() -> void:

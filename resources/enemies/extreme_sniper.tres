@@ -37,3 +37,4 @@ coin_drop_amount = 10
 sprite = ExtResource("4")
 death_sfx = ExtResource("3")
 ranged_attack = SubResource("ra_1")
+min_power_level = 71

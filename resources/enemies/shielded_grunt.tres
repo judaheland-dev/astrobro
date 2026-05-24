@@ -22,3 +22,4 @@ death_sfx = ExtResource("2")
 shield_max = 40.0
 shield_regen_rate = 10.0
 shield_regen_delay = 4.0
+min_power_level = 16

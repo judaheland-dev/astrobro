@@ -111,7 +111,7 @@ func _ready() -> void:
 
 	_power_bar = ProgressBar.new()
 	_power_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_power_bar.max_value = 8.0
+	_power_bar.max_value = 14.0
 	_power_bar.value = 0.0
 	_power_bar.show_percentage = false
 
@@ -344,6 +344,10 @@ func show_for_players(players: Array, projectile_parent: Node2D, wave_number: in
 	_wave_number = wave_number
 	_current_player_index = 0
 	_reroll_count = 0
+	# Restore each player's carry-over state so locked items persist across waves.
+	# Unlocked slots are filled with fresh offers by _generate_weapon_offers.
+	# Bans are also kept — the player paid scrap for them.
+	# _reset_offer_state() clears everything when a new run begins.
 	_restore_player_state(0)
 	visible = true
 	_show_shop_for_player()
@@ -405,10 +409,10 @@ func _show_shop_for_player() -> void:
 	call_deferred("_restore_focus")
 
 # Returns per-rarity weights [Common, Uncommon, Rare, Epic, Legendary, Mythic]
-func _get_rarity_weights(wave: int) -> Array[float]:
+func _get_rarity_weights(wave: int, power_level: int = 10) -> Array[float]:
 	var t := clampf(float(wave - 1) / 9.0, 0.0, 1.0)
 	var t2 := clampf((float(wave) - 12.0) / 6.0, 0.0, 1.0)
-	var weights: Array[float] = [
+	var wave_weights: Array[float] = [
 		lerpf(60.0, 25.0, t),   # COMMON
 		lerpf(25.0, 28.0, t),   # UNCOMMON
 		lerpf(12.0, 25.0, t),   # RARE
@@ -416,6 +420,13 @@ func _get_rarity_weights(wave: int) -> Array[float]:
 		lerpf(0.0,  5.0,  t),   # LEGENDARY
 		lerpf(0.0,  3.0,  t2),  # MYTHIC
 	]
+	# At low power levels, bias heavily toward commons/uncommons.
+	# p = 0 at PL1 (full low-power bias), p = 1 at PL9+ (pure wave weights).
+	var p := clampf(float(power_level - 1) / 8.0, 0.0, 1.0)
+	var low_weights: Array[float] = [85.0, 14.0, 1.0, 0.0, 0.0, 0.0]
+	var weights: Array[float] = []
+	for i in range(wave_weights.size()):
+		weights.append(lerpf(low_weights[i], wave_weights[i], p))
 	return weights
 
 func _rarity_color(rarity: int) -> Color:
@@ -437,6 +448,25 @@ func _rarity_name(rarity: int) -> String:
 		4: return "LEGENDARY"
 		5: return "MYTHIC"
 		_: return "COMMON"
+
+func _efficiency_grade(power_delta: float, cost: int) -> String:
+	if cost <= 0:
+		return "?"
+	var eff := power_delta / float(cost)
+	if eff >= 0.006: return "S"
+	if eff >= 0.003: return "A"
+	if eff >= 0.0015: return "B"
+	if eff >= 0.0007: return "C"
+	return "D"
+
+func _efficiency_color(grade: String) -> Color:
+	match grade:
+		"S": return Color(0.0,  1.0,  0.9)
+		"A": return Color(0.3,  1.0,  0.4)
+		"B": return Color(1.0,  0.9,  0.1)
+		"C": return Color(1.0,  0.55, 0.1)
+		"D": return Color(1.0,  0.3,  0.3)
+		_:   return Color(0.7,  0.7,  0.7)
 
 func _weighted_sample_weapons(pool: Array[WeaponData], weights: Array[float], count: int) -> Array[WeaponData]:
 	var result: Array[WeaponData] = []
@@ -500,14 +530,14 @@ func _get_weapon_item_weights(pool: Array[WeaponData], rarity_weights: Array[flo
 				base *= 0.15  # other weapons are hard to come by
 		else:
 			# Scale by ship affinity for this weapon class.
-			# A +0.3 bonus ~doubles the weight; a -0.3 penalty halves it.
+			# A +0.25 bonus gives ~4x weight; a -0.5 penalty reduces to ~0.05x.
 			var class_key := int(w.weapon_class)
 			if class_bonuses.has(class_key):
 				var cb := float(class_bonuses[class_key])
 				if cb > 0.0:
-					base *= 1.0 + cb * 4.0   # up to ~3x for +0.5
+					base *= 1.0 + cb * 12.0  # up to ~7x for +0.5
 				elif cb < 0.0:
-					base *= maxf(0.2, 1.0 + cb * 2.0)  # down to 0.2x for -0.5
+					base *= maxf(0.05, 1.0 + cb * 3.0)  # down to 0.05x for -0.5
 		result.append(base)
 	return result
 
@@ -552,7 +582,8 @@ func _generate_weapon_offers(player: Player) -> void:
 	if slots_to_fill.is_empty():
 		return
 	var all_weapons := _load_all_weapons()
-	var weights := _get_rarity_weights(_wave_number)
+	var _pl_w1 := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	var weights := _get_rarity_weights(_wave_number, _pl_w1)
 	var pool: Array[WeaponData] = []
 	for w in all_weapons:
 		if not exclude.has(w) and not _is_weapon_banned(w):
@@ -615,6 +646,21 @@ func _render_shop(player: Player) -> void:
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 5)
 		card.add_child(card_vbox)
+
+		# Efficiency badge — top-left corner of the card
+		var _eff_weapon_delta := PlayerPowerCalculator.weapon_power_delta(wdata, player)
+		var _eff_weapon_grade := _efficiency_grade(_eff_weapon_delta, _weapon_shop_cost(wdata))
+		var _eff_weapon_row := HBoxContainer.new()
+		_eff_weapon_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card_vbox.add_child(_eff_weapon_row)
+		var _eff_weapon_lbl := Label.new()
+		_eff_weapon_lbl.text = "EFF  %s" % _eff_weapon_grade
+		_eff_weapon_lbl.modulate = _efficiency_color(_eff_weapon_grade)
+		_eff_weapon_lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		if font:
+			_eff_weapon_lbl.add_theme_font_override("font", font)
+			_eff_weapon_lbl.add_theme_font_size_override("font_size", 11)
+		_eff_weapon_row.add_child(_eff_weapon_lbl)
 
 		if is_locked:
 			var lock_badge := Label.new()
@@ -1232,7 +1278,8 @@ func _on_skip_pressed() -> void:
 func _generate_module_offers(player: Player) -> void:
 	var all_modules := _load_all_modules()
 	var available := _filter_modules_for_player(all_modules, player)
-	var weights := _get_rarity_weights(_wave_number)
+	var _pl_m1 := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	var weights := _get_rarity_weights(_wave_number, _pl_m1)
 	# Pad arrays to full count
 	while _offered_modules.size() < 3:
 		_offered_modules.append(null)
@@ -1312,6 +1359,21 @@ func _render_modules(player: Player) -> void:
 		var card_vbox := VBoxContainer.new()
 		card_vbox.add_theme_constant_override("separation", 5)
 		card.add_child(card_vbox)
+
+		# Efficiency badge — top-left corner of the card
+		var _eff_mod_delta := PlayerPowerCalculator.module_power_delta(item, player)
+		var _eff_mod_grade := _efficiency_grade(_eff_mod_delta, item.shop_price)
+		var _eff_mod_row := HBoxContainer.new()
+		_eff_mod_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card_vbox.add_child(_eff_mod_row)
+		var _eff_mod_lbl := Label.new()
+		_eff_mod_lbl.text = "EFF  %s" % _eff_mod_grade
+		_eff_mod_lbl.modulate = _efficiency_color(_eff_mod_grade)
+		_eff_mod_lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		if font:
+			_eff_mod_lbl.add_theme_font_override("font", font)
+			_eff_mod_lbl.add_theme_font_size_override("font_size", 11)
+		_eff_mod_row.add_child(_eff_mod_lbl)
 
 		if stat_capped:
 			var cap_badge := Label.new()
@@ -1504,15 +1566,17 @@ func _update_title(player: Player) -> void:
 func _update_power_display(player: Player) -> void:
 	if not is_instance_valid(_power_bar) or not is_instance_valid(_power_level_label):
 		return
+	player.check_and_apply_power_level_bonuses()
 	var score := PlayerPowerCalculator.calc_display_power(player)
 	_power_level_label.text = "Power: %.2f" % score
 	_power_bar.value = score
-	var t := clampf(score / 8.0, 0.0, 1.0)
+	var t := clampf(score / 14.0, 0.0, 1.0)
 	var bar_color := Color(0.18, 0.38, 1.0).lerp(Color(0.72, 0.04, 0.04), t)
 	_power_bar.modulate = bar_color
 
-func _reroll_cost() -> int:
-	return 60 + (_wave_number * 10) + (_reroll_count * 80)
+func _reroll_cost(player: Player) -> int:
+	var power_level := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	return 15 + (power_level * 3) + (_reroll_count * 40)
 
 ## Returns how many free rerolls the player still has from the Evasion upgrade.
 func _evasion_free_rerolls_available(player: Player) -> int:
@@ -1530,7 +1594,7 @@ func _update_reroll_btn(player: Player) -> void:
 		_reroll_btn.text = "Re-roll  [FREE x%d  +%.2f pwr]" % [free_left, next_power]
 		_reroll_btn.disabled = false
 	else:
-		var cost := _reroll_cost()
+		var cost := _reroll_cost(player)
 		_reroll_btn.text = "Re-roll  [%d Scrap]" % cost
 		_reroll_btn.disabled = player.scrap < cost
 
@@ -1547,7 +1611,8 @@ func _replace_weapon_offer(slot_idx: int, player: Player) -> void:
 			filtered.append(w)
 	if filtered.is_empty():
 		filtered = pool
-	var weights := _get_rarity_weights(_wave_number)
+	var _pl_rw := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	var weights := _get_rarity_weights(_wave_number, _pl_rw)
 	var item_weights := _get_weapon_item_weights(filtered, weights, player)
 	var replacement := _weighted_sample_by_item_weight(filtered, item_weights, 1)
 	if replacement.size() > 0:
@@ -1571,7 +1636,8 @@ func _replace_module_offer(slot_idx: int, player: Player) -> void:
 			filtered.append(m)
 	if filtered.is_empty():
 		filtered = pool
-	var weights := _get_rarity_weights(_wave_number)
+	var _pl_rm := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	var weights := _get_rarity_weights(_wave_number, _pl_rm)
 	var preferred_modules: Array[StringName] = player.character_data.preferred_upgrades if player.character_data else []
 	var replacement := _weighted_sample_modules(filtered, weights, 1, preferred_modules)
 	if replacement.size() > 0:
@@ -1654,7 +1720,7 @@ func _on_reroll_pressed() -> void:
 		player.evasion_free_rerolls_used += 1
 		AudioManager.play_ui_click()
 	else:
-		var cost := _reroll_cost()
+		var cost := _reroll_cost(player)
 		if player.scrap < cost:
 			return
 		AudioManager.play_ui_click()
@@ -1670,7 +1736,8 @@ func _on_reroll_pressed() -> void:
 			pool_w.append(w)
 	if pool_w.is_empty():
 		pool_w = all_pool_w
-	var weights := _get_rarity_weights(_wave_number)
+	var _pl_rr := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	var weights := _get_rarity_weights(_wave_number, _pl_rr)
 	for i in range(_offered_weapons.size()):
 		if _locked_weapons[i]:
 			continue
@@ -1945,16 +2012,17 @@ func _populate_stats(player: Player) -> void:
 	var font := GameManager.kenney_font()
 	var base := player.character_data
 
-	# Helper to add a single stat row
-	var _add_row := func(label: String, base_val: float, cur_val: float, fmt: String) -> void:
+	# Helper to add a single stat row. Pass cap_val to show "value / cap".
+	var _add_row := func(label: String, base_val: float, cur_val: float, fmt: String, cap_val: float = INF) -> void:
 		var lbl := Label.new()
 		var cur_str  := fmt % cur_val
+		var cap_str  := (" / " + fmt % cap_val) if cap_val < INF else ""
 		var buffed := cur_val > base_val + 0.001
 		if buffed:
-			lbl.text = "%s: %s  (base: %s)" % [label, cur_str, fmt % base_val]
+			lbl.text = "%s: %s%s  (base: %s)" % [label, cur_str, cap_str, fmt % base_val]
 			lbl.modulate = Color(0.6, 1.0, 0.6)
 		else:
-			lbl.text = "%s: %s" % [label, cur_str]
+			lbl.text = "%s: %s%s" % [label, cur_str, cap_str]
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		if font:
 			lbl.add_theme_font_override("font", font)
@@ -1972,33 +2040,93 @@ func _populate_stats(player: Player) -> void:
 
 	var base_hp   := base.max_health if base else 100.0
 	var base_spd  := base.move_speed if base else 200.0
-	var base_arm  := base.armor if base else 0.0
-	var base_xp   := base.xp_multiplier if base else 1.0
-	var base_coin := base.coin_multiplier if base else 1.0
 
-	# HP shown as cur/max rather than base comparison
+	# HP shown as cur/max rather than base comparison; cap shows the upgrade limit
+	var hp_cap := player._stat_cap("max_health")
+	var hp_cap_str := ("  (cap: %.0f)" % hp_cap) if hp_cap < INF else ""
 	var hp_lbl := Label.new()
 	var hp_buffed := player.max_health > base_hp + 0.001
 	if hp_buffed:
-		hp_lbl.text = "HP: %.0f / %.0f  (base: %.0f)" % [player.current_health, player.max_health, base_hp]
+		hp_lbl.text = "HP: %.0f / %.0f%s  (base: %.0f)" % [player.current_health, player.max_health, hp_cap_str, base_hp]
 		hp_lbl.modulate = Color(0.6, 1.0, 0.6)
 	else:
-		hp_lbl.text = "HP: %.0f / %.0f" % [player.current_health, player.max_health]
+		hp_lbl.text = "HP: %.0f / %.0f%s" % [player.current_health, player.max_health, hp_cap_str]
 	if font:
 		hp_lbl.add_theme_font_override("font", font)
 		hp_lbl.add_theme_font_size_override("font_size", 12)
 	_stats_container.add_child(hp_lbl)
 
-	_add_row.call("Move Spd", base_spd, player.move_speed, "%.0f")
-	_add_row.call("Armor",    base_arm,  player.armor,      "%.1f")
-	_add_row.call("XP Mult",  base_xp,   player.xp_multiplier, "%.2f")
-	_add_row.call("Coin Mult", base_coin, player.coin_multiplier, "%.2f")
-	if player.lifesteal > 0.001:
-		_add_row.call("Lifesteal", 0.0, player.lifesteal, "%.1f%%")
+	# Shield (only if ship has a shield)
+	if player.shield_max > 0.001:
+		var shld_cap := player._stat_cap("shield_max")
+		var shld_cap_str := (" / %.0f" % shld_cap) if shld_cap < INF else (" / %.0f" % player.shield_max)
+		var shld_lbl := Label.new()
+		shld_lbl.text = "Shield: %.0f%s" % [player.current_shield, shld_cap_str]
+		var base_shld := base.shield_max if base else 0.0
+		if player.shield_max > base_shld + 0.001:
+			shld_lbl.modulate = Color(0.6, 1.0, 0.6)
+		if font:
+			shld_lbl.add_theme_font_override("font", font)
+			shld_lbl.add_theme_font_size_override("font_size", 12)
+		_stats_container.add_child(shld_lbl)
+		var base_sregen := base.shield_regen_rate if base else 20.0
+		_add_row.call("Shld Regen", base_sregen, player.shield_regen_rate, "%.0f/s", player._stat_cap("shield_regen_rate"))
+
+	_add_row.call("Move Spd", base_spd, player.move_speed, "%.0f", player._stat_cap("move_speed"))
+
+	if player.armor > 0.001:
+		var base_arm := base.armor if base else 0.0
+		_add_row.call("Armor", base_arm, player.armor, "%.1f", player._stat_cap("armor"))
+
+	if player.hp_regen > 0.001:
+		var base_regen := base.hp_regen if base else 0.35
+		_add_row.call("HP Regen", base_regen, player.hp_regen, "%.2f/s", player._stat_cap("hp_regen"))
+
+	if player.dodge_chance > 0.001:
+		var base_dodge := base.dodge_chance if base else 0.0
+		_add_row.call("Dodge", base_dodge * 100.0, player.dodge_chance * 100.0, "%.0f%%", player._stat_cap("dodge_chance") * 100.0)
+
 	if player.damage_block_chance > 0.001:
-		_add_row.call("Block", 0.0, player.damage_block_chance * 100.0, "%.0f%%")
+		var base_block := base.damage_block_chance if base else 0.0
+		_add_row.call("Block", base_block * 100.0, player.damage_block_chance * 100.0, "%.0f%%", player._stat_cap("damage_block_chance") * 100.0)
+
+	if player.lifesteal > 0.001:
+		var base_ls := base.lifesteal if base else 0.0
+		_add_row.call("Lifesteal", base_ls * 100.0, player.lifesteal * 100.0, "%.0f%%", player._stat_cap("lifesteal") * 100.0)
+
+	if player.on_kill_heal > 0.001:
+		var base_okh := base.on_kill_heal if base else 0.0
+		_add_row.call("On Kill Heal", base_okh, player.on_kill_heal, "%.1f", player._stat_cap("on_kill_heal"))
+
+	if player.crit_chance > 0.001:
+		var base_crit := base.crit_chance if base else 0.0
+		_add_row.call("Crit Chance", base_crit * 100.0, player.crit_chance * 100.0, "%.0f%%", player._stat_cap("crit_chance") * 100.0)
+		var base_cmult := base.crit_multiplier if base else 2.0
+		_add_row.call("Crit Mult", base_cmult, player.crit_multiplier, "%.1fx", player._stat_cap("crit_multiplier"))
+
+	if player.fire_rate_bonus > 0.001:
+		var base_fr := base.fire_rate_bonus if base else 0.0
+		_add_row.call("Fire Rate", base_fr * 100.0, player.fire_rate_bonus * 100.0, "+%.0f%%")
+
+	if player.damage_bonus > 0.001:
+		var base_db := base.damage_bonus if base else 0.0
+		_add_row.call("Damage Bonus", base_db * 100.0, player.damage_bonus * 100.0, "+%.0f%%")
+
+	if absf(player.xp_multiplier - 1.0) > 0.001:
+		var base_xp := base.xp_multiplier if base else 1.0
+		_add_row.call("XP Mult", base_xp, player.xp_multiplier, "%.2f", player._stat_cap("xp_multiplier"))
+
+	if absf(player.coin_multiplier - 1.0) > 0.001:
+		var base_coin := base.coin_multiplier if base else 1.0
+		_add_row.call("Coin Mult", base_coin, player.coin_multiplier, "%.2f", player._stat_cap("coin_multiplier"))
+
 	if player.scrap_bonus_chance > 0.001:
-		_add_row.call("Scrap Bonus", 0.0, player.scrap_bonus_chance * 100.0, "%.0f%%")
+		var base_scrap := base.scrap_bonus_chance if base else 0.0
+		_add_row.call("Scrap Bonus", base_scrap * 100.0, player.scrap_bonus_chance * 100.0, "%.0f%%", player._stat_cap("scrap_bonus_chance") * 100.0)
+
+	if player.emp_radius > 0.001:
+		var base_emp := base.emp_radius if base else 0.0
+		_add_row.call("EMP Radius", base_emp, player.emp_radius, "%.0f")
 
 	# Per-weapon stats
 	for weapon_node in player.weapons:

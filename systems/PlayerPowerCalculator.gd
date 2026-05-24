@@ -64,7 +64,7 @@ const HISTORY_WEIGHT: float = 0.70
 
 # Maximum pressure-score change allowed in a single wave (rate limiter).
 # Prevents a single outlier wave from spiking/cratering difficulty instantly.
-const MAX_PRESSURE_DELTA_PER_WAVE: float = 0.30
+const MAX_PRESSURE_DELTA_PER_WAVE: float = 0.20
 
 # Consecutive waves completed without taking any damage.
 # Used to escalate the perfect-round pressure bonus.
@@ -97,7 +97,7 @@ const PRESSURE_MULT: Dictionary = {
 	GameManager.Difficulty.SUPER_EASY: 0.40,
 	GameManager.Difficulty.EASY:       0.70,
 	GameManager.Difficulty.NORMAL:     1.00,
-	GameManager.Difficulty.HARD:       1.30,
+	GameManager.Difficulty.HARD:       1.15,
 	GameManager.Difficulty.SUPER_HARD: 1.65,
 }
 ## Per-difficulty cap-growth rate multiplier.
@@ -105,7 +105,7 @@ const CAP_GROWTH_MULT: Dictionary = {
 	GameManager.Difficulty.SUPER_EASY: 0.40,
 	GameManager.Difficulty.EASY:       0.65,
 	GameManager.Difficulty.NORMAL:     1.00,
-	GameManager.Difficulty.HARD:       1.35,
+	GameManager.Difficulty.HARD:       1.15,
 	GameManager.Difficulty.SUPER_HARD: 1.70,
 }
 ## Per-difficulty clamp ranges [min, max] for pressure_score.
@@ -113,7 +113,7 @@ const PRESSURE_CLAMP: Dictionary = {
 	GameManager.Difficulty.SUPER_EASY: [0.35, 1.1],
 	GameManager.Difficulty.EASY:       [0.45, 1.4],
 	GameManager.Difficulty.NORMAL:     [0.55, 2.2],
-	GameManager.Difficulty.HARD:       [0.70, 2.8],
+	GameManager.Difficulty.HARD:       [0.65, 2.4],
 	GameManager.Difficulty.SUPER_HARD: [0.85, 3.5],
 }
 
@@ -305,7 +305,6 @@ func _player_loadout_score(p: Player) -> float:
 		var wd: WeaponData = w.get("weapon_data")
 		if wd == null:
 			continue
-		weapon_count += 1
 		var dmg: float   = w.get("damage") if w.get("damage") else wd.damage
 		var rate: float  = w.get("fire_rate") if w.get("fire_rate") else wd.fire_rate
 		var count: int   = wd.projectile_count
@@ -317,7 +316,7 @@ func _player_loadout_score(p: Player) -> float:
 		var dps_mult: float = 0.40 if is_mine else 1.0
 		total_dps += dmg * rate * count * tier_bonus * dps_mult
 		if not is_mine:
-			weapon_count += 1
+			weapon_count += 1  # only non-mine weapons count toward the slot bonus
 			if wd.aoe_radius > 0.0:
 				has_aoe = true
 		match wd.ammo_type:
@@ -327,19 +326,19 @@ func _player_loadout_score(p: Player) -> float:
 			has_spread = true
 
 	# Normalise DPS: 100 DPS ≈ baseline 1.0
-	s += clampf((total_dps - 100.0) / 200.0, -0.3, 1.0)
+	s += clampf((total_dps - 100.0) / 380.0, -0.3, 0.65)
 
-	# Multi-weapon bonus (traps already excluded from weapon_count above)
-	s += (weapon_count - 1) * 0.08
+	# Multi-weapon bonus (traps excluded from weapon_count above; count already correct)
+	s += (weapon_count - 1) * 0.06
 
 	# Diversity bonus (mixed types are stronger overall)
 	var type_count: int = (1 if has_aoe else 0) + (1 if has_laser else 0) + (1 if has_rocket else 0) + (1 if has_spread else 0)
 	s += type_count * 0.05
 
 	# ── Defensive stats ──────────────────────────────────────────────────────
-	# HP headroom above baseline 100
-	var max_hp: float = p.max_health + p.shield_max
-	s += clampf((max_hp - 100.0) / 300.0, -0.1, 0.4)
+	# HP headroom above baseline 100 (power_level_bonus_hp excluded — no feedback loop)
+	var max_hp: float = p.max_health + p.shield_max - p.power_level_bonus_hp
+	s += clampf((max_hp - 100.0) / 400.0, -0.1, 0.30)
 
 	# Armor (each point reduces damage; 8 armor is heavy)
 	s += clampf(p.armor / 20.0, 0.0, 0.3)
@@ -348,15 +347,16 @@ func _player_loadout_score(p: Player) -> float:
 	s += clampf(p.lifesteal * 2.0, 0.0, 0.2)
 
 	# ── Speed ────────────────────────────────────────────────────────────────
-	s += clampf((p.move_speed - 200.0) / 400.0, -0.05, 0.15)
+	# power_level_bonus_speed excluded — no feedback loop
+	s += clampf((p.move_speed - p.power_level_bonus_speed - 200.0) / 400.0, -0.05, 0.15)
 
 	# ── Level ────────────────────────────────────────────────────────────────
-	s += clampf((p.level - 1) * 0.04, 0.0, 0.5)
+	s += clampf((p.level - 1) * 0.025, 0.0, 0.35)
 
 	# ── Critical hits ────────────────────────────────────────────────────────
 	# Effective crit multiplier: expected DPS bonus = crit_chance * (mult - 1)
 	var eff_crit: float = p.crit_chance * (p.crit_multiplier - 1.0)
-	s += clampf(eff_crit * 0.50, 0.0, 0.35)
+	s += clampf(eff_crit * 0.35, 0.0, 0.20)
 
 	# ── Evasion ──────────────────────────────────────────────────────────────
 	s += clampf(p.dodge_chance * 0.50, 0.0, 0.25)
@@ -378,8 +378,8 @@ func _player_loadout_score(p: Player) -> float:
 	s += clampf(p.damage_block_chance * 0.20, 0.0, 0.15)
 
 	# ── Upgrade breadth ──────────────────────────────────────────────────────
-	# Each upgrade is a synergy node; depth of 15 upgrades ≈ +0.30
-	s += clampf(p.acquired_upgrades.size() * 0.02, 0.0, 0.30)
+	# Each upgrade is a synergy node; depth of 20 upgrades ≈ +0.24
+	s += clampf(p.acquired_upgrades.size() * 0.012, 0.0, 0.24)
 
 	return maxf(s, 0.4)
 
@@ -507,17 +507,27 @@ func _update_enemy_bias(loadout_score: float) -> void:
 ## Step between Power Level 1→2 (in raw score units). Each subsequent level
 ## costs POWER_LEVEL_GROWTH× more than the previous, so higher levels require
 ## progressively more power to reach.
-const POWER_LEVEL_STEP: float = 0.10
-## Per-level cost growth factor. 1.045 = each level costs 4.5% more than the last.
-## Shallower than before so all 30 levels are reachable in normal play.
-const POWER_LEVEL_GROWTH: float = 1.045
+## Calibrated for 100 levels:
+##   Lv 1  = 0.70  (baseline – any fresh player; weak chars floored to 0.4 → fallback Lv 1)
+##   Lv 15 ≈ 1.21  (a couple of weapons acquired)
+##   Lv 26 ≈ 1.76  (decent mid-game loadout)
+##   Lv 41 ≈ 2.80  (strong loadout on Normal)
+##   Lv 61 ≈ 4.94  (near practical max on Normal difficulty)
+##   Lv 86 ≈ 9.65  (requires Super Hard + excellent play)
+##   Lv 93 ≈ 11.59 (hard)
+##   Lv 99 ≈ 13.53 (super hard)
+##   Lv 100 ≈ 13.88 (impossible)
+const POWER_LEVEL_STEP: float = 0.031
+## Per-level cost growth factor. 1.025 = each level costs 2.5% more than the last.
+## Gentle early curve keeps low levels easy; compound growth makes 86-100 unreachable.
+const POWER_LEVEL_GROWTH: float = 1.025
 ## Raw score at which Power Level 1 begins (≈ a fresh player with 1 weak weapon).
 const POWER_LEVEL_BASE: float = 0.70
 ## Maximum displayed power level.
-const POWER_LEVEL_MAX: int = 30
+const POWER_LEVEL_MAX: int = 100
 ## Pressure-score bonus applied when a wave is completed without taking any damage.
 ## Kept as a dedicated constant so it reads clearly at the call site.
-const PERFECT_ROUND_PRESSURE_BONUS: float = 0.18
+const PERFECT_ROUND_PRESSURE_BONUS: float = 0.08
 
 ## Comprehensive display power score for a player, scaled by difficulty.
 ## Easier modes dampen the score so the bar levels up more slowly and
@@ -569,10 +579,10 @@ static func weapon_power_delta(wdata: WeaponData, player: Player) -> float:
 	var dps_eff_mult := 0.40 if is_trap else 1.0
 	var added_dps := w_dmg * wdata.fire_rate * wdata.projectile_count * tier_b * dps_eff_mult
 	var new_dps := cur_dps + added_dps
-	var dps_delta := clampf((new_dps - 100.0) / 200.0, -0.3, 1.0) \
-		- clampf((cur_dps - 100.0) / 200.0, -0.3, 1.0)
+	var dps_delta := clampf((new_dps - 100.0) / 380.0, -0.20, 0.75) \
+		- clampf((cur_dps - 100.0) / 380.0, -0.20, 0.75)
 	# Traps don't add a firing-slot bonus; they're supplemental area denial.
-	var count_bonus := 0.0 if is_trap else 0.08
+	var count_bonus := 0.0 if is_trap else 0.06
 	var div_delta := _static_diversity_delta(wdata, player)
 	return maxf(0.0, dps_delta + count_bonus + div_delta) * _difficulty_power_scale()
 
@@ -605,7 +615,7 @@ static func module_power_delta(item: UpgradeData, player: Player) -> float:
 	if dmg_d != 0.0 or fr_d != 0.0:
 		var cur_dps := _static_player_dps(player)
 		var new_dps := _static_player_dps_with_mods(player, dmg_d, fr_d)
-		d += clampf((new_dps - 100.0) / 200.0, -0.3, 1.0) - clampf((cur_dps - 100.0) / 200.0, -0.3, 1.0)
+		d += clampf((new_dps - 100.0) / 380.0, -0.20, 0.75) - clampf((cur_dps - 100.0) / 380.0, -0.20, 0.75)
 	# Crit chance
 	var crit_ch_d := float(item.stat_deltas.get(UpgradeData.StatKey.CRIT_CHANCE, 0.0))
 	if crit_ch_d != 0.0:
@@ -632,11 +642,11 @@ static func module_power_delta(item: UpgradeData, player: Player) -> float:
 	if srr_d != 0.0 and player.shield_max > 0.0:
 		d += clampf((player.shield_regen_rate + srr_d - 20.0) / 60.0 * 0.10, 0.0, 0.10) \
 		   - clampf((player.shield_regen_rate - 20.0) / 60.0 * 0.10, 0.0, 0.10)
-	# Each new upgrade adds upgrade-depth score (+0.02 per upgrade, capped at 0.30)
+	# Each new upgrade adds upgrade-depth score (+0.012 per upgrade, capped at 0.24)
 	# A module purchase adds exactly one upgrade to the list.
 	var upgrades_after: int = player.acquired_upgrades.size() + 1
-	d += clampf(upgrades_after * 0.02, 0.0, 0.30) \
-	   - clampf(player.acquired_upgrades.size() * 0.02, 0.0, 0.30)
+	d += clampf(upgrades_after * 0.012, 0.0, 0.24) \
+	   - clampf(player.acquired_upgrades.size() * 0.012, 0.0, 0.24)
 	return maxf(0.0, d) * _difficulty_power_scale()
 
 # ── Private static helpers ────────────────────────────────────────────────────
@@ -655,7 +665,6 @@ static func _static_loadout_score(p: Player) -> float:
 		var wd: WeaponData = w.get("weapon_data")
 		if wd == null:
 			continue
-		weapon_count += 1
 		var dmg: float  = w.get("damage") if w.get("damage") else wd.damage
 		var rate: float = w.get("fire_rate") if w.get("fire_rate") else wd.fire_rate
 		var cnt: int    = wd.projectile_count
@@ -672,16 +681,17 @@ static func _static_loadout_score(p: Player) -> float:
 			WeaponData.AmmoType.ROCKET: has_rocket = true
 		if wd.weapon_class == WeaponData.WeaponClass.SPREAD:
 			has_spread = true
-	s += clampf((total_dps - 100.0) / 200.0, -0.3, 1.0)
-	s += (weapon_count - 1) * 0.08
+	s += clampf((total_dps - 100.0) / 380.0, -0.20, 0.75)
+	s += (weapon_count - 1) * 0.06
 	var type_count: int = (1 if has_aoe else 0) + (1 if has_laser else 0) \
 		+ (1 if has_rocket else 0) + (1 if has_spread else 0)
 	s += type_count * 0.05
-	var max_hp: float = p.max_health + p.shield_max
+	# power_level_bonus_hp / power_level_bonus_speed excluded — no feedback loop
+	var max_hp: float = p.max_health + p.shield_max - p.power_level_bonus_hp
 	s += clampf((max_hp - 100.0) / 300.0, -0.1, 0.4)
 	s += clampf(p.armor / 20.0, 0.0, 0.3)
 	s += clampf(p.lifesteal * 2.0, 0.0, 0.2)
-	s += clampf((p.move_speed - 200.0) / 400.0, -0.05, 0.15)
+	s += clampf((p.move_speed - p.power_level_bonus_speed - 200.0) / 400.0, -0.05, 0.15)
 	s += clampf((p.level - 1) * 0.04, 0.0, 0.5)
 	s += clampf(float(p.xp) / float(maxi(p.xp_threshold, 1)) * 0.04, 0.0, 0.04)
 	# Current scrap wallet: hoarding large amounts = "wealth" = minor power.
@@ -704,7 +714,7 @@ static func _static_loadout_score(p: Player) -> float:
 	# Damage mitigation
 	s += clampf(p.damage_block_chance * 0.20, 0.0, 0.15)
 	# Upgrade breadth
-	s += clampf(p.acquired_upgrades.size() * 0.02, 0.0, 0.30)
+	s += clampf(p.acquired_upgrades.size() * 0.012, 0.0, 0.24)
 	# Flat power bonus accumulated via Evasion free rerolls
 	s += p.flat_power_bonus
 	return maxf(s, 0.4)

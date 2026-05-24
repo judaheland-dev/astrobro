@@ -19,3 +19,4 @@ coin_drop_chance = 0.7
 coin_drop_amount = 10
 sprite = ExtResource("3")
 death_sfx = ExtResource("2")
+min_power_level = 41

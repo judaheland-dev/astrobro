@@ -57,7 +57,6 @@ var _total_picks: int = 0
 
 var _title_label: Label
 var _power_label: Label
-var _alert_label: Label
 var _choices_container: HBoxContainer
 var _continue_button: Button
 var _scrap_label: Label
@@ -106,15 +105,6 @@ func _ready() -> void:
 		_power_label.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(_power_label)
 
-	_alert_label = Label.new()
-	_alert_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_alert_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if title_font:
-		_alert_label.add_theme_font_override("font", title_font)
-		_alert_label.add_theme_font_size_override("font_size", 16)
-	_alert_label.visible = false
-	vbox.add_child(_alert_label)
-
 	_continue_button = Button.new()
 	_continue_button.text = "Skip"
 	_continue_button.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -157,24 +147,7 @@ func show_for_players(players: Array[Player], wave_number: int, wave_manager: Wa
 		_close()
 		return
 	visible = true
-	_update_dominance_alert()
 	_show_level_up_for_player()
-
-func _update_dominance_alert() -> void:
-	if _wave_manager == null or _wave_manager.power_calculator == null:
-		_alert_label.visible = false
-		return
-	var dom := _wave_manager.power_calculator.dominance_score
-	if dom >= PlayerPowerCalculator.DOMINANCE_EXTREME:
-		_alert_label.text = "!! EXTREME POWER — enemy surge incoming next wave !!"
-		_alert_label.modulate = Color(1.0, 0.2, 0.2)
-		_alert_label.visible = true
-	elif dom >= PlayerPowerCalculator.DOMINANCE_STRONG:
-		_alert_label.text = "WARNING: High power detected — counter-enemies incoming"
-		_alert_label.modulate = Color(1.0, 0.55, 0.05)
-		_alert_label.visible = true
-	else:
-		_alert_label.visible = false
 
 func _show_level_up_for_player() -> void:
 	# Advance past any players who earned zero level-ups this wave.
@@ -432,11 +405,9 @@ func _load_all_upgrades() -> Array[UpgradeData]:
 			fname = dir.get_next()
 	return upgrades
 
-func _reroll_base_cost() -> int:
-	return 15 + (_wave_number - 1) * 5
-
-func _reroll_cost() -> int:
-	return _reroll_base_cost() + _reroll_count * 20
+func _reroll_cost(player: Player) -> int:
+	var power_level := PlayerPowerCalculator.power_to_level(PlayerPowerCalculator.calc_display_power(player))
+	return 15 + (power_level - 1) * 2 + _reroll_count * 20
 
 func _update_scrap_display(player: Player) -> void:
 	if is_instance_valid(_scrap_label):
@@ -445,7 +416,7 @@ func _update_scrap_display(player: Player) -> void:
 func _update_reroll_btn(player: Player) -> void:
 	if not is_instance_valid(_reroll_btn):
 		return
-	var cost := _reroll_cost()
+	var cost := _reroll_cost(player)
 	_reroll_btn.text = "Reroll Choices  [%d Scrap]" % cost
 	_reroll_btn.disabled = player.scrap < cost
 
@@ -453,7 +424,7 @@ func _on_reroll_pressed() -> void:
 	if _current_player_index >= _players.size():
 		return
 	var player := _players[_current_player_index]
-	var cost := _reroll_cost()
+	var cost := _reroll_cost(player)
 	if player.scrap < cost:
 		return
 	AudioManager.play_ui_click()

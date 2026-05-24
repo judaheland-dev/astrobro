@@ -51,6 +51,11 @@ var flat_power_bonus: float = 0.0
 # How many free rerolls have been consumed this run via the Evasion upgrade
 var evasion_free_rerolls_used: int = 0
 
+# Stats granted by power level progression (excluded from power score to prevent feedback loops)
+var power_level_bonus_hp: float = 0.0
+var power_level_bonus_speed: float = 0.0
+var _last_power_level: int = 0
+
 # Cross-stat synergy tracking (populated by apply_upgrade when synergy_scale > 0)
 var _synergy_upgrades: Array[UpgradeData] = []
 var _synergy_applied: Array[float] = []  # parallel: last applied bonus delta for each entry
@@ -568,12 +573,62 @@ func gain_xp(amount: int) -> void:
 		if ResourceLoader.exists(sfx):
 			AudioManager.play_sfx(load(sfx), 0.0, 1.0)
 
+## Called each time the power score is refreshed (from HUD and ShopUI).
+## Awards +1 HP and tiny stat bumps for each power level gained since last check.
+## Bonuses are tracked in power_level_bonus_hp / power_level_bonus_speed and excluded
+## from the power score so there is no feedback loop.
+func check_and_apply_power_level_bonuses() -> void:
+	var score := PlayerPowerCalculator.calc_display_power(self)
+	var new_level := PlayerPowerCalculator.power_to_level(score)
+	if _last_power_level == 0:
+		_last_power_level = new_level
+		return
+	var levels_gained := new_level - _last_power_level
+	if levels_gained <= 0:
+		return
+	_last_power_level = new_level
+	for _i in levels_gained:
+		max_health += 1.0
+		power_level_bonus_hp += 1.0
+		current_health = minf(current_health + 1.0, max_health)
+		move_speed += 0.5
+		power_level_bonus_speed += 0.5
+		hp_regen += 0.01
+	health_changed.emit(current_health, max_health)
+
 # --- Upgrades ---
 
 func _stat_cap(stat_name: String) -> float:
 	if character_data and character_data.stat_caps.has(stat_name):
 		return float(character_data.stat_caps[stat_name])
 	return STAT_CAPS_DEFAULT.get(stat_name, INF)
+
+## Returns how full (0–1) a stat currently is relative to its cap.
+## Used to make upgrade_efficiency only bite near the cap rather than from the start.
+func _stat_fill(key: UpgradeData.StatKey) -> float:
+	var current: float
+	var cap_name: String
+	match key:
+		UpgradeData.StatKey.MAX_HEALTH:         current = max_health;         cap_name = "max_health"
+		UpgradeData.StatKey.MOVE_SPEED:         current = move_speed;         cap_name = "move_speed"
+		UpgradeData.StatKey.ARMOR:              current = armor;              cap_name = "armor"
+		UpgradeData.StatKey.XP_MULTIPLIER:      current = xp_multiplier;      cap_name = "xp_multiplier"
+		UpgradeData.StatKey.COIN_MULTIPLIER:    current = coin_multiplier;    cap_name = "coin_multiplier"
+		UpgradeData.StatKey.LIFESTEAL:          current = lifesteal;          cap_name = "lifesteal"
+		UpgradeData.StatKey.DAMAGE_BLOCK_CHANCE:current = damage_block_chance;cap_name = "damage_block_chance"
+		UpgradeData.StatKey.SCRAP_BONUS_CHANCE: current = scrap_bonus_chance; cap_name = "scrap_bonus_chance"
+		UpgradeData.StatKey.SHIELD_MAX:         current = shield_max;         cap_name = "shield_max"
+		UpgradeData.StatKey.SHIELD_REGEN_RATE:  current = shield_regen_rate;  cap_name = "shield_regen_rate"
+		UpgradeData.StatKey.CRIT_CHANCE:        current = crit_chance;        cap_name = "crit_chance"
+		UpgradeData.StatKey.CRIT_MULTIPLIER:    current = crit_multiplier;    cap_name = "crit_multiplier"
+		UpgradeData.StatKey.DODGE_CHANCE:       current = dodge_chance;       cap_name = "dodge_chance"
+		UpgradeData.StatKey.ON_KILL_HEAL:       current = on_kill_heal;       cap_name = "on_kill_heal"
+		UpgradeData.StatKey.HP_REGEN:           current = hp_regen;           cap_name = "hp_regen"
+		_: return 0.0  # weapon stats and unknowns: no fill-based penalty
+	var cap_val := _stat_cap(cap_name)
+	if cap_val <= 0.0 or cap_val == INF:
+		return 0.0
+	return clampf(current / cap_val, 0.0, 1.0)
 
 func apply_upgrade(data: UpgradeData) -> void:
 	# Scale numeric upgrade effectiveness based on difficulty.
@@ -593,8 +648,13 @@ func apply_upgrade(data: UpgradeData) -> void:
 		var delta: float = data.stat_deltas[key]
 		if key not in _DISCRETE_KEYS:
 			delta *= _upgrade_mult
-			if character_data:
-				delta *= float(character_data.upgrade_efficiency.get(key, 1.0))
+			if character_data and character_data.upgrade_efficiency.has(key):
+				# Efficiency penalty scales with how full the stat already is.
+				# At fill=0 (empty stat) the full delta applies; at fill=1 (at cap)
+				# the configured efficiency value is the multiplier.
+				var base_eff: float = float(character_data.upgrade_efficiency[key])
+				var fill: float = _stat_fill(key)
+				delta *= lerpf(1.0, base_eff, fill)
 		# Mythic Neutralizer: chance to negate debuff stats
 		if delta < 0.0 and no_debuff_chance > 0.0 and randf() < no_debuff_chance:
 			continue

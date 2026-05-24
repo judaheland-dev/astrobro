@@ -191,6 +191,7 @@ func _update_ability(panel: Control, ratio: float) -> void:
 func _update_power(panel: Control, player: Player) -> void:
 	if not is_instance_valid(player):
 		return
+	player.check_and_apply_power_level_bonuses()
 	var score := PlayerPowerCalculator.calc_display_power(player)
 	var lv    := PlayerPowerCalculator.power_to_level(score)
 	var prog  := PlayerPowerCalculator.power_level_progress(score)
